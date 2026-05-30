@@ -66,6 +66,19 @@ inline void desenharLosango(SDL_Renderer* renderizador, SDL_Rect destino, SDL_Co
     SDL_RenderDrawLine(renderizador, destino.x, meioY, centroX, topoY);
 }
 
+inline void desenharContornoLosango(SDL_Renderer* renderizador, SDL_Rect destino, SDL_Color cor) {
+    const int centroX = destino.x + destino.w / 2;
+    const int topoY = destino.y;
+    const int meioY = destino.y + destino.h / 2;
+    const int baseY = destino.y + destino.h;
+
+    definirCor(renderizador, cor);
+    SDL_RenderDrawLine(renderizador, centroX, topoY, destino.x + destino.w, meioY);
+    SDL_RenderDrawLine(renderizador, destino.x + destino.w, meioY, centroX, baseY);
+    SDL_RenderDrawLine(renderizador, centroX, baseY, destino.x, meioY);
+    SDL_RenderDrawLine(renderizador, destino.x, meioY, centroX, topoY);
+}
+
 inline void desenharTexto(
     SDL_Renderer* renderizador,
     TTF_Font* fonte,
@@ -97,17 +110,12 @@ inline void desenharTexto(
 
 inline void desenharFundo(SDL_Renderer* renderizador, SDL_Texture* texturaFundo) {
     SDL_Rect tela{0, 0, Constantes::LARGURA_DA_JANELA, Constantes::ALTURA_DA_JANELA};
-    if (texturaFundo != nullptr) {
-        SDL_RenderCopy(renderizador, texturaFundo, nullptr, &tela);
-        return;
-    }
 
     preencherRetangulo(renderizador, tela, SDL_Color{99, 157, 86, 255});
 
-    SDL_Rect rio{0, 520, Constantes::LARGURA_DA_JANELA, 100};
-    preencherRetangulo(renderizador, rio, SDL_Color{74, 145, 186, 255});
-    preencherRetangulo(renderizador, SDL_Rect{0, 512, Constantes::LARGURA_DA_JANELA, 10}, SDL_Color{124, 181, 118, 255});
-    preencherRetangulo(renderizador, SDL_Rect{0, 620, Constantes::LARGURA_DA_JANELA, 10}, SDL_Color{124, 181, 118, 255});
+    if (texturaFundo != nullptr) {
+        SDL_RenderCopy(renderizador, texturaFundo, nullptr, &tela);
+    }
 }
 
 inline void desenharCanteiro(
@@ -119,6 +127,9 @@ inline void desenharCanteiro(
 ) {
     if (textura != nullptr) {
         SDL_RenderCopy(renderizador, textura, nullptr, &destino);
+        if (destacado) {
+            desenharContornoLosango(renderizador, destino, SDL_Color{255, 244, 169, 255});
+        }
     } else {
         SDL_Color borda = destacado ? SDL_Color{255, 244, 169, 255} : SDL_Color{79, 56, 38, 255};
         desenharLosango(renderizador, destino, corParaEstado(canteiro.estadoVisualAtual), borda);
@@ -216,6 +227,14 @@ inline void desenharIconePresente(SDL_Renderer* renderizador, SDL_Rect area, SDL
     preencherRetangulo(renderizador, SDL_Rect{area.x + 30, area.y + 13, 7, 7}, cor);
 }
 
+inline void desenharIconeRemoverTerra(SDL_Renderer* renderizador, SDL_Rect area, SDL_Color cor) {
+    definirCor(renderizador, cor);
+    SDL_RenderDrawLine(renderizador, area.x + 15, area.y + 15, area.x + 39, area.y + 39);
+    SDL_RenderDrawLine(renderizador, area.x + 39, area.y + 15, area.x + 15, area.y + 39);
+    SDL_Rect quadrado{area.x + 19, area.y + 19, 16, 16};
+    SDL_RenderDrawRect(renderizador, &quadrado);
+}
+
 inline void desenharIconeEngrenagem(SDL_Renderer* renderizador, SDL_Rect area, SDL_Color cor) {
     definirCor(renderizador, cor);
     const int centroX = area.x + area.w / 2;
@@ -272,6 +291,9 @@ inline void desenharBotaoFerramenta(
         case FERRAMENTA_ENXADA:
             desenharIconeEnxada(renderizador, area, corIcone);
             break;
+        case FERRAMENTA_REMOVER_TERRA:
+            desenharIconeRemoverTerra(renderizador, area, corIcone);
+            break;
         case FERRAMENTA_SEMENTE:
             desenharIconeSemente(renderizador, area, corIcone);
             break;
@@ -283,27 +305,22 @@ inline void desenharBotaoFerramenta(
 
 inline void desenharInterface(
     SDL_Renderer* renderizador,
-    TTF_Font* fonte,
-    int moedas,
-    int experiencia,
-    int nivel,
     FerramentaSelecionada ferramentaSelecionada,
-    AreaDeInteracao botaoConfiguracao,
     AreaDeInteracao botaoCursor,
     AreaDeInteracao botaoEnxada,
+    AreaDeInteracao botaoRemoverTerra,
     AreaDeInteracao botaoSemente,
     AreaDeInteracao botaoPresente
 ) {
-    preencherRetangulo(renderizador, SDL_Rect{0, 0, Constantes::LARGURA_DA_JANELA, 72}, SDL_Color{58, 72, 68, 235});
-    preencherRetangulo(renderizador, SDL_Rect{0, Constantes::ALTURA_DA_JANELA - 84, Constantes::LARGURA_DA_JANELA, 84}, SDL_Color{61, 65, 57, 235});
+    preencherRetangulo(
+        renderizador,
+        SDL_Rect{0, Constantes::ALTURA_DA_JANELA - 84, Constantes::LARGURA_DA_JANELA, 84},
+        SDL_Color{61, 65, 57, 210}
+    );
 
-    desenharTexto(renderizador, fonte, "Moedas: " + std::to_string(moedas), 24, 18, SDL_Color{255, 245, 204, 255});
-    desenharTexto(renderizador, fonte, "XP: " + std::to_string(experiencia), 198, 18, SDL_Color{232, 245, 255, 255});
-    desenharTexto(renderizador, fonte, "Nivel: " + std::to_string(nivel), 314, 18, SDL_Color{230, 255, 224, 255});
-
-    desenharBotaoConfiguracao(renderizador, botaoConfiguracao);
     desenharBotaoFerramenta(renderizador, botaoCursor, FERRAMENTA_CURSOR, ferramentaSelecionada);
     desenharBotaoFerramenta(renderizador, botaoEnxada, FERRAMENTA_ENXADA, ferramentaSelecionada);
+    desenharBotaoFerramenta(renderizador, botaoRemoverTerra, FERRAMENTA_REMOVER_TERRA, ferramentaSelecionada);
     desenharBotaoFerramenta(renderizador, botaoSemente, FERRAMENTA_SEMENTE, ferramentaSelecionada);
     desenharBotaoFerramenta(renderizador, botaoPresente, FERRAMENTA_PRESENTE, ferramentaSelecionada);
 }
@@ -315,6 +332,9 @@ inline void desenharCursorCustomizado(SDL_Renderer* renderizador, int mouseX, in
     switch (ferramenta) {
         case FERRAMENTA_ENXADA:
             desenharIconeEnxada(renderizador, area, cor);
+            break;
+        case FERRAMENTA_REMOVER_TERRA:
+            desenharIconeRemoverTerra(renderizador, area, cor);
             break;
         case FERRAMENTA_SEMENTE:
             desenharIconeSemente(renderizador, area, cor);

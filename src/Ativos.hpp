@@ -6,6 +6,7 @@
 #include <SDL_ttf.h>
 
 #include <filesystem>
+#include <iostream>
 #include <string>
 #include <unordered_map>
 
@@ -31,6 +32,7 @@ public:
 
         SDL_Texture* textura = IMG_LoadTexture(renderizador, chave.c_str());
         if (textura == nullptr) {
+            std::cerr << "Textura nao carregada: " << chave << " | " << IMG_GetError() << '\n';
             texturas[chave] = nullptr;
             return nullptr;
         }
@@ -48,6 +50,7 @@ public:
 
         TTF_Font* fonte = TTF_OpenFont(caminho.string().c_str(), tamanho);
         if (fonte == nullptr) {
+            std::cerr << "Fonte nao carregada: " << caminho.string() << " | " << TTF_GetError() << '\n';
             fontes[chave] = nullptr;
             return nullptr;
         }
@@ -65,6 +68,7 @@ public:
 
         Mix_Chunk* som = Mix_LoadWAV(chave.c_str());
         if (som == nullptr) {
+            std::cerr << "Som nao carregado: " << chave << " | " << Mix_GetError() << '\n';
             sons[chave] = nullptr;
             return nullptr;
         }
@@ -82,6 +86,7 @@ public:
 
         Mix_Music* musica = Mix_LoadMUS(chave.c_str());
         if (musica == nullptr) {
+            std::cerr << "Musica nao carregada: " << chave << " | " << Mix_GetError() << '\n';
             musicas[chave] = nullptr;
             return nullptr;
         }

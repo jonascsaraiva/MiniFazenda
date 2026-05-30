@@ -2,7 +2,10 @@
 
 #include "Constantes.hpp"
 
-#include <array>
+#include <algorithm>
+#include <cstddef>
+#include <string>
+#include <vector>
 
 enum EstadoDoCanteiro {
     ESTADO_TERRA_VAZIA,
@@ -16,6 +19,7 @@ enum EstadoDoCanteiro {
 enum FerramentaSelecionada {
     FERRAMENTA_CURSOR,
     FERRAMENTA_ENXADA,
+    FERRAMENTA_REMOVER_TERRA,
     FERRAMENTA_SEMENTE,
     FERRAMENTA_PRESENTE
 };
@@ -36,19 +40,25 @@ struct DadosDoCanteiro {
     int identificadorDaSemente = -1;
 };
 
+struct TileDeTerra {
+    bool existeNoMapa = false;
+    DadosDoCanteiro canteiro;
+};
+
+struct GradeGlobalDeCanteiros {
+    std::vector<TileDeTerra> tiles;
+    std::vector<PosicaoNaGrade> posicoesDeTilesExistentes;
+
+    GradeGlobalDeCanteiros()
+        : tiles(static_cast<std::size_t>(Constantes::TOTAL_DE_TILES_DA_GRADE_GLOBAL)) {
+    }
+};
+
 struct ConfiguracoesDoLayout {
-    int deslocamentoGradeHorizontal = 520;
-    int deslocamentoGradeVertical = 110;
+    int deslocamentoGradeHorizontal = 576;
+    int deslocamentoGradeVertical = 296;
 
-    int posicaoCasaHorizontal = 855;
-    int posicaoCasaVertical = 170;
-    int tamanhoLarguraCasa = 230;
-    int tamanhoAlturaCasa = 210;
-
-    int posicaoCasinhaHorizontal = 245;
-    int posicaoCasinhaVertical = 420;
-    int tamanhoLarguraCasinha = 130;
-    int tamanhoAlturaCasinha = 110;
+    std::string arquivoBackgroundPrincipal = "background.png";
 };
 
 struct AreaDeInteracao {
@@ -57,9 +67,6 @@ struct AreaDeInteracao {
     int tamanhoBotaoLargura = 0;
     int tamanhoBotaoAltura = 0;
 };
-
-using LinhaDeCanteiros = std::array<DadosDoCanteiro, Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE>;
-using MatrizDeCanteiros = std::array<LinhaDeCanteiros, Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE>;
 
 inline bool verificarCliqueNoBotao(int cliqueMouseHorizontal, int cliqueMouseVertical, AreaDeInteracao limitesDoBotao) {
     const bool colidiuHorizontalmente =
@@ -73,3 +80,85 @@ inline bool verificarCliqueNoBotao(int cliqueMouseHorizontal, int cliqueMouseVer
     return colidiuHorizontalmente && colidiuVerticalmente;
 }
 
+inline bool posicoesDaGradeSaoIguais(PosicaoNaGrade primeira, PosicaoNaGrade segunda) {
+    return primeira.indiceColuna == segunda.indiceColuna &&
+           primeira.indiceLinha == segunda.indiceLinha;
+}
+
+inline bool posicaoEstaDentroDaGradeGlobal(PosicaoNaGrade posicao) {
+    return posicao.indiceColuna >= 0 &&
+           posicao.indiceColuna < Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL &&
+           posicao.indiceLinha >= 0 &&
+           posicao.indiceLinha < Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL;
+}
+
+inline std::size_t calcularIndiceLinearDoTile(PosicaoNaGrade posicao) {
+    return static_cast<std::size_t>(posicao.indiceLinha) *
+           static_cast<std::size_t>(Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL) +
+           static_cast<std::size_t>(posicao.indiceColuna);
+}
+
+inline TileDeTerra* obterTileDaGradeGlobal(GradeGlobalDeCanteiros& grade, PosicaoNaGrade posicao) {
+    if (!posicaoEstaDentroDaGradeGlobal(posicao)) {
+        return nullptr;
+    }
+
+    return &grade.tiles[calcularIndiceLinearDoTile(posicao)];
+}
+
+inline const TileDeTerra* obterTileDaGradeGlobal(const GradeGlobalDeCanteiros& grade, PosicaoNaGrade posicao) {
+    if (!posicaoEstaDentroDaGradeGlobal(posicao)) {
+        return nullptr;
+    }
+
+    return &grade.tiles[calcularIndiceLinearDoTile(posicao)];
+}
+
+inline bool gradeGlobalJaTemTileRegistrado(const GradeGlobalDeCanteiros& grade, PosicaoNaGrade posicao) {
+    return std::any_of(
+        grade.posicoesDeTilesExistentes.begin(),
+        grade.posicoesDeTilesExistentes.end(),
+        [posicao](PosicaoNaGrade posicaoRegistrada) {
+            return posicoesDaGradeSaoIguais(posicaoRegistrada, posicao);
+        }
+    );
+}
+
+inline TileDeTerra* ativarTileNaGradeGlobal(GradeGlobalDeCanteiros& grade, PosicaoNaGrade posicao) {
+    TileDeTerra* tile = obterTileDaGradeGlobal(grade, posicao);
+    if (tile == nullptr) {
+        return nullptr;
+    }
+
+    if (!tile->existeNoMapa) {
+        tile->existeNoMapa = true;
+        tile->canteiro = DadosDoCanteiro{};
+    }
+
+    if (!gradeGlobalJaTemTileRegistrado(grade, posicao)) {
+        grade.posicoesDeTilesExistentes.push_back(posicao);
+    }
+
+    return tile;
+}
+
+inline void removerTileDaGradeGlobal(GradeGlobalDeCanteiros& grade, PosicaoNaGrade posicao) {
+    TileDeTerra* tile = obterTileDaGradeGlobal(grade, posicao);
+    if (tile == nullptr || !tile->existeNoMapa) {
+        return;
+    }
+
+    tile->existeNoMapa = false;
+    tile->canteiro = DadosDoCanteiro{};
+
+    grade.posicoesDeTilesExistentes.erase(
+        std::remove_if(
+            grade.posicoesDeTilesExistentes.begin(),
+            grade.posicoesDeTilesExistentes.end(),
+            [posicao](PosicaoNaGrade posicaoRegistrada) {
+                return posicoesDaGradeSaoIguais(posicaoRegistrada, posicao);
+            }
+        ),
+        grade.posicoesDeTilesExistentes.end()
+    );
+}

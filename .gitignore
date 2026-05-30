@@ -1,3 +1,5 @@
 build/
 build-ucrt/
-
+*.exe
+src/output/Ativos.exe
+src/output/Tipos.exe

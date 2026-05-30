@@ -45,10 +45,45 @@ inline PosicaoNaGrade converterTelaParaGrade(
     return gradeCalculada;
 }
 
-inline bool posicaoEstaDentroDaGrade(PosicaoNaGrade posicao) {
-    return posicao.indiceColuna >= 0 &&
-           posicao.indiceColuna < Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE &&
-           posicao.indiceLinha >= 0 &&
-           posicao.indiceLinha < Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE;
+inline PosicaoNaTela converterGradeGlobalParaTela(
+    PosicaoNaGrade posicaoGlobal,
+    int larguraDoCanteiro,
+    int alturaDoCanteiro,
+    int deslocamentoHorizontal,
+    int deslocamentoVertical
+) {
+    const int colunaLocal = posicaoGlobal.indiceColuna - Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int linhaLocal = posicaoGlobal.indiceLinha - Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+
+    return converterGradeParaTela(
+        colunaLocal,
+        linhaLocal,
+        larguraDoCanteiro,
+        alturaDoCanteiro,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
 }
 
+inline PosicaoNaGrade converterTelaParaGradeGlobal(
+    int posicaoMouseHorizontal,
+    int posicaoMouseVertical,
+    int larguraDoCanteiro,
+    int alturaDoCanteiro,
+    int deslocamentoHorizontal,
+    int deslocamentoVertical
+) {
+    const PosicaoNaGrade posicaoLocal = converterTelaParaGrade(
+        posicaoMouseHorizontal,
+        posicaoMouseVertical,
+        larguraDoCanteiro,
+        alturaDoCanteiro,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
+
+    return PosicaoNaGrade{
+        Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceColuna,
+        Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceLinha
+    };
+}

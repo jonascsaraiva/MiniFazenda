@@ -22,13 +22,29 @@ inline std::string removerEspacosDasBordas(std::string texto) {
     return texto;
 }
 
-inline void aplicarValorSeExistir(
-    const std::unordered_map<std::string, int>& valores,
+inline void aplicarValorInteiroSeExistir(
+    const std::unordered_map<std::string, std::string>& valores,
     const std::string& chave,
     int& destino
 ) {
     const auto iterador = valores.find(chave);
-    if (iterador != valores.end()) {
+    if (iterador == valores.end()) {
+        return;
+    }
+
+    try {
+        destino = std::stoi(iterador->second);
+    } catch (const std::exception&) {
+    }
+}
+
+inline void aplicarValorTextoSeExistir(
+    const std::unordered_map<std::string, std::string>& valores,
+    const std::string& chave,
+    std::string& destino
+) {
+    const auto iterador = valores.find(chave);
+    if (iterador != valores.end() && !iterador->second.empty()) {
         destino = iterador->second;
     }
 }
@@ -42,7 +58,7 @@ inline bool carregarConfiguracoesDoLayout(
         return false;
     }
 
-    std::unordered_map<std::string, int> valores;
+    std::unordered_map<std::string, std::string> valores;
     std::string linha;
 
     while (std::getline(arquivo, linha)) {
@@ -67,22 +83,12 @@ inline bool carregarConfiguracoesDoLayout(
             continue;
         }
 
-        try {
-            valores[chave] = std::stoi(valorEmTexto);
-        } catch (const std::exception&) {
-        }
+        valores[chave] = valorEmTexto;
     }
 
-    aplicarValorSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.deslocamentoGradeHorizontal);
-    aplicarValorSeExistir(valores, "deslocamentoGradeVertical", configuracoes.deslocamentoGradeVertical);
-    aplicarValorSeExistir(valores, "posicaoCasaHorizontal", configuracoes.posicaoCasaHorizontal);
-    aplicarValorSeExistir(valores, "posicaoCasaVertical", configuracoes.posicaoCasaVertical);
-    aplicarValorSeExistir(valores, "tamanhoLarguraCasa", configuracoes.tamanhoLarguraCasa);
-    aplicarValorSeExistir(valores, "tamanhoAlturaCasa", configuracoes.tamanhoAlturaCasa);
-    aplicarValorSeExistir(valores, "posicaoCasinhaHorizontal", configuracoes.posicaoCasinhaHorizontal);
-    aplicarValorSeExistir(valores, "posicaoCasinhaVertical", configuracoes.posicaoCasinhaVertical);
-    aplicarValorSeExistir(valores, "tamanhoLarguraCasinha", configuracoes.tamanhoLarguraCasinha);
-    aplicarValorSeExistir(valores, "tamanhoAlturaCasinha", configuracoes.tamanhoAlturaCasinha);
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.deslocamentoGradeHorizontal);
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.deslocamentoGradeVertical);
+    aplicarValorTextoSeExistir(valores, "arquivoBackgroundPrincipal", configuracoes.arquivoBackgroundPrincipal);
 
     return true;
 }
