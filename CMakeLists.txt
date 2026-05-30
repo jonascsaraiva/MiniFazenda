@@ -9,6 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 add_executable(MiniFazenda2
     src/Principal.cpp
+    
 )
 
 target_include_directories(MiniFazenda2 PRIVATE src)
