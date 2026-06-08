@@ -87,14 +87,14 @@ inline bool posicoesDaGradeSaoIguais(PosicaoNaGrade primeira, PosicaoNaGrade seg
 
 inline bool posicaoEstaDentroDaGradeGlobal(PosicaoNaGrade posicao) {
     return posicao.indiceColuna >= 0 &&
-           posicao.indiceColuna < Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL &&
+           posicao.indiceColuna < Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA &&
            posicao.indiceLinha >= 0 &&
-           posicao.indiceLinha < Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL;
+           posicao.indiceLinha < Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA;
 }
 
 inline std::size_t calcularIndiceLinearDoTile(PosicaoNaGrade posicao) {
     return static_cast<std::size_t>(posicao.indiceLinha) *
-           static_cast<std::size_t>(Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL) +
+           static_cast<std::size_t>(Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA) +
            static_cast<std::size_t>(posicao.indiceColuna);
 }
 
