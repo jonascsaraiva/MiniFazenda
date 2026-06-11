@@ -49,11 +49,15 @@ inline PosicaoNaTela converterGradeGlobalParaTela(
     PosicaoNaGrade posicaoGlobal,
     int larguraDoCanteiro,
     int alturaDoCanteiro,
-    int deslocamentoHorizontal,
-    int deslocamentoVertical
+    int origemHorizontal,
+    int origemVertical,
+    int cameraOffsetHorizontal,
+    int cameraOffsetVertical
 ) {
     const int colunaLocal = posicaoGlobal.indiceColuna - Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
     const int linhaLocal = posicaoGlobal.indiceLinha - Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int deslocamentoHorizontal = origemHorizontal + cameraOffsetHorizontal;
+    const int deslocamentoVertical = origemVertical + cameraOffsetVertical;
 
     return converterGradeParaTela(
         colunaLocal,
@@ -70,9 +74,13 @@ inline PosicaoNaGrade converterTelaParaGradeGlobal(
     int posicaoMouseVertical,
     int larguraDoCanteiro,
     int alturaDoCanteiro,
-    int deslocamentoHorizontal,
-    int deslocamentoVertical
+    int origemHorizontal,
+    int origemVertical,
+    int cameraOffsetHorizontal,
+    int cameraOffsetVertical
 ) {
+    const int deslocamentoHorizontal = origemHorizontal + cameraOffsetHorizontal;
+    const int deslocamentoVertical = origemVertical + cameraOffsetVertical;
     const PosicaoNaGrade posicaoLocal = converterTelaParaGrade(
         posicaoMouseHorizontal,
         posicaoMouseVertical,

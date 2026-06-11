@@ -86,8 +86,14 @@ inline bool carregarConfiguracoesDoLayout(
         valores[chave] = valorEmTexto;
     }
 
-    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.deslocamentoGradeHorizontal);
-    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.deslocamentoGradeVertical);
+    aplicarValorInteiroSeExistir(valores, "centroVisualBackgroundX", configuracoes.centroVisualBackgroundX);
+    aplicarValorInteiroSeExistir(valores, "centroVisualBackgroundY", configuracoes.centroVisualBackgroundY);
+    configuracoes.origemGradeHorizontal = configuracoes.centroVisualBackgroundX;
+    configuracoes.origemGradeVertical = configuracoes.centroVisualBackgroundY;
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.origemGradeHorizontal);
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.origemGradeVertical);
+    aplicarValorInteiroSeExistir(valores, "origemGradeHorizontal", configuracoes.origemGradeHorizontal);
+    aplicarValorInteiroSeExistir(valores, "origemGradeVertical", configuracoes.origemGradeVertical);
     aplicarValorTextoSeExistir(valores, "arquivoBackgroundPrincipal", configuracoes.arquivoBackgroundPrincipal);
 
     return true;
