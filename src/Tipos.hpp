@@ -55,8 +55,12 @@ struct GradeGlobalDeCanteiros {
 };
 
 struct ConfiguracoesDoLayout {
-    int deslocamentoGradeHorizontal = 576;
-    int deslocamentoGradeVertical = 296;
+    int centroVisualBackgroundX = Constantes::CENTRO_VISUAL_BACKGROUND_X;
+    int centroVisualBackgroundY = Constantes::CENTRO_VISUAL_BACKGROUND_Y;
+    int origemGradeHorizontal = Constantes::CENTRO_VISUAL_BACKGROUND_X;
+    int origemGradeVertical = Constantes::CENTRO_VISUAL_BACKGROUND_Y;
+    int cameraOffsetHorizontal = 0;
+    int cameraOffsetVertical = 0;
 
     std::string arquivoBackgroundPrincipal = "background.png";
 };
@@ -90,6 +94,24 @@ inline bool posicaoEstaDentroDaGradeGlobal(PosicaoNaGrade posicao) {
            posicao.indiceColuna < Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA &&
            posicao.indiceLinha >= 0 &&
            posicao.indiceLinha < Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA;
+}
+
+inline int calcularColunaInicialDaGradeAtual(int tamanhoAtualDoGrid) {
+    return Constantes::COLUNA_CENTRAL_DA_GRADE_GLOBAL - tamanhoAtualDoGrid / 2;
+}
+
+inline int calcularLinhaInicialDaGradeAtual(int tamanhoAtualDoGrid) {
+    return Constantes::LINHA_CENTRAL_DA_GRADE_GLOBAL - tamanhoAtualDoGrid / 2;
+}
+
+inline bool posicaoEstaDentroDaGradeAtual(PosicaoNaGrade posicao, int tamanhoAtualDoGrid) {
+    const int colunaInicial = calcularColunaInicialDaGradeAtual(tamanhoAtualDoGrid);
+    const int linhaInicial = calcularLinhaInicialDaGradeAtual(tamanhoAtualDoGrid);
+
+    return posicao.indiceColuna >= colunaInicial &&
+           posicao.indiceColuna < colunaInicial + tamanhoAtualDoGrid &&
+           posicao.indiceLinha >= linhaInicial &&
+           posicao.indiceLinha < linhaInicial + tamanhoAtualDoGrid;
 }
 
 inline std::size_t calcularIndiceLinearDoTile(PosicaoNaGrade posicao) {

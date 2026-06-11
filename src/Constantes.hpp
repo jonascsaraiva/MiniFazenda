@@ -4,6 +4,12 @@ namespace Constantes {
 
 constexpr int LARGURA_DA_JANELA = 1280;
 constexpr int ALTURA_DA_JANELA = 720;
+
+// Ponto central visual do campo verde no background principal.
+// Permite ajustar a origem visual do fundo sem prender ao centro geométrico da janela.
+constexpr int CENTRO_VISUAL_BACKGROUND_X = 576;
+constexpr int CENTRO_VISUAL_BACKGROUND_Y = 296;
+
 constexpr int TAXA_DE_QUADROS_DESEJADA = 60;
 constexpr int MILISSEGUNDOS_POR_QUADRO = 1000 / TAXA_DE_QUADROS_DESEJADA;
 

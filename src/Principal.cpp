@@ -217,8 +217,12 @@ bool aplicarFerramentaNaGradeGlobal(
     return false;
 }
 
-void avancarCrescimentoDosCanteiros(GradeGlobalDeCanteiros& grade) {
+void avancarCrescimentoDosCanteiros(GradeGlobalDeCanteiros& grade, int tamanhoAtualDoGrid) {
     for (const PosicaoNaGrade& posicao : grade.posicoesDeTilesExistentes) {
+        if (!posicaoEstaDentroDaGradeAtual(posicao, tamanhoAtualDoGrid)) {
+            continue;
+        }
+
         TileDeTerra* tile = obterTileDaGradeGlobal(grade, posicao);
         if (tile == nullptr || !tile->existeNoMapa) {
             continue;
@@ -353,8 +357,17 @@ int main(int, char**) {
         int moedas = 50;
         int experiencia = 0;
         int nivel = 1;
+        int tamanhoAtualDoGrid = Constantes::TAMANHO_INICIAL_GRID;
         int mouseX = Constantes::LARGURA_DA_JANELA / 2;
         int mouseY = Constantes::ALTURA_DA_JANELA / 2;
+        float zoomAtual = 1.0f;
+        bool cameraPanAtivo = false;
+        int cameraPanBotao = 0;
+        int cameraPanUltimoX = 0;
+        int cameraPanUltimoY = 0;
+        Uint32 ultimoMouseMotionTempo = 0;
+        float cameraVelocidadeHorizontal = 0.0f;
+        float cameraVelocidadeVertical = 0.0f;
         float acumuladorDeSegundos = 0.0f;
         Uint32 ticksAnteriores = SDL_GetTicks();
 
@@ -372,6 +385,66 @@ int main(int, char**) {
                 if (evento.type == SDL_MOUSEMOTION) {
                     mouseX = evento.motion.x;
                     mouseY = evento.motion.y;
+
+                    if (cameraPanAtivo) {
+                        const int deltaX = evento.motion.xrel;
+                        const int deltaY = evento.motion.yrel;
+                        configuracoes.cameraOffsetHorizontal += deltaX;
+                        configuracoes.cameraOffsetVertical += deltaY;
+
+                        if (ultimoMouseMotionTempo != 0u && evento.motion.timestamp > ultimoMouseMotionTempo) {
+                            const float tempoDesdeUltimoMovimento =
+                                (evento.motion.timestamp - ultimoMouseMotionTempo) / 1000.0f;
+                            if (tempoDesdeUltimoMovimento > 0.0f) {
+                                cameraVelocidadeHorizontal = deltaX / tempoDesdeUltimoMovimento;
+                                cameraVelocidadeVertical = deltaY / tempoDesdeUltimoMovimento;
+                            }
+                        }
+
+                        ultimoMouseMotionTempo = evento.motion.timestamp;
+                    }
+                }
+
+                if (evento.type == SDL_MOUSEBUTTONDOWN &&
+                    (evento.button.button == SDL_BUTTON_MIDDLE || evento.button.button == SDL_BUTTON_RIGHT)) {
+                    cameraPanAtivo = true;
+                    cameraPanBotao = evento.button.button;
+                    cameraPanUltimoX = evento.button.x;
+                    cameraPanUltimoY = evento.button.y;
+                    cameraVelocidadeHorizontal = 0.0f;
+                    cameraVelocidadeVertical = 0.0f;
+                    ultimoMouseMotionTempo = evento.button.timestamp;
+                }
+
+                if (evento.type == SDL_MOUSEWHEEL) {
+                    int mouseXAtWheel = 0;
+                    int mouseYAtWheel = 0;
+                    SDL_GetMouseState(&mouseXAtWheel, &mouseYAtWheel);
+                    const float escalaAnterior = zoomAtual;
+                    zoomAtual = std::clamp(zoomAtual + evento.wheel.y * 0.1f, 0.5f, 2.0f);
+
+                    if (escalaAnterior != zoomAtual) {
+                        const float fatorEscala = zoomAtual / escalaAnterior;
+                        const float deltaX = static_cast<float>(mouseXAtWheel - configuracoes.origemGradeHorizontal);
+                        const float deltaY = static_cast<float>(mouseYAtWheel - configuracoes.origemGradeVertical);
+                        configuracoes.cameraOffsetHorizontal = static_cast<int>(
+                            configuracoes.cameraOffsetHorizontal + deltaX * (1.0f - fatorEscala)
+                        );
+                        configuracoes.cameraOffsetVertical = static_cast<int>(
+                            configuracoes.cameraOffsetVertical + deltaY * (1.0f - fatorEscala)
+                        );
+                    }
+                }
+
+                if (evento.type == SDL_MOUSEBUTTONUP && cameraPanAtivo &&
+                    evento.button.button == cameraPanBotao) {
+                    cameraPanAtivo = false;
+                    cameraPanBotao = 0;
+                    ultimoMouseMotionTempo = 0;
+                }
+
+                if (evento.type == SDL_MOUSEBUTTONDOWN && evento.button.button == SDL_BUTTON_LEFT && cameraPanAtivo) {
+                    continue;
                 }
 
                 if (evento.type == SDL_KEYDOWN) {
@@ -399,10 +472,12 @@ int main(int, char**) {
                     const PosicaoNaGrade posicaoNaGrade = converterTelaParaGradeGlobal(
                         mouseX,
                         mouseY,
-                        Constantes::LARGURA_DO_CANTEIRO,
-                        Constantes::ALTURA_DO_CANTEIRO,
-                        configuracoes.deslocamentoGradeHorizontal,
-                        configuracoes.deslocamentoGradeVertical
+                        static_cast<int>(Constantes::LARGURA_DO_CANTEIRO * zoomAtual),
+                        static_cast<int>(Constantes::ALTURA_DO_CANTEIRO * zoomAtual),
+                        configuracoes.origemGradeHorizontal,
+                        configuracoes.origemGradeVertical,
+                        configuracoes.cameraOffsetHorizontal,
+                        configuracoes.cameraOffsetVertical
                     );
 
                     if (aplicarFerramentaNaGradeGlobal(grade, posicaoNaGrade, ferramentaSelecionada, moedas, experiencia)) {
@@ -415,26 +490,54 @@ int main(int, char**) {
 
             acumuladorDeSegundos += deltaTime;
             while (acumuladorDeSegundos >= 1.0f) {
-                avancarCrescimentoDosCanteiros(grade);
+                avancarCrescimentoDosCanteiros(grade, tamanhoAtualDoGrid);
                 acumuladorDeSegundos -= 1.0f;
             }
 
-            nivel = 1 + experiencia / 50;
+            if (!cameraPanAtivo && (cameraVelocidadeHorizontal != 0.0f || cameraVelocidadeVertical != 0.0f)) {
+                configuracoes.cameraOffsetHorizontal += static_cast<int>(cameraVelocidadeHorizontal * deltaTime);
+                configuracoes.cameraOffsetVertical += static_cast<int>(cameraVelocidadeVertical * deltaTime);
 
-            const PosicaoNaGrade posicaoRealcada = converterTelaParaGradeGlobal(
-                mouseX,
-                mouseY,
-                Constantes::LARGURA_DO_CANTEIRO,
-                Constantes::ALTURA_DO_CANTEIRO,
-                configuracoes.deslocamentoGradeHorizontal,
-                configuracoes.deslocamentoGradeVertical
-            );
+                const float desaceleracao = 1600.0f;
+                if (cameraVelocidadeHorizontal > 0.0f) {
+                    cameraVelocidadeHorizontal = std::max(0.0f, cameraVelocidadeHorizontal - desaceleracao * deltaTime);
+                } else {
+                    cameraVelocidadeHorizontal = std::min(0.0f, cameraVelocidadeHorizontal + desaceleracao * deltaTime);
+                }
+
+                if (cameraVelocidadeVertical > 0.0f) {
+                    cameraVelocidadeVertical = std::max(0.0f, cameraVelocidadeVertical - desaceleracao * deltaTime);
+                } else {
+                    cameraVelocidadeVertical = std::min(0.0f, cameraVelocidadeVertical + desaceleracao * deltaTime);
+                }
+            }
+
+            nivel = 1 + experiencia / 50;
+            const int larguraRender = static_cast<int>(Constantes::LARGURA_DO_CANTEIRO * zoomAtual);
+            const int alturaRender = static_cast<int>(Constantes::ALTURA_DO_CANTEIRO * zoomAtual);
+
+            const PosicaoNaGrade posicaoRealcada = cameraPanAtivo
+                ? PosicaoNaGrade{-1, -1}
+                : converterTelaParaGradeGlobal(
+                    mouseX,
+                    mouseY,
+                    larguraRender,
+                    alturaRender,
+                    configuracoes.origemGradeHorizontal,
+                    configuracoes.origemGradeVertical,
+                    configuracoes.cameraOffsetHorizontal,
+                    configuracoes.cameraOffsetVertical
+                );
 
             SDL_SetRenderDrawColor(renderizador, 0, 0, 0, 255);
             SDL_RenderClear(renderizador);
             Desenho::desenharFundo(renderizador, texturaFundo);
 
             for (const PosicaoNaGrade& posicaoDoTile : grade.posicoesDeTilesExistentes) {
+                if (!posicaoEstaDentroDaGradeAtual(posicaoDoTile, tamanhoAtualDoGrid)) {
+                    continue;
+                }
+
                 const TileDeTerra* tile = obterTileDaGradeGlobal(grade, posicaoDoTile);
                 if (tile == nullptr || !tile->existeNoMapa) {
                     continue;
@@ -442,17 +545,19 @@ int main(int, char**) {
 
                 const PosicaoNaTela posicaoNaTela = converterGradeGlobalParaTela(
                     posicaoDoTile,
-                    Constantes::LARGURA_DO_CANTEIRO,
-                    Constantes::ALTURA_DO_CANTEIRO,
-                    configuracoes.deslocamentoGradeHorizontal,
-                    configuracoes.deslocamentoGradeVertical
+                    larguraRender,
+                    alturaRender,
+                    configuracoes.origemGradeHorizontal,
+                    configuracoes.origemGradeVertical,
+                    configuracoes.cameraOffsetHorizontal,
+                    configuracoes.cameraOffsetVertical
                 );
 
                 SDL_Rect destino{
                     posicaoNaTela.coordenadaHorizontal,
                     posicaoNaTela.coordenadaVertical,
-                    Constantes::LARGURA_DO_CANTEIRO,
-                    Constantes::ALTURA_DO_CANTEIRO
+                    larguraRender,
+                    alturaRender
                 };
 
                 const bool destacado = posicoesDaGradeSaoIguais(posicaoRealcada, posicaoDoTile);
@@ -466,16 +571,41 @@ int main(int, char**) {
                 );
             }
 
+            const int colunaInicialAtual = calcularColunaInicialDaGradeAtual(tamanhoAtualDoGrid);
+            const int linhaInicialAtual = calcularLinhaInicialDaGradeAtual(tamanhoAtualDoGrid);
+            const PosicaoNaTela posicaoGradeInicial = converterGradeGlobalParaTela(
+                PosicaoNaGrade{colunaInicialAtual, linhaInicialAtual},
+                larguraRender,
+                alturaRender,
+                configuracoes.origemGradeHorizontal,
+                configuracoes.origemGradeVertical,
+                configuracoes.cameraOffsetHorizontal,
+                configuracoes.cameraOffsetVertical
+            );
+
+            Desenho::desenharContornoLosango(
+                renderizador,
+                SDL_Rect{
+                    posicaoGradeInicial.coordenadaHorizontal - (tamanhoAtualDoGrid - 1) * (larguraRender / 2),
+                    posicaoGradeInicial.coordenadaVertical,
+                    tamanhoAtualDoGrid * larguraRender,
+                    tamanhoAtualDoGrid * alturaRender
+                },
+                SDL_Color{255, 244, 169, 160}
+            );
+
             const TileDeTerra* tileRealcado = obterTileDaGradeGlobal(grade, posicaoRealcada);
             if (ferramentaSelecionada == FERRAMENTA_ENXADA &&
                 posicaoEstaDentroDaGradeGlobal(posicaoRealcada) &&
                 (tileRealcado == nullptr || !tileRealcado->existeNoMapa)) {
                 const PosicaoNaTela posicaoPreview = converterGradeGlobalParaTela(
                     posicaoRealcada,
-                    Constantes::LARGURA_DO_CANTEIRO,
-                    Constantes::ALTURA_DO_CANTEIRO,
-                    configuracoes.deslocamentoGradeHorizontal,
-                    configuracoes.deslocamentoGradeVertical
+                    larguraRender,
+                    alturaRender,
+                    configuracoes.origemGradeHorizontal,
+                    configuracoes.origemGradeVertical,
+                    configuracoes.cameraOffsetHorizontal,
+                    configuracoes.cameraOffsetVertical
                 );
 
                 Desenho::desenharContornoLosango(
@@ -483,8 +613,8 @@ int main(int, char**) {
                     SDL_Rect{
                         posicaoPreview.coordenadaHorizontal,
                         posicaoPreview.coordenadaVertical,
-                        Constantes::LARGURA_DO_CANTEIRO,
-                        Constantes::ALTURA_DO_CANTEIRO
+                        larguraRender,
+                        alturaRender
                     },
                     SDL_Color{255, 244, 169, 160}
                 );
