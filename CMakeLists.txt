@@ -9,7 +9,18 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 add_executable(MiniFazenda2
     src/Principal.cpp
-    
+    src/Ativos.hpp
+    src/CameraDoJogo.hpp
+    src/CaminhosDosAssets.hpp
+    src/Configuracao.hpp
+    src/Constantes.hpp
+    src/Desenho.hpp
+    src/GradeDeCanteiros.hpp
+    src/InterfaceDoJogo.hpp
+    src/Isometrico.hpp
+    src/RecursosDoJogo.hpp
+    src/SistemasDoJogo.hpp
+    src/Tipos.hpp
 )
 
 target_include_directories(MiniFazenda2 PRIVATE src)
@@ -59,3 +70,13 @@ add_custom_command(TARGET MiniFazenda2 POST_BUILD
             "${CMAKE_SOURCE_DIR}/assets"
             "$<TARGET_FILE_DIR:MiniFazenda2>/assets"
 )
+
+enable_testing()
+
+add_executable(MiniFazenda2Tests
+    tests/TestesLogica.cpp
+)
+
+target_include_directories(MiniFazenda2Tests PRIVATE src)
+
+add_test(NAME MiniFazenda2Tests COMMAND MiniFazenda2Tests)

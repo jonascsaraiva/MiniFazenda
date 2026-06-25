@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CameraDoJogo.hpp"
 #include "Tipos.hpp"
 
 #include <algorithm>
@@ -88,10 +89,9 @@ inline bool carregarConfiguracoesDoLayout(
 
     aplicarValorInteiroSeExistir(valores, "centroVisualBackgroundX", configuracoes.centroVisualBackgroundX);
     aplicarValorInteiroSeExistir(valores, "centroVisualBackgroundY", configuracoes.centroVisualBackgroundY);
-    configuracoes.origemGradeHorizontal = configuracoes.centroVisualBackgroundX;
-    configuracoes.origemGradeVertical = configuracoes.centroVisualBackgroundY;
-    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.origemGradeHorizontal);
-    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.origemGradeVertical);
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.centroVisualBackgroundX);
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.centroVisualBackgroundY);
+    aplicarOrigemCentradaDaGrade(configuracoes, Constantes::TAMANHO_INICIAL_GRID);
     aplicarValorInteiroSeExistir(valores, "origemGradeHorizontal", configuracoes.origemGradeHorizontal);
     aplicarValorInteiroSeExistir(valores, "origemGradeVertical", configuracoes.origemGradeVertical);
     aplicarValorTextoSeExistir(valores, "arquivoBackgroundPrincipal", configuracoes.arquivoBackgroundPrincipal);

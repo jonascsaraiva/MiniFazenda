@@ -5,8 +5,6 @@ namespace Constantes {
 constexpr int LARGURA_DA_JANELA = 1280;
 constexpr int ALTURA_DA_JANELA = 720;
 
-// Ponto central visual do campo verde no background principal.
-// Permite ajustar a origem visual do fundo sem prender ao centro geométrico da janela.
 constexpr int CENTRO_VISUAL_BACKGROUND_X = 576;
 constexpr int CENTRO_VISUAL_BACKGROUND_Y = 296;
 
@@ -15,19 +13,20 @@ constexpr int MILISSEGUNDOS_POR_QUADRO = 1000 / TAXA_DE_QUADROS_DESEJADA;
 
 constexpr int TAMANHO_INICIAL_GRID = 12;
 constexpr int TAMANHO_MAXIMO_GRID = 24;
+constexpr int INCREMENTO_TAMANHO_GRID = 2;
 
-// Tamanho do buffer interno usado para armazenar a grade global alocada.
-// O grid visível jogável usa tamanhos crescentes em blocos de +2 até o máximo definido.
 constexpr int QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA = 256;
 constexpr int QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA = 256;
+constexpr int QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL = QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA;
+constexpr int QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL = QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA;
 constexpr int TOTAL_DE_TILES_DA_GRADE_GLOBAL =
     QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA * QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA;
 
 constexpr int QUANTIDADE_DE_COLUNAS_DO_NUCLEO_INICIAL = 2;
 constexpr int QUANTIDADE_DE_LINHAS_DO_NUCLEO_INICIAL = 2;
 
-constexpr int COLUNA_CENTRAL_DA_GRADE_GLOBAL = QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA / 2;
-constexpr int LINHA_CENTRAL_DA_GRADE_GLOBAL = QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA / 2;
+constexpr int COLUNA_CENTRAL_DA_GRADE_GLOBAL = QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL / 2;
+constexpr int LINHA_CENTRAL_DA_GRADE_GLOBAL = QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL / 2;
 
 constexpr int COLUNA_INICIAL_DO_NUCLEO_INICIAL =
     COLUNA_CENTRAL_DA_GRADE_GLOBAL - (QUANTIDADE_DE_COLUNAS_DO_NUCLEO_INICIAL / 2);
@@ -39,6 +38,13 @@ constexpr int LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL = LINHA_INICIAL_DO_NUCLEO_I
 
 constexpr int LARGURA_DO_CANTEIRO = 128;
 constexpr int ALTURA_DO_CANTEIRO = 64;
+
+constexpr float ZOOM_INICIAL = 1.0f;
+constexpr float ZOOM_MINIMO = 0.5f;
+constexpr float ZOOM_MAXIMO = 2.0f;
+constexpr float PASSO_DO_ZOOM = 0.1f;
+constexpr float DESACELERACAO_DO_PAN = 1600.0f;
+constexpr float FRACAO_MINIMA_VISIVEL_AO_PAN = 0.25f;
 
 constexpr int TEMPO_PARA_CRESCER = 6;
 constexpr int TEMPO_PARA_MADURAR = 14;

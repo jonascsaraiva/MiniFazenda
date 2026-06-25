@@ -4,14 +4,20 @@ Base nativa em C++17 com SDL2 para a arquitetura v1.0.0.
 
 ## Estrutura
 
-- `src/Principal.cpp`: inicializacao SDL2, game loop, aplicacao das ferramentas e renderizacao da grade ativa.
+- `src/Principal.cpp`: inicializacao SDL2, game loop, fluxo de eventos, atualizacao por frame e orquestracao de renderizacao.
 - `src/CaminhosDosAssets.hpp`: localizacao da pasta `assets` e caminhos centralizados de background/tiles.
 - `src/Constantes.hpp`: constantes globais de janela, grade global 256x256 e tempo.
-- `src/Tipos.hpp`: estruturas, estados, ferramentas, areas de interacao e operacoes basicas da grade global.
+- `src/Tipos.hpp`: tipos comuns, estados, ferramentas, areas de interacao e configuracoes de layout.
+- `src/CameraDoJogo.hpp`: zoom, pan, origem visual do grid, limite de camera e dimensoes renderizadas.
+- `src/GradeDeCanteiros.hpp`: armazenamento da grade global, indices de tiles ativos e lista de canteiros em crescimento.
+- `src/SistemasDoJogo.hpp`: estado do jogo, regras das ferramentas, moedas/experiencia e crescimento dos canteiros.
+- `src/InterfaceDoJogo.hpp`: layout e processamento dos botoes da barra inferior.
 - `src/Isometrico.hpp`: conversao entre tela, grade local e grade global isometrica.
 - `src/Desenho.hpp`: funcoes de renderizacao SDL2.
 - `src/Ativos.hpp`: cache de texturas, fontes, sons e musicas.
+- `src/RecursosDoJogo.hpp`: carregamento dos recursos visuais e mapeamento de sons usados pelo jogo.
 - `src/Configuracao.hpp`: leitor simples de `assets/config.ini`.
+- `tests/TestesLogica.cpp`: testes da logica pura de grade, ferramentas e crescimento.
 - `assets/`: midia separada do codigo.
 
 ## Assets esperados
@@ -39,7 +45,20 @@ cmake --build build
 .\build\bin\MiniFazenda2.exe
 ```
 
-Durante o jogo, edite `assets/config.ini` e pressione `F5` ou clique no botao de configuracao para recarregar offsets e background.
+Para validar a logica pura:
+
+```powershell
+ctest --test-dir build --output-on-failure -C Debug
+```
+
+Durante o jogo, edite `assets/config.ini` e pressione `F5` para recarregar offsets e background.
+
+## Camera
+
+- Scroll do mouse: aproxima/afasta o grid entre 0.5x e 2.0x.
+- Botao do meio ou direito: arrasta a camera sem interagir com tiles.
+- Home: centraliza a camera e volta o zoom para 1.0x.
+- `centroVisualBackgroundX/Y` em `assets/config.ini`: ajusta o centro visual usado para encaixar o grid no background.
 
 ## Ferramentas atuais
 
