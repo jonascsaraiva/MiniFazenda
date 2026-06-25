@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Configuracao.hpp"
+#include "Tipos.hpp"
 
 #include <SDL.h>
 
