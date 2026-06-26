@@ -1,7 +1,10 @@
 #pragma once
 
-#include "Constantes.hpp"
-#include "Tipos.hpp"
+#include "Apresentacao/Interface/AreaDeInteracao.hpp"
+#include "Compartilhado/Constantes.hpp"
+#include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
+
+namespace MiniFazenda::Apresentacao::Interface::BarraDeFerramentas {
 
 struct BotoesDaInterface {
     AreaDeInteracao cursor;
@@ -13,11 +16,11 @@ struct BotoesDaInterface {
 
 inline BotoesDaInterface criarBotoesDaInterface() {
     const int quantidadeDeBotoesInferiores = 5;
-    const int y = Constantes::ALTURA_DA_JANELA - 68;
-    const int largura = Constantes::TAMANHO_DO_BOTAO_DA_INTERFACE;
-    const int espacamento = Constantes::ESPACAMENTO_DOS_BOTOES;
+    const int y = Compartilhado::Constantes::ALTURA_DA_JANELA - 68;
+    const int largura = Compartilhado::Constantes::TAMANHO_DO_BOTAO_DA_INTERFACE;
+    const int espacamento = Compartilhado::Constantes::ESPACAMENTO_DOS_BOTOES;
     const int larguraTotal = largura * quantidadeDeBotoesInferiores + espacamento * (quantidadeDeBotoesInferiores - 1);
-    const int primeiroX = Constantes::LARGURA_DA_JANELA / 2 - larguraTotal / 2;
+    const int primeiroX = Compartilhado::Constantes::LARGURA_DA_JANELA / 2 - larguraTotal / 2;
 
     return BotoesDaInterface{
         AreaDeInteracao{primeiroX, y, largura, largura},
@@ -44,32 +47,34 @@ inline bool processarCliqueNaInterface(
     int mouseX,
     int mouseY,
     const BotoesDaInterface& botoes,
-    FerramentaSelecionada& ferramentaSelecionada
+    Dominio::Ferramentas::TipoDeFerramenta& ferramentaSelecionada
 ) {
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.cursor)) {
-        ferramentaSelecionada = FERRAMENTA_CURSOR;
+        ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Cursor;
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.enxada)) {
-        ferramentaSelecionada = FERRAMENTA_ENXADA;
+        ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Enxada;
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.removerTerra)) {
-        ferramentaSelecionada = FERRAMENTA_REMOVER_TERRA;
+        ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::RemoverTerra;
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.semente)) {
-        ferramentaSelecionada = FERRAMENTA_SEMENTE;
+        ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Semente;
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.presente)) {
-        ferramentaSelecionada = FERRAMENTA_PRESENTE;
+        ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Presente;
         return true;
     }
 
     return false;
 }
+
+} // namespace MiniFazenda::Apresentacao::Interface::BarraDeFerramentas

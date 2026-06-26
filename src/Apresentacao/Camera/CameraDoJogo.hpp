@@ -1,21 +1,24 @@
 #pragma once
 
-#include "Constantes.hpp"
-#include "GradeDeCanteiros.hpp"
-#include "Tipos.hpp"
+#include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/Geometria/Posicoes.hpp"
+#include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
 
 #include <algorithm>
 #include <cmath>
 
+namespace MiniFazenda::Apresentacao::Camera {
+
 struct DimensoesDoCanteiroRenderizado {
-    int largura = Constantes::LARGURA_DO_CANTEIRO;
-    int altura = Constantes::ALTURA_DO_CANTEIRO;
+    int largura = Compartilhado::Constantes::LARGURA_DO_CANTEIRO;
+    int altura = Compartilhado::Constantes::ALTURA_DO_CANTEIRO;
 };
 
 struct EstadoDaCamera {
     int offsetHorizontal = 0;
     int offsetVertical = 0;
-    float zoomAtual = Constantes::ZOOM_INICIAL;
+    float zoomAtual = Compartilhado::Constantes::ZOOM_INICIAL;
     bool panAtivo = false;
     int botaoDoPan = 0;
     unsigned int ultimoMovimentoMs = 0;
@@ -31,37 +34,42 @@ struct RetanguloDeGradeRenderizada {
 };
 
 inline DimensoesDoCanteiroRenderizado calcularDimensoesDoCanteiroRenderizado(float zoomAtual) {
-    const float zoomLimitado = std::clamp(zoomAtual, Constantes::ZOOM_MINIMO, Constantes::ZOOM_MAXIMO);
+    const float zoomLimitado = std::clamp(
+        zoomAtual,
+        Compartilhado::Constantes::ZOOM_MINIMO,
+        Compartilhado::Constantes::ZOOM_MAXIMO
+    );
+
     return DimensoesDoCanteiroRenderizado{
-        std::max(1, static_cast<int>(std::round(Constantes::LARGURA_DO_CANTEIRO * zoomLimitado))),
-        std::max(1, static_cast<int>(std::round(Constantes::ALTURA_DO_CANTEIRO * zoomLimitado)))
+        std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::LARGURA_DO_CANTEIRO * zoomLimitado))),
+        std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::ALTURA_DO_CANTEIRO * zoomLimitado)))
     };
 }
 
-inline PosicaoNaTela calcularDeslocamentoCentradoPara(
+inline Compartilhado::Geometria::PosicaoNaTela calcularDeslocamentoCentradoPara(
     int tamanhoGrid,
     int centroVisualX,
     int centroVisualY,
-    int larguraDoCanteiro = Constantes::LARGURA_DO_CANTEIRO,
-    int alturaDoCanteiro = Constantes::ALTURA_DO_CANTEIRO
+    int larguraDoCanteiro = Compartilhado::Constantes::LARGURA_DO_CANTEIRO,
+    int alturaDoCanteiro = Compartilhado::Constantes::ALTURA_DO_CANTEIRO
 ) {
-    const int tamanhoNormalizado = Grade::normalizarTamanhoDaGradeAtual(tamanhoGrid);
-    const int colunaInicial = Grade::calcularColunaInicialDaGradeAtual(tamanhoNormalizado);
-    const int linhaInicial = Grade::calcularLinhaInicialDaGradeAtual(tamanhoNormalizado);
-    const int colunaLocal = colunaInicial - Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
-    const int linhaLocal = linhaInicial - Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int tamanhoNormalizado = Dominio::Grade::GradeGlobalDeCanteiros::normalizarTamanhoDaGradeAtual(tamanhoGrid);
+    const int colunaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularColunaInicialDaGradeAtual(tamanhoNormalizado);
+    const int linhaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularLinhaInicialDaGradeAtual(tamanhoNormalizado);
+    const int colunaLocal = colunaInicial - Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int linhaLocal = linhaInicial - Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
 
     const int xDesejadoDoPrimeiroTile = centroVisualX - larguraDoCanteiro / 2;
     const int yDesejadoDoPrimeiroTile = centroVisualY - (tamanhoNormalizado * alturaDoCanteiro) / 2;
 
-    return PosicaoNaTela{
+    return Compartilhado::Geometria::PosicaoNaTela{
         xDesejadoDoPrimeiroTile - (colunaLocal - linhaLocal) * (larguraDoCanteiro / 2),
         yDesejadoDoPrimeiroTile - (colunaLocal + linhaLocal) * (alturaDoCanteiro / 2)
     };
 }
 
-inline void aplicarOrigemCentradaDaGrade(ConfiguracoesDoLayout& configuracoes, int tamanhoGrid) {
-    const PosicaoNaTela origem = calcularDeslocamentoCentradoPara(
+inline void aplicarOrigemCentradaDaGrade(Apresentacao::ConfiguracoesDoLayout& configuracoes, int tamanhoGrid) {
+    const Compartilhado::Geometria::PosicaoNaTela origem = calcularDeslocamentoCentradoPara(
         tamanhoGrid,
         configuracoes.centroVisualBackgroundX,
         configuracoes.centroVisualBackgroundY
@@ -71,16 +79,16 @@ inline void aplicarOrigemCentradaDaGrade(ConfiguracoesDoLayout& configuracoes, i
 }
 
 inline RetanguloDeGradeRenderizada calcularRetanguloDaGradeRenderizada(
-    const ConfiguracoesDoLayout& configuracoes,
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes,
     const EstadoDaCamera& camera,
     int tamanhoGrid
 ) {
-    const int tamanhoNormalizado = Grade::normalizarTamanhoDaGradeAtual(tamanhoGrid);
+    const int tamanhoNormalizado = Dominio::Grade::GradeGlobalDeCanteiros::normalizarTamanhoDaGradeAtual(tamanhoGrid);
     const DimensoesDoCanteiroRenderizado dimensoes = calcularDimensoesDoCanteiroRenderizado(camera.zoomAtual);
-    const int colunaInicial = Grade::calcularColunaInicialDaGradeAtual(tamanhoNormalizado);
-    const int linhaInicial = Grade::calcularLinhaInicialDaGradeAtual(tamanhoNormalizado);
-    const int colunaLocal = colunaInicial - Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
-    const int linhaLocal = linhaInicial - Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int colunaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularColunaInicialDaGradeAtual(tamanhoNormalizado);
+    const int linhaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularLinhaInicialDaGradeAtual(tamanhoNormalizado);
+    const int colunaLocal = colunaInicial - Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int linhaLocal = linhaInicial - Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
 
     const int primeiroTileX =
         (colunaLocal - linhaLocal) * (dimensoes.largura / 2) +
@@ -101,19 +109,17 @@ inline RetanguloDeGradeRenderizada calcularRetanguloDaGradeRenderizada(
 
 inline void limitarPanAosLimitesDoGrid(
     EstadoDaCamera& camera,
-    const ConfiguracoesDoLayout& configuracoes,
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes,
     int tamanhoGrid
 ) {
-    const RetanguloDeGradeRenderizada retangulo = calcularRetanguloDaGradeRenderizada(
-        configuracoes,
-        camera,
-        tamanhoGrid
-    );
-    const int margemHorizontal = static_cast<int>(Constantes::LARGURA_DA_JANELA * Constantes::FRACAO_MINIMA_VISIVEL_AO_PAN);
-    const int margemVertical = static_cast<int>(Constantes::ALTURA_DA_JANELA * Constantes::FRACAO_MINIMA_VISIVEL_AO_PAN);
+    const RetanguloDeGradeRenderizada retangulo = calcularRetanguloDaGradeRenderizada(configuracoes, camera, tamanhoGrid);
+    const int margemHorizontal =
+        static_cast<int>(Compartilhado::Constantes::LARGURA_DA_JANELA * Compartilhado::Constantes::FRACAO_MINIMA_VISIVEL_AO_PAN);
+    const int margemVertical =
+        static_cast<int>(Compartilhado::Constantes::ALTURA_DA_JANELA * Compartilhado::Constantes::FRACAO_MINIMA_VISIVEL_AO_PAN);
 
-    if (retangulo.x > Constantes::LARGURA_DA_JANELA - margemHorizontal) {
-        camera.offsetHorizontal -= retangulo.x - (Constantes::LARGURA_DA_JANELA - margemHorizontal);
+    if (retangulo.x > Compartilhado::Constantes::LARGURA_DA_JANELA - margemHorizontal) {
+        camera.offsetHorizontal -= retangulo.x - (Compartilhado::Constantes::LARGURA_DA_JANELA - margemHorizontal);
     }
 
     const int direita = retangulo.x + retangulo.largura;
@@ -121,8 +127,8 @@ inline void limitarPanAosLimitesDoGrid(
         camera.offsetHorizontal += margemHorizontal - direita;
     }
 
-    if (retangulo.y > Constantes::ALTURA_DA_JANELA - margemVertical) {
-        camera.offsetVertical -= retangulo.y - (Constantes::ALTURA_DA_JANELA - margemVertical);
+    if (retangulo.y > Compartilhado::Constantes::ALTURA_DA_JANELA - margemVertical) {
+        camera.offsetVertical -= retangulo.y - (Compartilhado::Constantes::ALTURA_DA_JANELA - margemVertical);
     }
 
     const int base = retangulo.y + retangulo.altura;
@@ -133,7 +139,7 @@ inline void limitarPanAosLimitesDoGrid(
 
 inline bool aplicarZoomNoPonto(
     EstadoDaCamera& camera,
-    const ConfiguracoesDoLayout& configuracoes,
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes,
     int tamanhoGrid,
     int mouseX,
     int mouseY,
@@ -141,9 +147,9 @@ inline bool aplicarZoomNoPonto(
 ) {
     const float zoomAnterior = camera.zoomAtual;
     camera.zoomAtual = std::clamp(
-        camera.zoomAtual + passosDoScroll * Constantes::PASSO_DO_ZOOM,
-        Constantes::ZOOM_MINIMO,
-        Constantes::ZOOM_MAXIMO
+        camera.zoomAtual + passosDoScroll * Compartilhado::Constantes::PASSO_DO_ZOOM,
+        Compartilhado::Constantes::ZOOM_MINIMO,
+        Compartilhado::Constantes::ZOOM_MAXIMO
     );
 
     if (zoomAnterior == camera.zoomAtual) {
@@ -172,7 +178,7 @@ inline void iniciarPanDaCamera(EstadoDaCamera& camera, int botao, unsigned int t
 
 inline void moverPanDaCamera(
     EstadoDaCamera& camera,
-    const ConfiguracoesDoLayout& configuracoes,
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes,
     int tamanhoGrid,
     int deltaX,
     int deltaY,
@@ -205,7 +211,7 @@ inline void finalizarPanDaCamera(EstadoDaCamera& camera, int botao) {
 
 inline void atualizarInerciaDaCamera(
     EstadoDaCamera& camera,
-    const ConfiguracoesDoLayout& configuracoes,
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes,
     int tamanhoGrid,
     float deltaTime
 ) {
@@ -219,24 +225,24 @@ inline void atualizarInerciaDaCamera(
     if (camera.velocidadeHorizontal > 0.0f) {
         camera.velocidadeHorizontal = std::max(
             0.0f,
-            camera.velocidadeHorizontal - Constantes::DESACELERACAO_DO_PAN * deltaTime
+            camera.velocidadeHorizontal - Compartilhado::Constantes::DESACELERACAO_DO_PAN * deltaTime
         );
     } else {
         camera.velocidadeHorizontal = std::min(
             0.0f,
-            camera.velocidadeHorizontal + Constantes::DESACELERACAO_DO_PAN * deltaTime
+            camera.velocidadeHorizontal + Compartilhado::Constantes::DESACELERACAO_DO_PAN * deltaTime
         );
     }
 
     if (camera.velocidadeVertical > 0.0f) {
         camera.velocidadeVertical = std::max(
             0.0f,
-            camera.velocidadeVertical - Constantes::DESACELERACAO_DO_PAN * deltaTime
+            camera.velocidadeVertical - Compartilhado::Constantes::DESACELERACAO_DO_PAN * deltaTime
         );
     } else {
         camera.velocidadeVertical = std::min(
             0.0f,
-            camera.velocidadeVertical + Constantes::DESACELERACAO_DO_PAN * deltaTime
+            camera.velocidadeVertical + Compartilhado::Constantes::DESACELERACAO_DO_PAN * deltaTime
         );
     }
 
@@ -246,10 +252,12 @@ inline void atualizarInerciaDaCamera(
 inline void centralizarCamera(EstadoDaCamera& camera) {
     camera.offsetHorizontal = 0;
     camera.offsetVertical = 0;
-    camera.zoomAtual = Constantes::ZOOM_INICIAL;
+    camera.zoomAtual = Compartilhado::Constantes::ZOOM_INICIAL;
     camera.panAtivo = false;
     camera.botaoDoPan = 0;
     camera.ultimoMovimentoMs = 0;
     camera.velocidadeHorizontal = 0.0f;
     camera.velocidadeVertical = 0.0f;
 }
+
+} // namespace MiniFazenda::Apresentacao::Camera

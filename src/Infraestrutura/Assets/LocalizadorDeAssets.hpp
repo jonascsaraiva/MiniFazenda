@@ -1,14 +1,13 @@
 #pragma once
 
-#include "Tipos.hpp"
+#include "Apresentacao/ConfiguracoesDoLayout.hpp"
 
 #include <SDL.h>
 
 #include <filesystem>
-#include <string>
 #include <vector>
 
-namespace CaminhosDosAssets {
+namespace MiniFazenda::Infraestrutura::Assets {
 
 inline std::filesystem::path obterDiretorioBaseDoExecutavel() {
     char* caminhoBase = SDL_GetBasePath();
@@ -53,7 +52,7 @@ inline std::filesystem::path resolverArquivoDentroDeAssets(
 
 inline std::vector<std::filesystem::path> candidatosParaBackground(
     const std::filesystem::path& diretorioAssets,
-    const ConfiguracoesDoLayout& configuracoes
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes
 ) {
     std::filesystem::path arquivoConfigurado = configuracoes.arquivoBackgroundPrincipal;
     if (arquivoConfigurado.is_relative() && arquivoConfigurado.parent_path().empty()) {
@@ -89,4 +88,4 @@ inline std::vector<std::filesystem::path> candidatosParaTexturaTerraRestos(const
     };
 }
 
-} // namespace CaminhosDosAssets
+} // namespace MiniFazenda::Infraestrutura::Assets

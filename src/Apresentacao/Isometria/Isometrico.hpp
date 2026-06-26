@@ -1,9 +1,14 @@
 #pragma once
 
-#include "Constantes.hpp"
-#include "Tipos.hpp"
+#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/Geometria/Posicoes.hpp"
 
 #include <cmath>
+
+namespace MiniFazenda::Apresentacao::Isometria {
+
+using Compartilhado::Geometria::PosicaoNaGrade;
+using Compartilhado::Geometria::PosicaoNaTela;
 
 inline PosicaoNaTela converterGradeParaTela(
     int colunaGrade,
@@ -55,8 +60,8 @@ inline PosicaoNaTela converterGradeGlobalParaTela(
     int cameraOffsetHorizontal,
     int cameraOffsetVertical
 ) {
-    const int colunaLocal = posicaoGlobal.indiceColuna - Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
-    const int linhaLocal = posicaoGlobal.indiceLinha - Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int colunaLocal = posicaoGlobal.indiceColuna - Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
+    const int linhaLocal = posicaoGlobal.indiceLinha - Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
     const int deslocamentoHorizontal = origemHorizontal + cameraOffsetHorizontal;
     const int deslocamentoVertical = origemVertical + cameraOffsetVertical;
 
@@ -92,7 +97,9 @@ inline PosicaoNaGrade converterTelaParaGradeGlobal(
     );
 
     return PosicaoNaGrade{
-        Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceColuna,
-        Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceLinha
+        Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceColuna,
+        Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceLinha
     };
 }
+
+} // namespace MiniFazenda::Apresentacao::Isometria

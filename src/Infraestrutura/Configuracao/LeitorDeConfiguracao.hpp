@@ -1,7 +1,8 @@
 #pragma once
 
-#include "CameraDoJogo.hpp"
-#include "Tipos.hpp"
+#include "Apresentacao/Camera/CameraDoJogo.hpp"
+#include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Compartilhado/Constantes.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -11,7 +12,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace Configuracao {
+namespace MiniFazenda::Infraestrutura::Configuracao {
 
 inline std::string removerEspacosDasBordas(std::string texto) {
     auto naoEspaco = [](unsigned char caractere) {
@@ -52,7 +53,7 @@ inline void aplicarValorTextoSeExistir(
 
 inline bool carregarConfiguracoesDoLayout(
     const std::filesystem::path& caminhoDoArquivo,
-    ConfiguracoesDoLayout& configuracoes
+    Apresentacao::ConfiguracoesDoLayout& configuracoes
 ) {
     std::ifstream arquivo(caminhoDoArquivo);
     if (!arquivo.is_open()) {
@@ -91,7 +92,7 @@ inline bool carregarConfiguracoesDoLayout(
     aplicarValorInteiroSeExistir(valores, "centroVisualBackgroundY", configuracoes.centroVisualBackgroundY);
     aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.centroVisualBackgroundX);
     aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.centroVisualBackgroundY);
-    aplicarOrigemCentradaDaGrade(configuracoes, Constantes::TAMANHO_INICIAL_GRID);
+    Apresentacao::Camera::aplicarOrigemCentradaDaGrade(configuracoes, Compartilhado::Constantes::TAMANHO_INICIAL_GRID);
     aplicarValorInteiroSeExistir(valores, "origemGradeHorizontal", configuracoes.origemGradeHorizontal);
     aplicarValorInteiroSeExistir(valores, "origemGradeVertical", configuracoes.origemGradeVertical);
     aplicarValorTextoSeExistir(valores, "arquivoBackgroundPrincipal", configuracoes.arquivoBackgroundPrincipal);
@@ -99,4 +100,4 @@ inline bool carregarConfiguracoesDoLayout(
     return true;
 }
 
-} // namespace Configuracao
+} // namespace MiniFazenda::Infraestrutura::Configuracao

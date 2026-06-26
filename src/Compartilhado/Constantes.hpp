@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Constantes {
+namespace MiniFazenda::Compartilhado::Constantes {
 
 constexpr int LARGURA_DA_JANELA = 1280;
 constexpr int ALTURA_DA_JANELA = 720;
@@ -55,4 +55,4 @@ constexpr int ESPACAMENTO_DOS_BOTOES = 12;
 
 constexpr const char* TITULO_DA_JANELA = "MiniFazenda2 v1.0.0";
 
-} // namespace Constantes
+} // namespace MiniFazenda::Compartilhado::Constantes

@@ -1,131 +1,149 @@
-#include "SistemasDoJogo.hpp"
+#include "Aplicacao/Servicos/InicializadorDaFazenda.hpp"
+#include "Aplicacao/Servicos/ServicoDeFerramentas.hpp"
+#include "Aplicacao/Servicos/ServicoDeTempo.hpp"
+#include "Apresentacao/Camera/CameraDoJogo.hpp"
+#include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/Geometria/Posicoes.hpp"
+#include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
+#include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
+#include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
+#include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
 
 #include <cassert>
 #include <cstddef>
 
 namespace {
 
-void validarIndicesDaGrade(const GradeGlobalDeCanteiros& grade) {
-    for (std::size_t indice = 0; indice < grade.posicoesDeTilesExistentes.size(); ++indice) {
-        const PosicaoNaGrade posicao = grade.posicoesDeTilesExistentes[indice];
-        const TileDeTerra* tile = Grade::obterTile(grade, posicao);
+namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
+namespace Camera = MiniFazenda::Apresentacao::Camera;
+namespace Canteiros = MiniFazenda::Dominio::Canteiros;
+namespace Constantes = MiniFazenda::Compartilhado::Constantes;
+namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
+namespace Geometria = MiniFazenda::Compartilhado::Geometria;
+namespace Grade = MiniFazenda::Dominio::Grade;
+
+void validarIndicesDaGrade(const Grade::GradeGlobalDeCanteiros& grade) {
+    for (std::size_t indice = 0; indice < grade.posicoesDeTilesExistentes().size(); ++indice) {
+        const Geometria::PosicaoNaGrade posicao = grade.posicoesDeTilesExistentes()[indice];
+        const Grade::TileDeTerra* tile = grade.obterTile(posicao);
         assert(tile != nullptr);
-        assert(tile->existeNoMapa);
-        assert(tile->indiceNaListaDeTilesExistentes == indice);
+        assert(tile->existeNoMapa());
+        assert(tile->indiceNaListaDeTilesExistentes() == indice);
     }
 
-    for (std::size_t indice = 0; indice < grade.posicoesDeCanteirosEmCrescimento.size(); ++indice) {
-        const PosicaoNaGrade posicao = grade.posicoesDeCanteirosEmCrescimento[indice];
-        const TileDeTerra* tile = Grade::obterTile(grade, posicao);
+    for (std::size_t indice = 0; indice < grade.posicoesDeCanteirosEmCrescimento().size(); ++indice) {
+        const Geometria::PosicaoNaGrade posicao = grade.posicoesDeCanteirosEmCrescimento()[indice];
+        const Grade::TileDeTerra* tile = grade.obterTile(posicao);
         assert(tile != nullptr);
-        assert(tile->existeNoMapa);
-        assert(tile->indiceNaListaDeCrescimento == indice);
-        assert(Grade::estadoPrecisaAvancarCrescimento(tile->canteiro.estadoVisualAtual));
+        assert(tile->existeNoMapa());
+        assert(tile->indiceNaListaDeCrescimento() == indice);
+        assert(tile->canteiro().precisaAvancarCrescimento());
     }
 }
 
-PosicaoNaGrade posicaoLivreProximaDoNucleo() {
-    return PosicaoNaGrade{
+Geometria::PosicaoNaGrade posicaoLivreProximaDoNucleo() {
+    return Geometria::PosicaoNaGrade{
         Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + 3,
         Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL
     };
 }
 
-void ararEPlantar(EstadoDoJogo& jogo, PosicaoNaGrade posicao) {
-    jogo.ferramentaSelecionada = FERRAMENTA_ENXADA;
-    ResultadoDaFerramenta resultado = aplicarFerramentaNoJogo(jogo, posicao);
-    assert(resultado.acao == ACAO_ARAR_TERRA);
+void ararEPlantar(MiniFazenda::Aplicacao::Estado::EstadoDoJogo& jogo, Geometria::PosicaoNaGrade posicao) {
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+    Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
+    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
 
-    jogo.ferramentaSelecionada = FERRAMENTA_SEMENTE;
-    resultado = aplicarFerramentaNoJogo(jogo, posicao);
-    assert(resultado.acao == ACAO_PLANTAR);
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
+    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
 }
 
 } // namespace
 
 int main() {
-    EstadoDoJogo jogo = criarEstadoInicialDoJogo();
-    assert(jogo.tamanhoAtualDoGrid == Constantes::TAMANHO_INICIAL_GRID);
-    assert(jogo.grade.posicoesDeTilesExistentes.size() == 4);
-    assert(jogo.grade.posicoesDeCanteirosEmCrescimento.empty());
-    validarIndicesDaGrade(jogo.grade);
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    assert(jogo.tamanhoAtualDoGrid() == Constantes::TAMANHO_INICIAL_GRID);
+    assert(jogo.grade().quantidadeDeTilesExistentes() == 4);
+    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    validarIndicesDaGrade(jogo.grade());
 
-    const PosicaoNaGrade posicaoNova = posicaoLivreProximaDoNucleo();
-    jogo.ferramentaSelecionada = FERRAMENTA_ENXADA;
+    const Geometria::PosicaoNaGrade posicaoNova = posicaoLivreProximaDoNucleo();
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
 
-    ResultadoDaFerramenta resultado = aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == ACAO_CRIAR_TERRA);
-    assert(jogo.grade.posicoesDeTilesExistentes.size() == 5);
-    validarIndicesDaGrade(jogo.grade);
+    Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::CriarTerra);
+    assert(jogo.grade().quantidadeDeTilesExistentes() == 5);
+    validarIndicesDaGrade(jogo.grade());
 
-    resultado = aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == ACAO_ARAR_TERRA);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
 
-    jogo.ferramentaSelecionada = FERRAMENTA_SEMENTE;
-    resultado = aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == ACAO_PLANTAR);
-    assert(jogo.moedas == 48);
-    assert(jogo.grade.posicoesDeCanteirosEmCrescimento.size() == 1);
-    validarIndicesDaGrade(jogo.grade);
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
+    assert(jogo.jogador().moedas() == 48);
+    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
+    validarIndicesDaGrade(jogo.grade());
 
-    avancarTempoDoJogo(jogo, static_cast<float>(Constantes::TEMPO_PARA_CRESCER));
-    const TileDeTerra* tile = Grade::obterTile(jogo.grade, posicaoNova);
+    AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(Constantes::TEMPO_PARA_CRESCER));
+    const Grade::TileDeTerra* tile = jogo.grade().obterTile(posicaoNova);
     assert(tile != nullptr);
-    assert(tile->canteiro.estadoVisualAtual == ESTADO_PLANTA_CRESCENDO);
+    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
 
-    avancarTempoDoJogo(
+    AppServicos::avancarTempoDoJogo(
         jogo,
         static_cast<float>(Constantes::TEMPO_PARA_MADURAR - Constantes::TEMPO_PARA_CRESCER)
     );
-    assert(tile->canteiro.estadoVisualAtual == ESTADO_PLANTA_MADURA);
+    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMadura);
 
-    jogo.ferramentaSelecionada = FERRAMENTA_CURSOR;
-    resultado = aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == ACAO_COLHER);
-    assert(jogo.moedas == 56);
-    assert(jogo.experiencia == 5);
-    assert(jogo.grade.posicoesDeCanteirosEmCrescimento.empty());
-    assert(tile->canteiro.estadoVisualAtual == ESTADO_TERRA_VAZIA);
-    validarIndicesDaGrade(jogo.grade);
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Cursor);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Colher);
+    assert(jogo.jogador().moedas() == 56);
+    assert(jogo.jogador().experiencia() == 5);
+    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+    validarIndicesDaGrade(jogo.grade());
 
     ararEPlantar(jogo, posicaoNova);
-    avancarTempoDoJogo(jogo, static_cast<float>(Constantes::TEMPO_PARA_MORRER));
-    assert(tile->canteiro.estadoVisualAtual == ESTADO_PLANTA_MORTA);
-    assert(jogo.grade.posicoesDeCanteirosEmCrescimento.empty());
-    validarIndicesDaGrade(jogo.grade);
+    AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(Constantes::TEMPO_PARA_MORRER));
+    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
+    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    validarIndicesDaGrade(jogo.grade());
 
-    const std::size_t quantidadeAntesDeRemover = jogo.grade.posicoesDeTilesExistentes.size();
-    jogo.ferramentaSelecionada = FERRAMENTA_REMOVER_TERRA;
-    resultado = aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == ACAO_REMOVER_TERRA);
-    assert(jogo.grade.posicoesDeTilesExistentes.size() == quantidadeAntesDeRemover - 1);
-    assert(tile->existeNoMapa == false);
-    validarIndicesDaGrade(jogo.grade);
+    const std::size_t quantidadeAntesDeRemover = jogo.grade().quantidadeDeTilesExistentes();
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::RemoverTerra);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::RemoverTerra);
+    assert(jogo.grade().quantidadeDeTilesExistentes() == quantidadeAntesDeRemover - 1);
+    assert(tile->existeNoMapa() == false);
+    validarIndicesDaGrade(jogo.grade());
 
-    resultado = aplicarFerramentaNoJogo(jogo, PosicaoNaGrade{-1, -1});
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoNaGrade{-1, -1});
     assert(!resultado.houveMudanca());
 
-    const PosicaoNaGrade foraDaGradeJogavel{
-        Grade::calcularColunaInicialDaGradeAtual(jogo.tamanhoAtualDoGrid) - 1,
-        Grade::calcularLinhaInicialDaGradeAtual(jogo.tamanhoAtualDoGrid)
+    const Geometria::PosicaoNaGrade foraDaGradeJogavel{
+        Grade::GradeGlobalDeCanteiros::calcularColunaInicialDaGradeAtual(jogo.tamanhoAtualDoGrid()) - 1,
+        Grade::GradeGlobalDeCanteiros::calcularLinhaInicialDaGradeAtual(jogo.tamanhoAtualDoGrid())
     };
-    jogo.ferramentaSelecionada = FERRAMENTA_ENXADA;
-    resultado = aplicarFerramentaNoJogo(jogo, foraDaGradeJogavel);
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, foraDaGradeJogavel);
     assert(!resultado.houveMudanca());
 
-    ConfiguracoesDoLayout configuracoes;
-    aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid);
-    EstadoDaCamera camera;
-    RetanguloDeGradeRenderizada retangulo = calcularRetanguloDaGradeRenderizada(
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+    Camera::EstadoDaCamera camera;
+    Camera::RetanguloDeGradeRenderizada retangulo = Camera::calcularRetanguloDaGradeRenderizada(
         configuracoes,
         camera,
-        jogo.tamanhoAtualDoGrid
+        jogo.tamanhoAtualDoGrid()
     );
     assert(retangulo.x + retangulo.largura / 2 == configuracoes.centroVisualBackgroundX);
     assert(retangulo.y + retangulo.altura / 2 == configuracoes.centroVisualBackgroundY);
 
-    aplicarOrigemCentradaDaGrade(configuracoes, Constantes::TAMANHO_MAXIMO_GRID);
-    retangulo = calcularRetanguloDaGradeRenderizada(
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, Constantes::TAMANHO_MAXIMO_GRID);
+    retangulo = Camera::calcularRetanguloDaGradeRenderizada(
         configuracoes,
         camera,
         Constantes::TAMANHO_MAXIMO_GRID
@@ -133,17 +151,17 @@ int main() {
     assert(retangulo.x + retangulo.largura / 2 == configuracoes.centroVisualBackgroundX);
     assert(retangulo.y + retangulo.altura / 2 == configuracoes.centroVisualBackgroundY);
 
-    const bool zoomAplicado = aplicarZoomNoPonto(
+    const bool zoomAplicado = Camera::aplicarZoomNoPonto(
         camera,
         configuracoes,
-        jogo.tamanhoAtualDoGrid,
+        jogo.tamanhoAtualDoGrid(),
         Constantes::LARGURA_DA_JANELA / 2,
         Constantes::ALTURA_DA_JANELA / 2,
         1
     );
     assert(zoomAplicado);
     assert(camera.zoomAtual > Constantes::ZOOM_INICIAL);
-    centralizarCamera(camera);
+    Camera::centralizarCamera(camera);
     assert(camera.zoomAtual == Constantes::ZOOM_INICIAL);
     assert(camera.offsetHorizontal == 0);
     assert(camera.offsetVertical == 0);

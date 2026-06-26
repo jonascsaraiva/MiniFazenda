@@ -10,16 +10,18 @@
 #include <string>
 #include <unordered_map>
 
-class GerenciadorDeAtivos {
+namespace MiniFazenda::Infraestrutura::Assets {
+
+class GerenciadorDeAtivosSDL {
 public:
-    explicit GerenciadorDeAtivos(SDL_Renderer* renderizadorDaAplicacao)
+    explicit GerenciadorDeAtivosSDL(SDL_Renderer* renderizadorDaAplicacao)
         : renderizador(renderizadorDaAplicacao) {
     }
 
-    GerenciadorDeAtivos(const GerenciadorDeAtivos&) = delete;
-    GerenciadorDeAtivos& operator=(const GerenciadorDeAtivos&) = delete;
+    GerenciadorDeAtivosSDL(const GerenciadorDeAtivosSDL&) = delete;
+    GerenciadorDeAtivosSDL& operator=(const GerenciadorDeAtivosSDL&) = delete;
 
-    ~GerenciadorDeAtivos() {
+    ~GerenciadorDeAtivosSDL() {
         liberarTudo();
     }
 
@@ -148,3 +150,4 @@ private:
     std::unordered_map<std::string, Mix_Music*> musicas;
 };
 
+} // namespace MiniFazenda::Infraestrutura::Assets

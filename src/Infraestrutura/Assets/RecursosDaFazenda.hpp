@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Ativos.hpp"
-#include "CaminhosDosAssets.hpp"
-#include "SistemasDoJogo.hpp"
-#include "Tipos.hpp"
+#include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
+#include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
+#include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
+#include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
 
 #include <SDL.h>
 
@@ -12,16 +13,18 @@
 #include <iostream>
 #include <vector>
 
-struct TexturasDosCanteiros {
-    std::array<SDL_Texture*, QUANTIDADE_DE_ESTADOS_DO_CANTEIRO> porEstado{};
+namespace MiniFazenda::Infraestrutura::Assets {
 
-    SDL_Texture* paraEstado(EstadoDoCanteiro estado) const {
-        return porEstado[static_cast<std::size_t>(estado)];
+struct TexturasDosCanteiros {
+    std::array<SDL_Texture*, Dominio::Canteiros::QUANTIDADE_DE_ESTADOS_DO_CANTEIRO> porEstado{};
+
+    SDL_Texture* paraEstado(Dominio::Canteiros::EstadoVisualDoCanteiro estado) const {
+        return porEstado[Dominio::Canteiros::indiceDoEstado(estado)];
     }
 };
 
 inline SDL_Texture* carregarPrimeiraTexturaExistente(
-    GerenciadorDeAtivos& ativos,
+    GerenciadorDeAtivosSDL& ativos,
     const std::vector<std::filesystem::path>& candidatos
 ) {
     for (const std::filesystem::path& candidato : candidatos) {
@@ -39,13 +42,13 @@ inline SDL_Texture* carregarPrimeiraTexturaExistente(
 }
 
 inline SDL_Texture* carregarTexturaDeFundoPrincipal(
-    GerenciadorDeAtivos& ativos,
+    GerenciadorDeAtivosSDL& ativos,
     const std::filesystem::path& diretorioAssets,
-    const ConfiguracoesDoLayout& configuracoes
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes
 ) {
     SDL_Texture* textura = carregarPrimeiraTexturaExistente(
         ativos,
-        CaminhosDosAssets::candidatosParaBackground(diretorioAssets, configuracoes)
+        candidatosParaBackground(diretorioAssets, configuracoes)
     );
 
     if (textura == nullptr) {
@@ -57,22 +60,24 @@ inline SDL_Texture* carregarTexturaDeFundoPrincipal(
 }
 
 inline TexturasDosCanteiros carregarTexturasDosCanteiros(
-    GerenciadorDeAtivos& ativos,
+    GerenciadorDeAtivosSDL& ativos,
     const std::filesystem::path& diretorioAssets
 ) {
+    using Dominio::Canteiros::EstadoVisualDoCanteiro;
+
     TexturasDosCanteiros texturas;
-    texturas.porEstado[ESTADO_TERRA_VAZIA] =
-        carregarPrimeiraTexturaExistente(ativos, CaminhosDosAssets::candidatosParaTexturaTerraSeca(diretorioAssets));
-    texturas.porEstado[ESTADO_TERRA_ARADA] =
-        carregarPrimeiraTexturaExistente(ativos, CaminhosDosAssets::candidatosParaTexturaTerraArada(diretorioAssets));
-    texturas.porEstado[ESTADO_SEMENTE_PLANTADA] =
+    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraVazia)] =
+        carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraSeca(diretorioAssets));
+    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraArada)] =
+        carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraArada(diretorioAssets));
+    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::SementePlantada)] =
         carregarPrimeiraTexturaExistente(ativos, {diretorioAssets / "sprites" / "semente_plantada.png"});
-    texturas.porEstado[ESTADO_PLANTA_CRESCENDO] =
+    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaCrescendo)] =
         carregarPrimeiraTexturaExistente(ativos, {diretorioAssets / "sprites" / "planta_crescendo.png"});
-    texturas.porEstado[ESTADO_PLANTA_MADURA] =
+    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMadura)] =
         carregarPrimeiraTexturaExistente(ativos, {diretorioAssets / "sprites" / "planta_madura.png"});
-    texturas.porEstado[ESTADO_PLANTA_MORTA] =
-        carregarPrimeiraTexturaExistente(ativos, CaminhosDosAssets::candidatosParaTexturaTerraRestos(diretorioAssets));
+    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMorta)] =
+        carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraRestos(diretorioAssets));
 
     return texturas;
 }
@@ -87,30 +92,30 @@ inline std::filesystem::path caminhoDoSomDeCliqueDaInterface(const std::filesyst
 
 inline std::filesystem::path caminhoDoSomDaAcao(
     const std::filesystem::path& diretorioAssets,
-    AcaoDaFerramenta acao
+    Dominio::Ferramentas::AcaoDaFerramenta acao
 ) {
     switch (acao) {
-        case ACAO_PLANTAR:
+        case Dominio::Ferramentas::AcaoDaFerramenta::Plantar:
             return diretorioAssets / "sounds" / "buy.wav";
-        case ACAO_ACELERAR_CRESCIMENTO:
+        case Dominio::Ferramentas::AcaoDaFerramenta::AcelerarCrescimento:
             return diretorioAssets / "sounds" / "gift_open.wav";
-        case ACAO_COLHER:
+        case Dominio::Ferramentas::AcaoDaFerramenta::Colher:
             return diretorioAssets / "sounds" / "harvest.wav";
-        case ACAO_REMOVER_TERRA:
+        case Dominio::Ferramentas::AcaoDaFerramenta::RemoverTerra:
             return diretorioAssets / "sounds" / "weed.wav";
-        case ACAO_CRIAR_TERRA:
-        case ACAO_ARAR_TERRA:
+        case Dominio::Ferramentas::AcaoDaFerramenta::CriarTerra:
+        case Dominio::Ferramentas::AcaoDaFerramenta::ArarTerra:
             return diretorioAssets / "sounds" / "click_panel.wav";
-        case ACAO_NENHUMA:
+        case Dominio::Ferramentas::AcaoDaFerramenta::Nenhuma:
         default:
             return {};
     }
 }
 
 inline void tocarSomDaAcao(
-    GerenciadorDeAtivos& ativos,
+    GerenciadorDeAtivosSDL& ativos,
     const std::filesystem::path& diretorioAssets,
-    ResultadoDaFerramenta resultado
+    Dominio::Ferramentas::ResultadoDaFerramenta resultado
 ) {
     if (!resultado.houveMudanca()) {
         return;
@@ -121,3 +126,5 @@ inline void tocarSomDaAcao(
         ativos.tocarSom(caminho);
     }
 }
+
+} // namespace MiniFazenda::Infraestrutura::Assets

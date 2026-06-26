@@ -1,162 +1,223 @@
-=======================================================================
-                         O ENTRY POINT
-                         [Principal.cpp]
-  (Apenas inicia o loop, cria a CenaFazenda e passa pro SDL rodar)
-=======================================================================
-                               |
-                               V
-+---------------------------------------------------------------------+
-|                  CAMADA DE BORDAS EXTERNAS (I/O)                    |
-|             (Tudo que toca no mundo real e no SDL2)                 |
-|                                                                     |
-|    [Apresentacao/]                        [Infraestrutura/]         |
-|    - Renderizacao (Mundo, UI)             - SDL (Init, Janela)      |
-|    - Isometria (Matemática visual)        - Assets (Texturas, Som)  |
-|    - Camera, Botoes, HUD                  - Leitor INI              |
-+---------------------------------------------------------------------+
-                               |
-         (Lê botões clicados)  |  (Desenha o estado atual)
-                               V
-+---------------------------------------------------------------------+
-|                CAMADA DE APLICAÇÃO (Orquestração)                   |
-|          (Faz a ponte entre a tela e as regras do jogo)             |
-|                                                                     |
-|    [Aplicacao/]                                                     |
-|    - Cenas (CenaFazenda: coordena update e render)                  |
-|    - Entrada (Traduz "Clique X/Y" -> "Usar Ferramenta")             |
-|    - Servicos (avancarTempo(), inicializarFazenda())                |
-|    - EstadoDoJogo (Agregador)                                       |
-+---------------------------------------------------------------------+
-                               |
-          (Chama ações lógicas)| (Consulta dados pra renderizar)
-                               V
-+---------------------------------------------------------------------+
-|              CAMADA DE DOMÍNIO (O Coração do Jogo)                  |
-|             (C++ Puro! Zero SDL, Zero Tela, Zero Som)               |
-|                                                                     |
-|    [Dominio/]                                                       |
-|    - Grade (Matriz de Tiles)                                        |
-|    - Canteiros (Máquina de estados: Vazio -> Arado -> Plantado)     |
-|    - Ferramentas (Polimorfismo: Enxada, Semente, Removedor)         |
-|    - Plantas (Herança: Milho, Morango, Fases de Crescimento)        |
-|    - Jogador (Moedas, XP) e Economia                                |
-+---------------------------------------------------------------------+
+# Arquitetura do MiniFazenda2
 
-=======================================================================
-                        [Compartilhado/]
-    (Tipos puros e utilitários globais: PosicaoNaGrade, Geometria)
-       * Acessível por TODAS as camadas acima, sem restrições.
-=======================================================================
+Projeto: MiniFazenda2, engine customizada em C++17 com SDL2.
+Status: ativo, com arquitetura em camadas ja aplicada de forma incremental.
 
-Guia de Arquitetura e Padrões de Código
-Projeto: MiniFazenda2 (Engine Customizada C++ / SDL2)
-Status: Ativo / Em Refatoração
-Padrões Adotados: Clean Architecture, Domain-Driven Design (DDD), POO (Polimorfismo e State Pattern).
+## Objetivo
 
-1. Introdução e Propósito
-Este documento descreve a organização de pastas, arquivos e a arquitetura de código do projeto MiniFazenda2. O objetivo desta estrutura é resolver problemas de "God Functions" (funções que fazem de tudo), alto acoplamento com a biblioteca SDL2 e falta de encapsulamento.
+O MiniFazenda2 separa regra de jogo, orquestracao, renderizacao e infraestrutura para evitar arquivos monoliticos, acoplamento com SDL2 no dominio e mutacoes globais sem validacao.
 
-A nova arquitetura garante que a lógica de negócio (Domínio) do jogo seja 100% agnóstica de tecnologia visual, permitindo expansões futuras (como dezenas de novas plantas e ferramentas) sem risco de quebrar o que já funciona (Regressão).
+As camadas principais vivem dentro de `src/`:
 
-2. Regras de Ouro da Arquitetura (Invariantes)
-Para que essa arquitetura funcione, as seguintes regras nunca devem ser quebradas:
+```text
+Compartilhado/     Tipos puros e constantes pequenas usadas por varias camadas.
+Dominio/           Regras do jogo em C++ puro, sem SDL2.
+Aplicacao/         Estado agregado e casos de uso que orquestram o dominio.
+Apresentacao/      Camera, isometria, interface e renderizacao com SDL.
+Infraestrutura/    SDL, janela, renderer, assets, audio, filesystem e config.ini.
+```
 
-A Regra da Dependência: O código flui de fora para dentro. A pasta Dominio/ NÃO PODE incluir bibliotecas visuais ou de áudio (#include <SDL.h>). Se um erro de compilação exigir SDL no domínio, o design está errado.
+## Regras Obrigatorias
 
-Encapsulamento Restrito: Estruturas de dados globais (como a Grade) não podem expor seus std::vector publicamente. Toda mutação deve ser feita por métodos da própria classe.
+1. `Dominio/` nao pode incluir `SDL.h`, `SDL_image.h`, `SDL_ttf.h`, `SDL_mixer.h` nem tipos visuais como renderer, textura, janela ou audio.
+2. A regra de jogo fica no dominio. A apresentacao apenas le estado e desenha.
+3. A grade nao expoe seus `std::vector` para mutacao externa. Acesso externo a listas internas deve ser const.
+4. Ferramentas de jogo usam polimorfismo. Regras de ferramenta nao devem voltar para um `switch/case` procedural.
+5. Plantas usam uma classe base `Planta`; especies novas devem herdar dela.
+6. Canteiros centralizam suas transicoes. Codigo externo nao deve alterar estado visual, tempo ou planta diretamente.
+7. Namespaces seguem a pasta: `MiniFazenda::Dominio`, `MiniFazenda::Aplicacao`, `MiniFazenda::Apresentacao`, `MiniFazenda::Infraestrutura` e `MiniFazenda::Compartilhado`.
+8. `switch/case` e aceitavel em bordas visuais ou mapeamentos de infraestrutura, como escolher icone ou som. Ele nao deve decidir regra de dominio.
 
-Fim dos Switches de Domínio: O uso de switch/case para checar tipos de ferramentas ou fases de sementes é proibido. Deve-se usar Polimorfismo (classes derivadas de Ferramenta ou Planta) e State Pattern para os canteiros.
+## Estrutura Atual
 
-Isolamento de Namespaces: O código deve estar encapsulado no namespace correspondente à sua pasta (ex: MiniFazenda::Dominio::Plantas).
+```text
+src/
+  Principal.cpp
+    Entry point SDL. Cria a janela, recursos, estado inicial e roda o loop.
 
-3. Estrutura de Diretórios e Responsabilidades
-A árvore do código-fonte (dentro de src/) é dividida em 5 grandes áreas:
+  Compartilhado/
+    Constantes.hpp
+      Constantes primitivas compartilhadas.
+    Geometria/Posicoes.hpp
+      PosicaoNaTela, PosicaoNaGrade e comparadores puros.
 
-🔹 Compartilhado/
-Tipos puros e utilitários pequenos que circulam por todas as camadas do projeto.
+  Dominio/
+    Canteiros/
+      EstadoDoCanteiro.hpp
+      Canteiro.hpp
+        Estado e transicoes validas: arar, plantar, acelerar, colher e avancar crescimento.
 
-Geometria/: PosicaoNaTela, PosicaoNaGrade. Não possuem regras de jogo, apenas matemática básica e comparadores.
+    Plantas/
+      Planta.hpp
+        Interface base polimorfica para especies.
+      FabricaDePlantas.hpp
+        Criacao centralizada de plantas a partir da semente atual.
+      Especies/PlantaMirtilo.hpp
+        Especie inicial, preservando tempos e recompensa legados.
 
-🔹 Dominio/ (O Coração do Jogo)
-Onde as regras do jogo vivem. O C++ aqui é puro.
+    Ferramentas/
+      Ferramenta.hpp
+      TipoDeFerramenta.hpp
+      ResultadoDaFerramenta.hpp
+      RegistroDeFerramentas.hpp
+      Enxada.hpp
+      FerramentaDeSemente.hpp
+      CursorDeColheita.hpp
+      PresenteAcelerador.hpp
+      RemovedorDeTerra.hpp
+        Cada ferramenta implementa sua propria regra de aplicacao.
 
-Grade/: GradeGlobalDeCanteiros, TileDeTerra. Classes que controlam onde existem canteiros e validam posições.
+    Grade/
+      TileDeTerra.hpp
+      GradeGlobalDeCanteiros.hpp
+        Armazenamento da grade global, indices internos e validacoes de posicao.
 
-Canteiros/: Máquina de estados do canteiro. Regras de transição de Vazio -> Arado -> Plantado.
+    Jogador/Jogador.hpp
+      Moedas, experiencia, nivel e aplicacao de recompensa.
 
-Plantas/: Classe base Planta, com subclasses em Especies/ (PlantaMilho, PlantaMorango). Fases de crescimento definidas por tempo.
+  Aplicacao/
+    Estado/EstadoDoJogo.hpp
+      Agrega grade, jogador, ferramenta selecionada e tempo acumulado.
+    Servicos/
+      InicializadorDaFazenda.hpp
+      ServicoDeFerramentas.hpp
+      ServicoDeTempo.hpp
+        Casos de uso que coordenam dominio sem tocar em SDL.
 
-Ferramentas/: Interface abstrata Ferramenta. Especializações: Enxada, Semente, etc.
+  Apresentacao/
+    ConfiguracoesDoLayout.hpp
+    Camera/CameraDoJogo.hpp
+    Isometria/Isometrico.hpp
+    Interface/
+      AreaDeInteracao.hpp
+      BarraDeFerramentas/BarraDeFerramentas.hpp
+    Renderizacao/
+      Primitivas/PrimitivasSDL.hpp
+      Mundo/DesenhoDoMundo.hpp
+      Mundo/RenderizadorDaFazenda.hpp
+      UI/IconesDasFerramentas.hpp
+      UI/BarraDeFerramentasRenderer.hpp
+      Cursores/CursorCustomizado.hpp
 
-Jogador/ & Economia/: Regras de cálculo de nível, moedas recebidas, descontos, experiência.
+  Infraestrutura/
+    SDL/ContextoSDL.hpp
+      Inicializacao SDL, janela, renderer e cursor oculto com RAII.
+    Assets/
+      GerenciadorDeAtivosSDL.hpp
+      LocalizadorDeAssets.hpp
+      RecursosDaFazenda.hpp
+    Configuracao/LeitorDeConfiguracao.hpp
+```
 
-🔹 Aplicacao/ (A Orquestração)
-Faz a ponte entre a entrada do usuário e as regras do domínio.
+## Fluxo de Dependencias
 
-Estado/: EstadoDoJogo agregado que junta a grade, a economia e as configurações atuais.
+```text
+Principal.cpp
+  -> Infraestrutura, Apresentacao, Aplicacao
 
-Servicos/: Casos de uso como aplicarFerramenta(coordenada), avancarTempoGlobal().
+Infraestrutura
+  -> Apresentacao quando precisa preencher configuracao visual
+  -> Dominio apenas para mapear resultados de acoes para sons/texturas
 
-Entrada/: Tradução de botões apertados/mouse para intenções no jogo.
+Apresentacao
+  -> Aplicacao para ler EstadoDoJogo
+  -> Dominio para ler estados, grade e ferramenta selecionada
 
-Cenas/: A CenaFazenda coordena os updates da lógica e manda a Apresentação renderizar tudo.
+Aplicacao
+  -> Dominio
+  -> Compartilhado
 
-🔹 Apresentacao/ (A Tela)
-Exclusivo para ler os estados do Dominio e desenhar na tela.
+Dominio
+  -> Compartilhado
+```
 
-Isometria/: A matemática visual (exclusiva para o desenho) que converte matriz em tela.
+O dominio nunca depende de SDL, apresentacao ou infraestrutura.
 
-Renderizacao/: O desenho real com SDL_Renderer. Subdividido em Mundo (chão e plantas), UI (botões) e Cursores.
+## Padrao de Ferramentas
 
-Camera/: Controle do zoom, limite do pan e inércia do mapa.
+Toda ferramenta deriva de `Dominio::Ferramentas::Ferramenta` e implementa:
 
-🔹 Infraestrutura/ (A Máquina e os Arquivos)
-Tudo o que fala com o Sistema Operacional e o hardware.
+```cpp
+ResultadoDaFerramenta aplicar(ContextoDaFerramenta&, PosicaoNaGrade) const;
+```
 
-SDL/: Inicialização da janela principal, limpeza de memória RAII (destrutores de janela/renderer).
+`RegistroDeFerramentas` guarda as instancias por `TipoDeFerramenta`, eliminando o `switch` antigo de `SistemasDoJogo.hpp`.
 
-Assets/: Carregadores usando Template genérico. LocalizadorDeAssets (lê os PNGs da pasta e mapeia).
+Para adicionar uma ferramenta:
 
-Configuracao/: O parser que lê o config.ini e entrega os dados em um struct seguro.
+1. Criar uma classe em `Dominio/Ferramentas/`.
+2. Implementar `tipo()` e `aplicar()`.
+3. Registrar no `RegistroDeFerramentas`.
+4. Criar desenho e botao em `Apresentacao`, se a ferramenta for selecionavel pela UI.
 
-4. Plano de Implementação e Refatoração
-A transição dos arquivos legados (SistemasDoJogo.hpp, Desenho.hpp, etc) para a nova arquitetura deve seguir esta ordem para evitar que o código quebre:
+## Padrao de Plantas
 
-Fase 1: Infraestrutura e Compartilhado
+`Planta` define tempo para crescer, maturar, morrer e recompensa. `Canteiro` contem uma planta polimorfica e consulta essa planta para saber a fase visual em cada segundo.
 
-Extrair os structs básicos de Tipos.hpp para Compartilhado/Geometria/.
+Para adicionar uma planta:
 
-Criar a classe de leitura universal no Infraestrutura/Assets/ (eliminando o código duplicado de texturas/fontes/sons).
+1. Criar a especie em `Dominio/Plantas/Especies/`.
+2. Implementar `clonar()`, identificador de semente, tempos e recompensa.
+3. Adicionar a criacao em `FabricaDePlantas`.
+4. Mapear sprites em `Infraestrutura/Assets` ou no catalogo visual correspondente.
 
-Isolar a incialização do SDL saindo de Principal.cpp para Infraestrutura/SDL/.
+## Estado do Canteiro
 
-Fase 2: Isolamento do Domínio (O mais crítico)
+`Canteiro` e o dono das transicoes. Codigo externo chama metodos de intencao:
 
-Transformar GradeDeCanteiros.hpp em uma classe dentro de Dominio/Grade/. Esconder os vetores como private.
+```text
+arar()
+plantar(planta)
+acelerarParaMadura()
+colher()
+avancarUmSegundo()
+```
 
-Substituir os structs passivos do canteiro pela classe Canteiro.hpp com validação de estado (State Pattern).
+Essa abordagem centraliza o State Pattern de forma simples. Nao ha classes separadas por estado no momento porque o comportamento atual ainda e pequeno; se as transicoes ganharem efeitos especificos por estado, elas devem ser extraidas para objetos de estado sem expor mutacao direta.
 
-Migração de Ferramentas: Criar a classe base Ferramenta. Mover cada case do antigo SistemasDoJogo.hpp para uma classe específica (ex: Enxada.cpp).
+## Grade Encapsulada
 
-Fase 3: Apresentação (Renderização Desacoplada)
+`GradeGlobalDeCanteiros` guarda internamente:
 
-Quebrar o gigante Desenho.hpp em renderizadores específicos (Apresentacao/Renderizacao/Mundo, UI).
+```text
+tiles_
+posicoesDeTilesExistentes_
+posicoesDeCanteirosEmCrescimento_
+```
 
-Os métodos de desenho não podem mais decidir qual estado o canteiro está, apenas ler do Domínio e pintar a textura correspondente.
+As listas sao expostas somente como referencias const. Mutacoes passam por:
 
-Fase 4: Aplicação (Unindo as Pontas)
+```text
+ativarTile()
+removerTile()
+sincronizarCrescimentoDoCanteiro()
+removerCanteiroDaListaDeCrescimento()
+```
 
-O loop principal em Principal.cpp será enxugado. Ele passará a instanciar a CenaFazenda e rodar seu update() e render().
+## Build
 
-5. Tratamento de Regressões (Prevenção de Bugs)
-A refatoração levanta um risco temporário de Regressão (quebrar lógicas que hoje funcionam). Para mitigar isso:
+O `CMakeLists.txt` usa:
 
-Tática de Estrangulamento (Strangler Pattern): Não apague o bloco inteiro do SistemasDoJogo.hpp de uma vez. Migre uma ferramenta (ex: Enxada). Faça o jogo usar o novo sistema para a Enxada, mas mantenha o switch legado para as demais. Teste, valide e depois migre a próxima.
+```cmake
+file(GLOB_RECURSE MINIFAZENDA_HEADERS CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.hpp")
+```
 
-Blindagem de Invariantes: Ao encapsular a Grade (Dominio/Grade), erros de índice e vetores corrompidos não passarão do compilador, evitando crashes silenciosos no loop da câmera.
+Assim, novos headers entram nos targets automaticamente. O projeto continua tendo `src/Principal.cpp` como unico `.cpp` da aplicacao e `tests/TestesLogica.cpp` para testes de logica.
 
-Testes Frequentes no CMake: Devido à criação de muitos arquivos, garanta que o CMakeLists.txt usa inclusão em lote (file(GLOB_RECURSE SOURCES "src/*.cpp")) ou atualize-o a cada novo arquivo criado. Após cada classe migrada, rode o comando ninja para garantir que a lintagem e as dependências #include estão corretas.
+## Validacoes Recomendadas
 
-Versão do Documento: 1.0
-Autor: Jonas saraiva
-Data: 25/06/2026 17:00
+```powershell
+cmake -S . -B build
+cmake --build build --config Debug
+ctest --test-dir build --output-on-failure -C Debug
+rg "SDL|SDL_|IMG_|TTF_|Mix_" src/Dominio
+rg "switch" src/Dominio
+```
+
+As duas ultimas buscas devem retornar vazio.
+
+## Pontos Legados Aceitos Por Enquanto
+
+- `Principal.cpp` ainda contem o loop SDL completo. Ele esta menor e usa servicos/modulos, mas uma proxima etapa pode extrair uma `CenaFazenda` dedicada.
+- A apresentacao ainda tem `switch` para escolher icones e cores. Isso e permitido porque nao decide regra de dominio.
+- A infraestrutura ainda mapeia acoes para sons com `switch`. Isso e um mapeamento de borda, nao regra de gameplay.

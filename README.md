@@ -4,21 +4,15 @@ Base nativa em C++17 com SDL2 para a arquitetura v1.0.0.
 
 ## Estrutura
 
-- `src/Principal.cpp`: inicializacao SDL2, game loop, fluxo de eventos, atualizacao por frame e orquestracao de renderizacao.
-- `src/CaminhosDosAssets.hpp`: localizacao da pasta `assets` e caminhos centralizados de background/tiles.
-- `src/Constantes.hpp`: constantes globais de janela, grade global 256x256 e tempo.
-- `src/Tipos.hpp`: tipos comuns, estados, ferramentas, areas de interacao e configuracoes de layout.
-- `src/CameraDoJogo.hpp`: zoom, pan, origem visual do grid, limite de camera e dimensoes renderizadas.
-- `src/GradeDeCanteiros.hpp`: armazenamento da grade global, indices de tiles ativos e lista de canteiros em crescimento.
-- `src/SistemasDoJogo.hpp`: estado do jogo, regras das ferramentas, moedas/experiencia e crescimento dos canteiros.
-- `src/InterfaceDoJogo.hpp`: layout e processamento dos botoes da barra inferior.
-- `src/Isometrico.hpp`: conversao entre tela, grade local e grade global isometrica.
-- `src/Desenho.hpp`: funcoes de renderizacao SDL2.
-- `src/Ativos.hpp`: cache de texturas, fontes, sons e musicas.
-- `src/RecursosDoJogo.hpp`: carregamento dos recursos visuais e mapeamento de sons usados pelo jogo.
-- `src/Configuracao.hpp`: leitor simples de `assets/config.ini`.
+- `src/Compartilhado/`: constantes e tipos puros como posicoes de tela/grade.
+- `src/Dominio/`: regras de jogo em C++ puro, incluindo grade, canteiros, plantas, ferramentas, jogador e economia.
+- `src/Aplicacao/`: estado agregado e servicos de caso de uso, como aplicar ferramenta e avancar tempo.
+- `src/Apresentacao/`: camera, isometria, interface e renderizacao SDL2.
+- `src/Infraestrutura/`: inicializacao SDL, janela, renderer, assets, audio, filesystem e configuracao.
+- `src/Principal.cpp`: entry point SDL, loop principal e conexao entre as camadas.
 - `tests/TestesLogica.cpp`: testes da logica pura de grade, ferramentas e crescimento.
 - `assets/`: midia separada do codigo.
+- `doc/ARCHITECTURE.md`: regras arquiteturais atuais e mapa completo de responsabilidades.
 
 ## Assets esperados
 
@@ -41,7 +35,7 @@ Instale CMake, um compilador C++17 e as bibliotecas `SDL2`, `SDL2_image`, `SDL2_
 
 ```powershell
 cmake -S . -B build
-cmake --build build
+cmake --build build --config Debug
 .\build\bin\MiniFazenda2.exe
 ```
 

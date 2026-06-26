@@ -2,5 +2,4 @@ build/
 build-ucrt/
 build-codex/
 *.exe
-src/output/Ativos.exe
-src/output/Tipos.exe
+src/output/
