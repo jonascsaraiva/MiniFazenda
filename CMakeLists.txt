@@ -7,20 +7,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+file(GLOB_RECURSE MINIFAZENDA_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/src/*.hpp"
+)
+
 add_executable(MiniFazenda2
     src/Principal.cpp
-    src/Ativos.hpp
-    src/CameraDoJogo.hpp
-    src/CaminhosDosAssets.hpp
-    src/Configuracao.hpp
-    src/Constantes.hpp
-    src/Desenho.hpp
-    src/GradeDeCanteiros.hpp
-    src/InterfaceDoJogo.hpp
-    src/Isometrico.hpp
-    src/RecursosDoJogo.hpp
-    src/SistemasDoJogo.hpp
-    src/Tipos.hpp
+    ${MINIFAZENDA_HEADERS}
 )
 
 target_include_directories(MiniFazenda2 PRIVATE src)
@@ -75,6 +68,7 @@ enable_testing()
 
 add_executable(MiniFazenda2Tests
     tests/TestesLogica.cpp
+    ${MINIFAZENDA_HEADERS}
 )
 
 target_include_directories(MiniFazenda2Tests PRIVATE src)
