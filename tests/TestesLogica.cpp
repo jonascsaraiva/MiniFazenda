@@ -9,6 +9,7 @@
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
+#include "Dominio/Plantas/Especies/PlantaMirtilo.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -19,6 +20,7 @@ namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
 namespace Canteiros = MiniFazenda::Dominio::Canteiros;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
+namespace Especies = MiniFazenda::Dominio::Plantas::Especies;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace Grade = MiniFazenda::Dominio::Grade;
@@ -86,14 +88,22 @@ int main() {
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
     validarIndicesDaGrade(jogo.grade());
 
-    AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(Constantes::TEMPO_PARA_CRESCER));
+    const Especies::PlantaMirtilo mirtilo;
+
+    AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaCrescer()));
     const Grade::TileDeTerra* tile = jogo.grade().obterTile(posicaoNova);
     assert(tile != nullptr);
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
 
     AppServicos::avancarTempoDoJogo(
         jogo,
-        static_cast<float>(Constantes::TEMPO_PARA_MADURAR - Constantes::TEMPO_PARA_CRESCER)
+        static_cast<float>(mirtilo.tempoParaFicarJovem() - mirtilo.tempoParaCrescer())
+    );
+    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaJovem);
+
+    AppServicos::avancarTempoDoJogo(
+        jogo,
+        static_cast<float>(mirtilo.tempoParaMaturar() - mirtilo.tempoParaFicarJovem())
     );
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMadura);
 
@@ -107,7 +117,7 @@ int main() {
     validarIndicesDaGrade(jogo.grade());
 
     ararEPlantar(jogo, posicaoNova);
-    AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(Constantes::TEMPO_PARA_MORRER));
+    AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaMorrer()));
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
     validarIndicesDaGrade(jogo.grade());

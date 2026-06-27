@@ -4,7 +4,9 @@
 
 #include <SDL.h>
 
+#include <array>
 #include <filesystem>
+#include <string>
 #include <vector>
 
 namespace MiniFazenda::Infraestrutura::Assets {
@@ -85,6 +87,26 @@ inline std::vector<std::filesystem::path> candidatosParaTexturaTerraRestos(const
     return {
         diretorioAssets / "sprites" / "tiles" / "tile_terra_restos.png",
         diretorioAssets / "sprites" / "planta_morta.png"
+    };
+}
+
+inline std::filesystem::path caminhoDoSpriteDaPlanta(
+    const std::filesystem::path& diretorioAssets,
+    const std::string& pastaEspecie,
+    const std::string& nomeArquivo
+) {
+    return diretorioAssets / "sprites" / "plantas" / pastaEspecie / nomeArquivo;
+}
+
+inline std::array<std::string, 5> nomesDeArquivoPorFaseVisual(const std::string& pastaEspecie) {
+    // Contrato do pipeline: SementePlantada, PlantaCrescendo, PlantaJovem,
+    // PlantaMadura e PlantaMorta, nessa ordem.
+    return {
+        pastaEspecie + "_fase_1.png",
+        pastaEspecie + "_fase_2.png",
+        pastaEspecie + "_fase_3.png",
+        pastaEspecie + "_fase_4.png",
+        pastaEspecie + "_morto.png"
     };
 }
 

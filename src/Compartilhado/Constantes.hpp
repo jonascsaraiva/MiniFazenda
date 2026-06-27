@@ -46,13 +46,9 @@ constexpr float PASSO_DO_ZOOM = 0.1f;
 constexpr float DESACELERACAO_DO_PAN = 1600.0f;
 constexpr float FRACAO_MINIMA_VISIVEL_AO_PAN = 0.25f;
 
-constexpr int TEMPO_PARA_CRESCER = 6;
-constexpr int TEMPO_PARA_MADURAR = 14;
-constexpr int TEMPO_PARA_MORRER = 34;
-
 constexpr int TAMANHO_DO_BOTAO_DA_INTERFACE = 52;
 constexpr int ESPACAMENTO_DOS_BOTOES = 12;
 
-constexpr const char* TITULO_DA_JANELA = "MiniFazenda2 v1.0.0";
+constexpr const char* TITULO_DA_JANELA = "Jardim Tropical v1.0.0";
 
 } // namespace MiniFazenda::Compartilhado::Constantes

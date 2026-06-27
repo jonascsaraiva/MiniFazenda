@@ -55,6 +55,7 @@ public:
     bool precisaAvancarCrescimento() const {
         return estadoVisualAtual_ == EstadoVisualDoCanteiro::SementePlantada ||
                estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaCrescendo ||
+               estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaJovem ||
                estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaMadura;
     }
 
@@ -84,7 +85,8 @@ public:
     bool acelerarParaMadura() {
         if (planta_ == nullptr ||
             (estadoVisualAtual_ != EstadoVisualDoCanteiro::SementePlantada &&
-             estadoVisualAtual_ != EstadoVisualDoCanteiro::PlantaCrescendo)) {
+             estadoVisualAtual_ != EstadoVisualDoCanteiro::PlantaCrescendo &&
+             estadoVisualAtual_ != EstadoVisualDoCanteiro::PlantaJovem)) {
             return false;
         }
 

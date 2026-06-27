@@ -3,23 +3,84 @@
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
+#include "Dominio/Plantas/Planta.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
 
 #include <SDL.h>
 
 #include <array>
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace MiniFazenda::Infraestrutura::Assets {
 
-struct TexturasDosCanteiros {
-    std::array<SDL_Texture*, Dominio::Canteiros::QUANTIDADE_DE_ESTADOS_DO_CANTEIRO> porEstado{};
+constexpr std::size_t QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA = 5;
 
-    SDL_Texture* paraEstado(Dominio::Canteiros::EstadoVisualDoCanteiro estado) const {
-        return porEstado[Dominio::Canteiros::indiceDoEstado(estado)];
+using TexturasDaPlantaPorFase = std::array<SDL_Texture*, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA>;
+using TexturasDasPlantasPorSemente = std::unordered_map<int, TexturasDaPlantaPorFase>;
+
+inline bool estadoEhFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
+    switch (estado) {
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
+            return true;
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
+        default:
+            return false;
+    }
+}
+
+inline std::size_t indiceDaFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
+    switch (estado) {
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada:
+            return 0;
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo:
+            return 1;
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem:
+            return 2;
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura:
+            return 3;
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
+            return 4;
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
+        default:
+            return 0;
+    }
+}
+
+struct TexturasDosCanteiros {
+    std::array<SDL_Texture*, Dominio::Canteiros::QUANTIDADE_DE_ESTADOS_DO_CANTEIRO> terraPorEstado{};
+    TexturasDasPlantasPorSemente plantasPorSemente;
+
+    SDL_Texture* texturaDeTerraParaEstado(Dominio::Canteiros::EstadoVisualDoCanteiro estado) const {
+        return terraPorEstado[Dominio::Canteiros::indiceDoEstado(estado)];
+    }
+
+    SDL_Texture* texturaDePlantaParaEstado(
+        int identificadorDaSemente,
+        Dominio::Canteiros::EstadoVisualDoCanteiro estado
+    ) const {
+        if (!estadoEhFaseVisualDaPlanta(estado)) {
+            return nullptr;
+        }
+
+        const auto encontrada = plantasPorSemente.find(identificadorDaSemente);
+        if (encontrada == plantasPorSemente.end()) {
+            return nullptr;
+        }
+
+        return encontrada->second[indiceDaFaseVisualDaPlanta(estado)];
     }
 };
 
@@ -66,20 +127,62 @@ inline TexturasDosCanteiros carregarTexturasDosCanteiros(
     using Dominio::Canteiros::EstadoVisualDoCanteiro;
 
     TexturasDosCanteiros texturas;
-    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraVazia)] =
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraVazia)] =
         carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraSeca(diretorioAssets));
-    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraArada)] =
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraArada)] =
         carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraArada(diretorioAssets));
-    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::SementePlantada)] =
-        carregarPrimeiraTexturaExistente(ativos, {diretorioAssets / "sprites" / "semente_plantada.png"});
-    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaCrescendo)] =
-        carregarPrimeiraTexturaExistente(ativos, {diretorioAssets / "sprites" / "planta_crescendo.png"});
-    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMadura)] =
-        carregarPrimeiraTexturaExistente(ativos, {diretorioAssets / "sprites" / "planta_madura.png"});
-    texturas.porEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMorta)] =
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMorta)] =
         carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraRestos(diretorioAssets));
 
     return texturas;
+}
+
+inline const char* nomeDaFaseVisualDaPlanta(std::size_t indice) {
+    static constexpr std::array<const char*, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA> nomes = {
+        "SementePlantada",
+        "PlantaCrescendo",
+        "PlantaJovem",
+        "PlantaMadura",
+        "PlantaMorta"
+    };
+
+    return indice < nomes.size() ? nomes[indice] : "FaseDesconhecida";
+}
+
+inline TexturasDasPlantasPorSemente carregarSpritesDeTodasAsEspecies(
+    GerenciadorDeAtivosSDL& ativos,
+    const std::filesystem::path& diretorioAssets,
+    const std::vector<std::unique_ptr<Dominio::Plantas::Planta>>& especies
+) {
+    TexturasDasPlantasPorSemente texturasPorSemente;
+
+    for (const std::unique_ptr<Dominio::Plantas::Planta>& especie : especies) {
+        if (especie == nullptr) {
+            continue;
+        }
+
+        const std::string pastaEspecie = especie->pastaDeSprites();
+        const std::array<std::string, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA> nomesArquivos =
+            nomesDeArquivoPorFaseVisual(pastaEspecie);
+
+        TexturasDaPlantaPorFase texturasDaPlanta{};
+        for (std::size_t indice = 0; indice < nomesArquivos.size(); ++indice) {
+            const std::filesystem::path caminho =
+                caminhoDoSpriteDaPlanta(diretorioAssets, pastaEspecie, nomesArquivos[indice]);
+
+            if (!std::filesystem::exists(caminho)) {
+                std::cerr << "Sprite ausente para " << especie->nome() << " na fase "
+                          << nomeDaFaseVisualDaPlanta(indice) << ": " << caminho.string() << '\n';
+                continue;
+            }
+
+            texturasDaPlanta[indice] = ativos.carregarTextura(caminho);
+        }
+
+        texturasPorSemente[especie->identificadorDaSemente()] = texturasDaPlanta;
+    }
+
+    return texturasPorSemente;
 }
 
 inline std::filesystem::path caminhoDaMusicaAmbiente(const std::filesystem::path& diretorioAssets) {

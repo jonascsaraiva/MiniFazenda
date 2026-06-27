@@ -4,6 +4,7 @@
 #include "Dominio/Plantas/Planta.hpp"
 
 #include <memory>
+#include <vector>
 
 namespace MiniFazenda::Dominio::Plantas {
 
@@ -19,6 +20,12 @@ public:
         }
 
         return nullptr;
+    }
+
+    std::vector<std::unique_ptr<Planta>> todasAsEspecies() const {
+        std::vector<std::unique_ptr<Planta>> especies;
+        especies.push_back(criarMirtilo());
+        return especies;
     }
 
 private:

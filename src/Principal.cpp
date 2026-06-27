@@ -11,6 +11,7 @@
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
+#include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
 #include "Infraestrutura/Assets/RecursosDaFazenda.hpp"
@@ -33,6 +34,7 @@ namespace Constantes = MiniFazenda::Compartilhado::Constantes;
 namespace Cursores = MiniFazenda::Apresentacao::Renderizacao::Cursores;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Mundo = MiniFazenda::Apresentacao::Renderizacao::Mundo;
+namespace Plantas = MiniFazenda::Dominio::Plantas;
 namespace SDLInfra = MiniFazenda::Infraestrutura::SDL;
 namespace UI = MiniFazenda::Apresentacao::Renderizacao::UI;
 
@@ -82,15 +84,22 @@ int main(int, char**) {
     MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
     Configuracao::carregarConfiguracoesDoLayout(diretorioAssets / "config.ini", configuracoes);
 
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+
     Assets::GerenciadorDeAtivosSDL ativos(renderizador.ponteiro);
     SDL_Texture* texturaFundo = Assets::carregarTexturaDeFundoPrincipal(ativos, diretorioAssets, configuracoes);
-    const Assets::TexturasDosCanteiros texturasCanteiro = Assets::carregarTexturasDosCanteiros(ativos, diretorioAssets);
+    Assets::TexturasDosCanteiros texturasCanteiro = Assets::carregarTexturasDosCanteiros(ativos, diretorioAssets);
+    const Plantas::FabricaDePlantas fabricaDePlantas;
+    texturasCanteiro.plantasPorSemente = Assets::carregarSpritesDeTodasAsEspecies(
+        ativos,
+        diretorioAssets,
+        fabricaDePlantas.todasAsEspecies()
+    );
 
     if (sdl.audioInicializado) {
         ativos.tocarMusica(Assets::caminhoDaMusicaAmbiente(diretorioAssets));
     }
 
-    auto jogo = AppServicos::criarEstadoInicialDoJogo();
     Camera::EstadoDaCamera camera;
     Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
     const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();

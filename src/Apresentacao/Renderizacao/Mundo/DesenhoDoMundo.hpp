@@ -16,6 +16,8 @@ inline SDL_Color corParaEstado(Dominio::Canteiros::EstadoVisualDoCanteiro estado
             return SDL_Color{96, 67, 40, 255};
         case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo:
             return SDL_Color{78, 144, 74, 255};
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem:
+            return SDL_Color{63, 126, 68, 255};
         case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura:
             return SDL_Color{230, 187, 65, 255};
         case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
@@ -61,6 +63,7 @@ inline void desenharCanteiro(
         }
 
         if (canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo ||
+            canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem ||
             canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura) {
             const SDL_Color corPlanta =
                 canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura

@@ -94,9 +94,20 @@ inline void desenharGradeAtiva(
             continue;
         }
 
+        const Dominio::Canteiros::EstadoVisualDoCanteiro estadoVisual = tile->canteiro().estadoVisualAtual();
+        SDL_Texture* texturaCanteiro = nullptr;
+        if (Infraestrutura::Assets::estadoEhFaseVisualDaPlanta(estadoVisual)) {
+            texturaCanteiro = texturasCanteiro.texturaDePlantaParaEstado(
+                tile->canteiro().identificadorDaSemente(),
+                estadoVisual
+            );
+        } else {
+            texturaCanteiro = texturasCanteiro.texturaDeTerraParaEstado(estadoVisual);
+        }
+
         desenharCanteiro(
             renderizador,
-            texturasCanteiro.paraEstado(tile->canteiro().estadoVisualAtual()),
+            texturaCanteiro,
             tile->canteiro(),
             destino,
             Compartilhado::Geometria::posicoesDaGradeSaoIguais(posicaoRealcada, posicaoDoTile)
