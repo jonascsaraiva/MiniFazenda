@@ -3,11 +3,13 @@
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
+#include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Plantas/Planta.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
 
 #include <SDL.h>
+#include <SDL_image.h>
 
 #include <array>
 #include <cstddef>
@@ -22,8 +24,17 @@ namespace MiniFazenda::Infraestrutura::Assets {
 
 constexpr std::size_t QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA = 5;
 
-using TexturasDaPlantaPorFase = std::array<SDL_Texture*, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA>;
+struct SpriteDaPlanta {
+    SDL_Texture* textura = nullptr;
+    int largura = 0;
+    int altura = 0;
+    SDL_Point ancoraDaBase{0, 0};
+    bool possuiAncora = false;
+};
+
+using TexturasDaPlantaPorFase = std::array<SpriteDaPlanta, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA>;
 using TexturasDasPlantasPorSemente = std::unordered_map<int, TexturasDaPlantaPorFase>;
+using TexturasDosBotoes = std::array<SDL_Texture*, Dominio::Ferramentas::QUANTIDADE_DE_FERRAMENTAS>;
 
 inline bool estadoEhFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
     switch (estado) {
@@ -67,7 +78,7 @@ struct TexturasDosCanteiros {
         return terraPorEstado[Dominio::Canteiros::indiceDoEstado(estado)];
     }
 
-    SDL_Texture* texturaDePlantaParaEstado(
+    const SpriteDaPlanta* spriteDePlantaParaEstado(
         int identificadorDaSemente,
         Dominio::Canteiros::EstadoVisualDoCanteiro estado
     ) const {
@@ -80,7 +91,7 @@ struct TexturasDosCanteiros {
             return nullptr;
         }
 
-        return encontrada->second[indiceDaFaseVisualDaPlanta(estado)];
+        return &encontrada->second[indiceDaFaseVisualDaPlanta(estado)];
     }
 };
 
@@ -137,6 +148,40 @@ inline TexturasDosCanteiros carregarTexturasDosCanteiros(
     return texturas;
 }
 
+inline TexturasDosBotoes carregarTexturasDosBotoes(
+    GerenciadorDeAtivosSDL& ativos,
+    const std::filesystem::path& diretorioAssets
+) {
+    TexturasDosBotoes texturas{};
+
+    for (std::size_t indice = 0; indice < Dominio::Ferramentas::QUANTIDADE_DE_FERRAMENTAS; ++indice) {
+        const auto ferramenta = static_cast<Dominio::Ferramentas::TipoDeFerramenta>(indice);
+        const std::size_t indiceDaTextura = Dominio::Ferramentas::indiceDaFerramenta(ferramenta);
+        const std::filesystem::path caminho = candidatosParaIconeDaFerramenta(diretorioAssets, ferramenta);
+
+        if (caminho.empty()) {
+            std::cerr << "Icone da toolbar sem mapeamento. Fallback vetorial ativo no indice "
+                      << indiceDaTextura << '\n';
+            continue;
+        }
+
+        if (!std::filesystem::exists(caminho)) {
+            std::cerr << "Icone da toolbar ausente. Fallback vetorial ativo: " << caminho.string() << '\n';
+            continue;
+        }
+
+        SDL_Texture* textura = ativos.carregarTextura(caminho);
+        if (textura == nullptr) {
+            std::cerr << "Icone da toolbar nao carregado. Fallback vetorial ativo: " << caminho.string() << '\n';
+            continue;
+        }
+
+        texturas[indiceDaTextura] = textura;
+    }
+
+    return texturas;
+}
+
 inline const char* nomeDaFaseVisualDaPlanta(std::size_t indice) {
     static constexpr std::array<const char*, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA> nomes = {
         "SementePlantada",
@@ -147,6 +192,80 @@ inline const char* nomeDaFaseVisualDaPlanta(std::size_t indice) {
     };
 
     return indice < nomes.size() ? nomes[indice] : "FaseDesconhecida";
+}
+
+inline SpriteDaPlanta calcularAncoraDaBaseDoSpriteDaPlanta(const std::filesystem::path& caminho) {
+    SpriteDaPlanta sprite;
+
+    SDL_Surface* superficieOriginal = IMG_Load(caminho.string().c_str());
+    if (superficieOriginal == nullptr) {
+        std::cerr << "Sprite da planta sem metadados de ancora: " << caminho.string()
+                  << " | " << IMG_GetError() << '\n';
+        return sprite;
+    }
+
+    SDL_Surface* superficie = SDL_ConvertSurfaceFormat(superficieOriginal, SDL_PIXELFORMAT_RGBA32, 0);
+    SDL_FreeSurface(superficieOriginal);
+
+    if (superficie == nullptr) {
+        std::cerr << "Sprite da planta sem conversao RGBA para ancora: " << caminho.string()
+                  << " | " << SDL_GetError() << '\n';
+        return sprite;
+    }
+
+    sprite.largura = superficie->w;
+    sprite.altura = superficie->h;
+
+    if (SDL_MUSTLOCK(superficie)) {
+        SDL_LockSurface(superficie);
+    }
+
+    int minimoX = sprite.largura;
+    int maximoX = -1;
+    int maximoY = -1;
+
+    const Uint8* pixels = static_cast<const Uint8*>(superficie->pixels);
+    for (int y = 0; y < sprite.altura; ++y) {
+        const Uint8* linha = pixels + (y * superficie->pitch);
+        for (int x = 0; x < sprite.largura; ++x) {
+            const Uint32 pixel = *reinterpret_cast<const Uint32*>(linha + (x * 4));
+            Uint8 vermelho = 0;
+            Uint8 verde = 0;
+            Uint8 azul = 0;
+            Uint8 alfa = 0;
+            SDL_GetRGBA(pixel, superficie->format, &vermelho, &verde, &azul, &alfa);
+
+            if (alfa == 0) {
+                continue;
+            }
+
+            if (x < minimoX) {
+                minimoX = x;
+            }
+            if (x > maximoX) {
+                maximoX = x;
+            }
+            if (y > maximoY) {
+                maximoY = y;
+            }
+        }
+    }
+
+    if (SDL_MUSTLOCK(superficie)) {
+        SDL_UnlockSurface(superficie);
+    }
+
+    SDL_FreeSurface(superficie);
+
+    if (maximoX < 0 || maximoY < 0) {
+        sprite.ancoraDaBase = SDL_Point{sprite.largura / 2, sprite.altura};
+        sprite.possuiAncora = true;
+        return sprite;
+    }
+
+    sprite.ancoraDaBase = SDL_Point{(minimoX + maximoX) / 2, maximoY};
+    sprite.possuiAncora = true;
+    return sprite;
 }
 
 inline TexturasDasPlantasPorSemente carregarSpritesDeTodasAsEspecies(
@@ -176,7 +295,9 @@ inline TexturasDasPlantasPorSemente carregarSpritesDeTodasAsEspecies(
                 continue;
             }
 
-            texturasDaPlanta[indice] = ativos.carregarTextura(caminho);
+            SpriteDaPlanta sprite = calcularAncoraDaBaseDoSpriteDaPlanta(caminho);
+            sprite.textura = ativos.carregarTextura(caminho);
+            texturasDaPlanta[indice] = sprite;
         }
 
         texturasPorSemente[especie->identificadorDaSemente()] = texturasDaPlanta;

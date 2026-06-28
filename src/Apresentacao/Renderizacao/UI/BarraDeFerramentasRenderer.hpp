@@ -5,6 +5,7 @@
 #include "Apresentacao/Renderizacao/UI/IconesDasFerramentas.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
+#include "Infraestrutura/Assets/RecursosDaFazenda.hpp"
 
 #include <SDL.h>
 
@@ -39,7 +40,8 @@ inline void desenharBotaoFerramenta(
     SDL_Renderer* renderizador,
     Interface::AreaDeInteracao areaDeInteracao,
     Dominio::Ferramentas::TipoDeFerramenta ferramentaDoBotao,
-    Dominio::Ferramentas::TipoDeFerramenta ferramentaSelecionada
+    Dominio::Ferramentas::TipoDeFerramenta ferramentaSelecionada,
+    SDL_Texture* texturaDoIcone = nullptr
 ) {
     SDL_Rect area{
         areaDeInteracao.posicaoBotaoHorizontal,
@@ -58,6 +60,18 @@ inline void desenharBotaoFerramenta(
     SDL_RenderDrawRect(renderizador, &area);
 
     const SDL_Color corIcone = selecionado ? SDL_Color{65, 49, 31, 255} : SDL_Color{81, 76, 67, 255};
+    if (texturaDoIcone != nullptr) {
+        constexpr int margemDoIcone = 6;
+        SDL_Rect areaDoIcone{
+            area.x + margemDoIcone,
+            area.y + margemDoIcone,
+            area.w - margemDoIcone * 2,
+            area.h - margemDoIcone * 2
+        };
+        SDL_RenderCopy(renderizador, texturaDoIcone, nullptr, &areaDoIcone);
+        return;
+    }
+
     desenharIconeDaFerramenta(renderizador, area, corIcone, ferramentaDoBotao);
 }
 
@@ -68,7 +82,8 @@ inline void desenharInterface(
     Interface::AreaDeInteracao botaoEnxada,
     Interface::AreaDeInteracao botaoRemoverTerra,
     Interface::AreaDeInteracao botaoSemente,
-    Interface::AreaDeInteracao botaoPresente
+    Interface::AreaDeInteracao botaoPresente,
+    const MiniFazenda::Infraestrutura::Assets::TexturasDosBotoes& texturasDosBotoes
 ) {
     Primitivas::preencherRetangulo(
         renderizador,
@@ -76,11 +91,45 @@ inline void desenharInterface(
         SDL_Color{61, 65, 57, 210}
     );
 
-    desenharBotaoFerramenta(renderizador, botaoCursor, Dominio::Ferramentas::TipoDeFerramenta::Cursor, ferramentaSelecionada);
-    desenharBotaoFerramenta(renderizador, botaoEnxada, Dominio::Ferramentas::TipoDeFerramenta::Enxada, ferramentaSelecionada);
-    desenharBotaoFerramenta(renderizador, botaoRemoverTerra, Dominio::Ferramentas::TipoDeFerramenta::RemoverTerra, ferramentaSelecionada);
-    desenharBotaoFerramenta(renderizador, botaoSemente, Dominio::Ferramentas::TipoDeFerramenta::Semente, ferramentaSelecionada);
-    desenharBotaoFerramenta(renderizador, botaoPresente, Dominio::Ferramentas::TipoDeFerramenta::Presente, ferramentaSelecionada);
+    const auto texturaDoIcone = [&texturasDosBotoes](Dominio::Ferramentas::TipoDeFerramenta ferramenta) {
+        return texturasDosBotoes[Dominio::Ferramentas::indiceDaFerramenta(ferramenta)];
+    };
+
+    desenharBotaoFerramenta(
+        renderizador,
+        botaoCursor,
+        Dominio::Ferramentas::TipoDeFerramenta::Cursor,
+        ferramentaSelecionada,
+        texturaDoIcone(Dominio::Ferramentas::TipoDeFerramenta::Cursor)
+    );
+    desenharBotaoFerramenta(
+        renderizador,
+        botaoEnxada,
+        Dominio::Ferramentas::TipoDeFerramenta::Enxada,
+        ferramentaSelecionada,
+        texturaDoIcone(Dominio::Ferramentas::TipoDeFerramenta::Enxada)
+    );
+    desenharBotaoFerramenta(
+        renderizador,
+        botaoRemoverTerra,
+        Dominio::Ferramentas::TipoDeFerramenta::RemoverTerra,
+        ferramentaSelecionada,
+        texturaDoIcone(Dominio::Ferramentas::TipoDeFerramenta::RemoverTerra)
+    );
+    desenharBotaoFerramenta(
+        renderizador,
+        botaoSemente,
+        Dominio::Ferramentas::TipoDeFerramenta::Semente,
+        ferramentaSelecionada,
+        texturaDoIcone(Dominio::Ferramentas::TipoDeFerramenta::Semente)
+    );
+    desenharBotaoFerramenta(
+        renderizador,
+        botaoPresente,
+        Dominio::Ferramentas::TipoDeFerramenta::Presente,
+        ferramentaSelecionada,
+        texturaDoIcone(Dominio::Ferramentas::TipoDeFerramenta::Presente)
+    );
 }
 
 } // namespace MiniFazenda::Apresentacao::Renderizacao::UI

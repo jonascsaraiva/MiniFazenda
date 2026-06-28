@@ -14,6 +14,9 @@
 
 #include <SDL.h>
 
+#include <algorithm>
+#include <cmath>
+
 namespace MiniFazenda::Apresentacao::Renderizacao::Mundo {
 
 inline Compartilhado::Geometria::PosicaoNaGrade converterMouseParaGradeGlobal(
@@ -69,6 +72,30 @@ inline bool retanguloApareceNaTela(SDL_Rect retangulo) {
            retangulo.y + retangulo.h > 0;
 }
 
+inline SDL_Rect calcularDestinoDoSpriteDaPlanta(
+    SDL_Rect destinoDoCanteiro,
+    const Infraestrutura::Assets::SpriteDaPlanta& sprite
+) {
+    if (!sprite.possuiAncora || sprite.largura <= 0 || sprite.altura <= 0) {
+        return destinoDoCanteiro;
+    }
+
+    const double escala = static_cast<double>(destinoDoCanteiro.w) / static_cast<double>(sprite.largura);
+    const int largura = std::max(1, static_cast<int>(std::lround(sprite.largura * escala)));
+    const int altura = std::max(1, static_cast<int>(std::lround(sprite.altura * escala)));
+    const int ancoraX = static_cast<int>(std::lround(sprite.ancoraDaBase.x * escala));
+    const int ancoraY = static_cast<int>(std::lround(sprite.ancoraDaBase.y * escala));
+    const int pontoDePlantioX = destinoDoCanteiro.x + destinoDoCanteiro.w / 2;
+    const int pontoDePlantioY = destinoDoCanteiro.y + destinoDoCanteiro.h / 2;
+
+    return SDL_Rect{
+        pontoDePlantioX - ancoraX,
+        pontoDePlantioY - ancoraY,
+        largura,
+        altura
+    };
+}
+
 inline void desenharGradeAtiva(
     SDL_Renderer* renderizador,
     const Aplicacao::Estado::EstadoDoJogo& jogo,
@@ -95,19 +122,30 @@ inline void desenharGradeAtiva(
         }
 
         const Dominio::Canteiros::EstadoVisualDoCanteiro estadoVisual = tile->canteiro().estadoVisualAtual();
-        SDL_Texture* texturaCanteiro = nullptr;
+        SDL_Texture* texturaDaTerra = nullptr;
+        SDL_Texture* texturaDaPlanta = nullptr;
+        SDL_Rect destinoDaPlanta = destino;
         if (Infraestrutura::Assets::estadoEhFaseVisualDaPlanta(estadoVisual)) {
-            texturaCanteiro = texturasCanteiro.texturaDePlantaParaEstado(
+            texturaDaTerra = texturasCanteiro.texturaDeTerraParaEstado(
+                Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada
+            );
+            const Infraestrutura::Assets::SpriteDaPlanta* spriteDaPlanta = texturasCanteiro.spriteDePlantaParaEstado(
                 tile->canteiro().identificadorDaSemente(),
                 estadoVisual
             );
+            if (spriteDaPlanta != nullptr && spriteDaPlanta->textura != nullptr) {
+                texturaDaPlanta = spriteDaPlanta->textura;
+                destinoDaPlanta = calcularDestinoDoSpriteDaPlanta(destino, *spriteDaPlanta);
+            }
         } else {
-            texturaCanteiro = texturasCanteiro.texturaDeTerraParaEstado(estadoVisual);
+            texturaDaTerra = texturasCanteiro.texturaDeTerraParaEstado(estadoVisual);
         }
 
         desenharCanteiro(
             renderizador,
-            texturaCanteiro,
+            texturaDaTerra,
+            texturaDaPlanta,
+            destinoDaPlanta,
             tile->canteiro(),
             destino,
             Compartilhado::Geometria::posicoesDaGradeSaoIguais(posicaoRealcada, posicaoDoTile)

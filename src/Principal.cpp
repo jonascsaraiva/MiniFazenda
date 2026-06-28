@@ -89,6 +89,7 @@ int main(int, char**) {
     Assets::GerenciadorDeAtivosSDL ativos(renderizador.ponteiro);
     SDL_Texture* texturaFundo = Assets::carregarTexturaDeFundoPrincipal(ativos, diretorioAssets, configuracoes);
     Assets::TexturasDosCanteiros texturasCanteiro = Assets::carregarTexturasDosCanteiros(ativos, diretorioAssets);
+    Assets::TexturasDosBotoes texturasDosBotoes = Assets::carregarTexturasDosBotoes(ativos, diretorioAssets);
     const Plantas::FabricaDePlantas fabricaDePlantas;
     texturasCanteiro.plantasPorSemente = Assets::carregarSpritesDeTodasAsEspecies(
         ativos,
@@ -225,7 +226,8 @@ int main(int, char**) {
             botoes.enxada,
             botoes.removerTerra,
             botoes.semente,
-            botoes.presente
+            botoes.presente,
+            texturasDosBotoes
         );
         Cursores::desenharCursorCustomizado(renderizador.ponteiro, mouseX, mouseY, jogo.ferramentaSelecionada());
 

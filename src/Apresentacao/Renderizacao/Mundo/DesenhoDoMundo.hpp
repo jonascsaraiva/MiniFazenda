@@ -38,48 +38,94 @@ inline void desenharFundo(SDL_Renderer* renderizador, SDL_Texture* texturaFundo)
     }
 }
 
+inline bool estadoVisualTemPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
+    switch (estado) {
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
+            return true;
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
+        default:
+            return false;
+    }
+}
+
+inline void desenharFallbackDaPlanta(
+    SDL_Renderer* renderizador,
+    const Dominio::Canteiros::Canteiro& canteiro,
+    SDL_Rect destino
+) {
+    if (canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada) {
+        Primitivas::preencherRetangulo(
+            renderizador,
+            SDL_Rect{destino.x + destino.w / 2 - 3, destino.y + destino.h / 2 - 3, 6, 6},
+            SDL_Color{47, 37, 23, 255}
+        );
+    }
+
+    if (canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo ||
+        canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem ||
+        canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura) {
+        const SDL_Color corPlanta =
+            canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura
+                ? SDL_Color{255, 222, 91, 255}
+                : SDL_Color{44, 123, 64, 255};
+
+        Primitivas::preencherRetangulo(
+            renderizador,
+            SDL_Rect{destino.x + destino.w / 2 - 6, destino.y + destino.h / 2 - 18, 12, 20},
+            corPlanta
+        );
+        Primitivas::preencherRetangulo(
+            renderizador,
+            SDL_Rect{destino.x + destino.w / 2 - 18, destino.y + destino.h / 2 - 9, 36, 8},
+            corPlanta
+        );
+    }
+
+    if (canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta) {
+        Primitivas::preencherRetangulo(
+            renderizador,
+            SDL_Rect{destino.x + destino.w / 2 - 3, destino.y + destino.h / 2 - 16, 6, 18},
+            SDL_Color{73, 63, 55, 255}
+        );
+        Primitivas::preencherRetangulo(
+            renderizador,
+            SDL_Rect{destino.x + destino.w / 2 - 13, destino.y + destino.h / 2 - 8, 26, 5},
+            SDL_Color{73, 63, 55, 255}
+        );
+    }
+}
+
 inline void desenharCanteiro(
     SDL_Renderer* renderizador,
-    SDL_Texture* textura,
+    SDL_Texture* texturaDaTerra,
+    SDL_Texture* texturaDaPlanta,
+    SDL_Rect destinoDaPlanta,
     const Dominio::Canteiros::Canteiro& canteiro,
     SDL_Rect destino,
     bool destacado
 ) {
-    if (textura != nullptr) {
-        SDL_RenderCopy(renderizador, textura, nullptr, &destino);
-        if (destacado) {
-            Primitivas::desenharContornoLosango(renderizador, destino, SDL_Color{255, 244, 169, 255});
-        }
+    const bool temPlanta = estadoVisualTemPlanta(canteiro.estadoVisualAtual());
+    const Dominio::Canteiros::EstadoVisualDoCanteiro estadoDaBase = temPlanta
+        ? Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada
+        : canteiro.estadoVisualAtual();
+
+    if (texturaDaTerra != nullptr) {
+        SDL_RenderCopy(renderizador, texturaDaTerra, nullptr, &destino);
     } else {
         SDL_Color borda = destacado ? SDL_Color{255, 244, 169, 255} : SDL_Color{79, 56, 38, 255};
-        Primitivas::desenharLosango(renderizador, destino, corParaEstado(canteiro.estadoVisualAtual()), borda);
+        Primitivas::desenharLosango(renderizador, destino, corParaEstado(estadoDaBase), borda);
+    }
 
-        if (canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada) {
-            Primitivas::preencherRetangulo(
-                renderizador,
-                SDL_Rect{destino.x + destino.w / 2 - 3, destino.y + destino.h / 2 - 3, 6, 6},
-                SDL_Color{47, 37, 23, 255}
-            );
-        }
-
-        if (canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo ||
-            canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem ||
-            canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura) {
-            const SDL_Color corPlanta =
-                canteiro.estadoVisualAtual() == Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura
-                    ? SDL_Color{255, 222, 91, 255}
-                    : SDL_Color{44, 123, 64, 255};
-
-            Primitivas::preencherRetangulo(
-                renderizador,
-                SDL_Rect{destino.x + destino.w / 2 - 6, destino.y + destino.h / 2 - 18, 12, 20},
-                corPlanta
-            );
-            Primitivas::preencherRetangulo(
-                renderizador,
-                SDL_Rect{destino.x + destino.w / 2 - 18, destino.y + destino.h / 2 - 9, 36, 8},
-                corPlanta
-            );
+    if (temPlanta) {
+        if (texturaDaPlanta != nullptr) {
+            SDL_RenderCopy(renderizador, texturaDaPlanta, nullptr, &destinoDaPlanta);
+        } else {
+            desenharFallbackDaPlanta(renderizador, canteiro, destino);
         }
     }
 

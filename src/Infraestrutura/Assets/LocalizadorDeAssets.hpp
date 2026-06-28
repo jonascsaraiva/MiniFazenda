@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 
 #include <SDL.h>
 
@@ -88,6 +89,28 @@ inline std::vector<std::filesystem::path> candidatosParaTexturaTerraRestos(const
         diretorioAssets / "sprites" / "tiles" / "tile_terra_restos.png",
         diretorioAssets / "sprites" / "planta_morta.png"
     };
+}
+
+inline std::filesystem::path candidatosParaIconeDaFerramenta(
+    const std::filesystem::path& diretorioAssets,
+    Dominio::Ferramentas::TipoDeFerramenta ferramenta
+) {
+    const std::filesystem::path diretorioToolbar = diretorioAssets / "sprites" / "icons" / "toolbar";
+
+    switch (ferramenta) {
+        case Dominio::Ferramentas::TipoDeFerramenta::Cursor:
+            return diretorioToolbar / "cursor.png";
+        case Dominio::Ferramentas::TipoDeFerramenta::Enxada:
+            return diretorioToolbar / "enxada.png";
+        case Dominio::Ferramentas::TipoDeFerramenta::RemoverTerra:
+            return diretorioToolbar / "remover_terra.png";
+        case Dominio::Ferramentas::TipoDeFerramenta::Semente:
+            return diretorioToolbar / "saco_sementes.png";
+        case Dominio::Ferramentas::TipoDeFerramenta::Presente:
+            return diretorioToolbar / "loja.png";
+        default:
+            return {};
+    }
 }
 
 inline std::filesystem::path caminhoDoSpriteDaPlanta(
