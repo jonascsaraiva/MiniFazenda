@@ -4,6 +4,7 @@
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
+#include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Dominio/Plantas/Planta.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
@@ -93,6 +94,12 @@ struct TexturasDosCanteiros {
 
         return &encontrada->second[indiceDaFaseVisualDaPlanta(estado)];
     }
+};
+
+struct RecursosDaFazenda {
+    SDL_Texture* texturaFundo = nullptr;
+    TexturasDosCanteiros texturasCanteiro;
+    TexturasDosBotoes texturasDosBotoes{};
 };
 
 inline SDL_Texture* carregarPrimeiraTexturaExistente(
@@ -304,6 +311,25 @@ inline TexturasDasPlantasPorSemente carregarSpritesDeTodasAsEspecies(
     }
 
     return texturasPorSemente;
+}
+
+inline RecursosDaFazenda carregarRecursosDaFazenda(
+    GerenciadorDeAtivosSDL& ativos,
+    const std::filesystem::path& diretorioAssets,
+    const Apresentacao::ConfiguracoesDoLayout& configuracoes,
+    const Dominio::Plantas::FabricaDePlantas& fabrica
+) {
+    RecursosDaFazenda recursos;
+    recursos.texturaFundo = carregarTexturaDeFundoPrincipal(ativos, diretorioAssets, configuracoes);
+    recursos.texturasCanteiro = carregarTexturasDosCanteiros(ativos, diretorioAssets);
+    recursos.texturasDosBotoes = carregarTexturasDosBotoes(ativos, diretorioAssets);
+    recursos.texturasCanteiro.plantasPorSemente = carregarSpritesDeTodasAsEspecies(
+        ativos,
+        diretorioAssets,
+        fabrica.todasAsEspecies()
+    );
+
+    return recursos;
 }
 
 inline std::filesystem::path caminhoDaMusicaAmbiente(const std::filesystem::path& diretorioAssets) {
