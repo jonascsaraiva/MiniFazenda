@@ -59,5 +59,5 @@ Durante o jogo, edite `assets/config.ini` e pressione `F5` para recarregar offse
 - Cursor: colhe planta madura.
 - Enxada: cria terra seca quando o tile ainda nao existe; em terra seca/restos, transforma em terra arada.
 - Remover terra: remove o tile existente da grade global invisivel.
-- Semente: planta em terra arada, consumindo moedas.
-- Presente: acelera crescimento para planta madura.
+- Semente: planta a especie selecionada na Loja em terra arada, consumindo moedas.
+- Loja: abre a selecao de sementes disponiveis.

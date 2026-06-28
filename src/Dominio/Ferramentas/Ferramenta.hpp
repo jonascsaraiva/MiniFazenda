@@ -6,11 +6,14 @@
 #include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
 
+#include <optional>
+
 namespace MiniFazenda::Dominio::Ferramentas {
 
 struct ContextoDaFerramenta {
     Grade::GradeGlobalDeCanteiros& grade;
     Jogador::Jogador& jogador;
+    std::optional<int> identificadorDaSementeSelecionada;
     int tamanhoAtualDoGrid = 0;
 };
 

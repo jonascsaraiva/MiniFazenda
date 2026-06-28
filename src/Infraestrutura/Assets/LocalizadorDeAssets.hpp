@@ -106,11 +106,18 @@ inline std::filesystem::path candidatosParaIconeDaFerramenta(
             return diretorioToolbar / "remover_terra.png";
         case Dominio::Ferramentas::TipoDeFerramenta::Semente:
             return diretorioToolbar / "saco_sementes.png";
-        case Dominio::Ferramentas::TipoDeFerramenta::Presente:
+        case Dominio::Ferramentas::TipoDeFerramenta::Loja:
             return diretorioToolbar / "loja.png";
         default:
             return {};
     }
+}
+
+inline std::filesystem::path caminhoDoIconeDaSemente(
+    const std::filesystem::path& diretorioAssets,
+    const std::string& pastaEspecie
+) {
+    return diretorioAssets / "sprites" / "icons" / "seeds" / ("semente_" + pastaEspecie + ".png");
 }
 
 inline std::filesystem::path caminhoDoSpriteDaPlanta(

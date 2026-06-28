@@ -55,6 +55,7 @@ int main(int, char**) {
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
     Assets::GerenciadorDeAtivosSDL ativos(renderizador.ponteiro);
     const Plantas::FabricaDePlantas fabricaDePlantas;
+    const auto especiesDaLoja = fabricaDePlantas.todasAsEspecies();
     Assets::RecursosDaFazenda recursos = Assets::carregarRecursosDaFazenda(
         ativos, diretorioAssets, configuracoes, fabricaDePlantas
     );
@@ -63,8 +64,10 @@ int main(int, char**) {
     Camera::EstadoDaCamera camera;
     Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
     const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
+    const BarraFerramentas::PainelDaLoja painelDaLoja = BarraFerramentas::criarPainelDaLoja(botoes, especiesDaLoja);
 
     bool executando = true;
+    bool lojaAberta = false;
     int mouseX = Constantes::LARGURA_DA_JANELA / 2;
     int mouseY = Constantes::ALTURA_DA_JANELA / 2;
     Uint32 ticksAnteriores = SDL_GetTicks();
@@ -113,8 +116,28 @@ int main(int, char**) {
                     mouseX = evento.button.x;
                     mouseY = evento.button.y;
 
+                    if (lojaAberta) {
+                        const auto sementeClicada =
+                            BarraFerramentas::sementeClicadaNoPainelDaLoja(mouseX, mouseY, painelDaLoja);
+                        if (sementeClicada.has_value()) {
+                            jogo.selecionarSemente(*sementeClicada);
+                            jogo.selecionarFerramenta(MiniFazenda::Dominio::Ferramentas::TipoDeFerramenta::Semente);
+                            lojaAberta = false;
+                            if (sdl.audioInicializado) {
+                                ativos.tocarSom(Assets::caminhoDoSomDeCliqueDaInterface(diretorioAssets));
+                            }
+                            continue;
+                        }
+                    }
+
                     auto ferramentaSelecionada = jogo.ferramentaSelecionada();
-                    if (BarraFerramentas::processarCliqueNaInterface(mouseX, mouseY, botoes, ferramentaSelecionada)) {
+                    if (BarraFerramentas::processarCliqueNaInterface(
+                            mouseX,
+                            mouseY,
+                            botoes,
+                            ferramentaSelecionada,
+                            lojaAberta
+                        )) {
                         jogo.selecionarFerramenta(ferramentaSelecionada);
                         if (sdl.audioInicializado) {
                             ativos.tocarSom(Assets::caminhoDoSomDeCliqueDaInterface(diretorioAssets));
@@ -141,7 +164,15 @@ int main(int, char**) {
         Mundo::desenharGradeAtiva(renderizador.ponteiro, jogo, recursos.texturasCanteiro, configuracoes, camera, posicaoRealcada);
         Mundo::desenharLimiteDaGradeJogavel(renderizador.ponteiro, jogo, configuracoes, camera);
         Mundo::desenharPreviewDeCriacaoDeTerra(renderizador.ponteiro, jogo, configuracoes, camera, posicaoRealcada);
-        UI::desenharInterface(renderizador.ponteiro, jogo.ferramentaSelecionada(), botoes.cursor, botoes.enxada, botoes.removerTerra, botoes.semente, botoes.presente, recursos.texturasDosBotoes);
+        UI::desenharInterface(renderizador.ponteiro, jogo.ferramentaSelecionada(), botoes.cursor, botoes.enxada, botoes.removerTerra, botoes.semente, botoes.loja, recursos.texturasDosBotoes);
+        if (lojaAberta) {
+            UI::desenharPainelDaLoja(
+                renderizador.ponteiro,
+                painelDaLoja,
+                recursos.texturasDasSementes,
+                jogo.identificadorDaSementeSelecionada()
+            );
+        }
         Cursores::desenharCursorCustomizado(renderizador.ponteiro, mouseX, mouseY, jogo.ferramentaSelecionada());
         SDL_RenderPresent(renderizador.ponteiro);
 

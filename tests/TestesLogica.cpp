@@ -3,12 +3,14 @@
 #include "Aplicacao/Servicos/ServicoDeTempo.hpp"
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
+#include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Dominio/Plantas/Especies/PlantaMirtilo.hpp"
 
 #include <cassert>
@@ -17,6 +19,7 @@
 namespace {
 
 namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
+namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
 namespace Canteiros = MiniFazenda::Dominio::Canteiros;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
@@ -24,6 +27,7 @@ namespace Especies = MiniFazenda::Dominio::Plantas::Especies;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace Grade = MiniFazenda::Dominio::Grade;
+namespace Plantas = MiniFazenda::Dominio::Plantas;
 
 void validarIndicesDaGrade(const Grade::GradeGlobalDeCanteiros& grade) {
     for (std::size_t indice = 0; indice < grade.posicoesDeTilesExistentes().size(); ++indice) {
@@ -56,15 +60,46 @@ void ararEPlantar(MiniFazenda::Aplicacao::Estado::EstadoDoJogo& jogo, Geometria:
     Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
 
+    jogo.selecionarSemente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
 }
 
+void validarFluxoDeCliqueDaLoja() {
+    const Plantas::FabricaDePlantas fabrica;
+    const auto especiesDaLoja = fabrica.todasAsEspecies();
+    const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
+    const BarraFerramentas::PainelDaLoja painel = BarraFerramentas::criarPainelDaLoja(botoes, especiesDaLoja);
+
+    Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Cursor;
+    bool lojaAberta = false;
+    const int xDaLoja = botoes.loja.posicaoBotaoHorizontal + botoes.loja.tamanhoBotaoLargura / 2;
+    const int yDaLoja = botoes.loja.posicaoBotaoVertical + botoes.loja.tamanhoBotaoAltura / 2;
+    const bool clicouNaLoja =
+        BarraFerramentas::processarCliqueNaInterface(xDaLoja, yDaLoja, botoes, ferramentaSelecionada, lojaAberta);
+
+    assert(clicouNaLoja);
+    assert(lojaAberta);
+    assert(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Loja);
+    assert(!painel.opcoes.empty());
+
+    const BarraFerramentas::OpcaoDeSementeDaLoja& opcaoMirtilo = painel.opcoes.front();
+    const int xDaSemente = opcaoMirtilo.area.posicaoBotaoHorizontal + opcaoMirtilo.area.tamanhoBotaoLargura / 2;
+    const int yDaSemente = opcaoMirtilo.area.posicaoBotaoVertical + opcaoMirtilo.area.tamanhoBotaoAltura / 2;
+    const auto sementeClicada = BarraFerramentas::sementeClicadaNoPainelDaLoja(xDaSemente, yDaSemente, painel);
+
+    assert(sementeClicada.has_value());
+    assert(*sementeClicada == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+}
+
 } // namespace
 
 int main() {
+    validarFluxoDeCliqueDaLoja();
+
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    assert(!jogo.identificadorDaSementeSelecionada().has_value());
     assert(jogo.tamanhoAtualDoGrid() == Constantes::TAMANHO_INICIAL_GRID);
     assert(jogo.grade().quantidadeDeTilesExistentes() == 4);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
@@ -83,9 +118,18 @@ int main() {
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    assert(!resultado.houveMudanca());
+    assert(jogo.jogador().moedas() == 50);
+    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+
+    jogo.selecionarSemente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+    assert(jogo.identificadorDaSementeSelecionada().has_value());
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
     assert(jogo.jogador().moedas() == 48);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
+    assert(jogo.grade().obterTile(posicaoNova)->canteiro().identificadorDaSemente() ==
+           Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     validarIndicesDaGrade(jogo.grade());
 
     const Especies::PlantaMirtilo mirtilo;

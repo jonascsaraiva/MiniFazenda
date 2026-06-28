@@ -5,6 +5,8 @@
 #include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
 
+#include <optional>
+
 namespace MiniFazenda::Aplicacao::Estado {
 
 class EstadoDoJogo {
@@ -33,6 +35,14 @@ public:
         ferramentaSelecionada_ = ferramenta;
     }
 
+    std::optional<int> identificadorDaSementeSelecionada() const {
+        return identificadorDaSementeSelecionada_;
+    }
+
+    void selecionarSemente(int identificadorDaSemente) {
+        identificadorDaSementeSelecionada_ = identificadorDaSemente;
+    }
+
     int tamanhoAtualDoGrid() const {
         return tamanhoAtualDoGrid_;
     }
@@ -57,6 +67,7 @@ private:
     Dominio::Grade::GradeGlobalDeCanteiros grade_;
     Dominio::Jogador::Jogador jogador_;
     Dominio::Ferramentas::TipoDeFerramenta ferramentaSelecionada_ = Dominio::Ferramentas::TipoDeFerramenta::Cursor;
+    std::optional<int> identificadorDaSementeSelecionada_;
     int tamanhoAtualDoGrid_ = Compartilhado::Constantes::TAMANHO_INICIAL_GRID;
     float acumuladorDeSegundos_ = 0.0f;
 };

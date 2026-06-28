@@ -27,7 +27,12 @@ public:
             return ResultadoDaFerramenta{};
         }
 
-        std::unique_ptr<Plantas::Planta> planta = fabricaDePlantas_.criarPlantaInicial();
+        if (!contexto.identificadorDaSementeSelecionada.has_value()) {
+            return ResultadoDaFerramenta{};
+        }
+
+        std::unique_ptr<Plantas::Planta> planta =
+            fabricaDePlantas_.criarPorIdentificadorDeSemente(*contexto.identificadorDaSementeSelecionada);
         if (planta == nullptr || !contexto.jogador.gastarMoedas(planta->custoEmMoedas())) {
             return ResultadoDaFerramenta{};
         }

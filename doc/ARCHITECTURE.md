@@ -51,7 +51,7 @@ src/
       Planta.hpp
         Interface base polimorfica para especies.
       FabricaDePlantas.hpp
-        Criacao centralizada de plantas a partir da semente atual.
+        Criacao centralizada de plantas a partir da semente selecionada.
       Especies/PlantaMirtilo.hpp
         Especie inicial, preservando tempos e recompensa legados.
 
@@ -63,7 +63,7 @@ src/
       Enxada.hpp
       FerramentaDeSemente.hpp
       CursorDeColheita.hpp
-      PresenteAcelerador.hpp
+      FerramentaDaLoja.hpp
       RemovedorDeTerra.hpp
         Cada ferramenta implementa sua propria regra de aplicacao.
 

@@ -35,6 +35,7 @@ struct SpriteDaPlanta {
 
 using TexturasDaPlantaPorFase = std::array<SpriteDaPlanta, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA>;
 using TexturasDasPlantasPorSemente = std::unordered_map<int, TexturasDaPlantaPorFase>;
+using TexturasDasSementesPorSemente = std::unordered_map<int, SDL_Texture*>;
 using TexturasDosBotoes = std::array<SDL_Texture*, Dominio::Ferramentas::QUANTIDADE_DE_FERRAMENTAS>;
 
 inline bool estadoEhFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
@@ -100,6 +101,7 @@ struct RecursosDaFazenda {
     SDL_Texture* texturaFundo = nullptr;
     TexturasDosCanteiros texturasCanteiro;
     TexturasDosBotoes texturasDosBotoes{};
+    TexturasDasSementesPorSemente texturasDasSementes;
 };
 
 inline SDL_Texture* carregarPrimeiraTexturaExistente(
@@ -313,6 +315,38 @@ inline TexturasDasPlantasPorSemente carregarSpritesDeTodasAsEspecies(
     return texturasPorSemente;
 }
 
+inline TexturasDasSementesPorSemente carregarIconesDasSementes(
+    GerenciadorDeAtivosSDL& ativos,
+    const std::filesystem::path& diretorioAssets,
+    const std::vector<std::unique_ptr<Dominio::Plantas::Planta>>& especies
+) {
+    TexturasDasSementesPorSemente texturasPorSemente;
+
+    for (const std::unique_ptr<Dominio::Plantas::Planta>& especie : especies) {
+        if (especie == nullptr) {
+            continue;
+        }
+
+        const std::filesystem::path caminho = caminhoDoIconeDaSemente(diretorioAssets, especie->pastaDeSprites());
+        if (!std::filesystem::exists(caminho)) {
+            std::cerr << "Icone de semente ausente. Fallback vetorial ativo para "
+                      << especie->nome() << ": " << caminho.string() << '\n';
+            continue;
+        }
+
+        SDL_Texture* textura = ativos.carregarTextura(caminho);
+        if (textura == nullptr) {
+            std::cerr << "Icone de semente nao carregado. Fallback vetorial ativo para "
+                      << especie->nome() << ": " << caminho.string() << '\n';
+            continue;
+        }
+
+        texturasPorSemente[especie->identificadorDaSemente()] = textura;
+    }
+
+    return texturasPorSemente;
+}
+
 inline RecursosDaFazenda carregarRecursosDaFazenda(
     GerenciadorDeAtivosSDL& ativos,
     const std::filesystem::path& diretorioAssets,
@@ -320,14 +354,16 @@ inline RecursosDaFazenda carregarRecursosDaFazenda(
     const Dominio::Plantas::FabricaDePlantas& fabrica
 ) {
     RecursosDaFazenda recursos;
+    const std::vector<std::unique_ptr<Dominio::Plantas::Planta>> especies = fabrica.todasAsEspecies();
     recursos.texturaFundo = carregarTexturaDeFundoPrincipal(ativos, diretorioAssets, configuracoes);
     recursos.texturasCanteiro = carregarTexturasDosCanteiros(ativos, diretorioAssets);
     recursos.texturasDosBotoes = carregarTexturasDosBotoes(ativos, diretorioAssets);
     recursos.texturasCanteiro.plantasPorSemente = carregarSpritesDeTodasAsEspecies(
         ativos,
         diretorioAssets,
-        fabrica.todasAsEspecies()
+        especies
     );
+    recursos.texturasDasSementes = carregarIconesDasSementes(ativos, diretorioAssets, especies);
 
     return recursos;
 }

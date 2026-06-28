@@ -10,10 +10,6 @@ namespace MiniFazenda::Dominio::Plantas {
 
 class FabricaDePlantas {
 public:
-    std::unique_ptr<Planta> criarPlantaInicial() const {
-        return criarMirtilo();
-    }
-
     std::unique_ptr<Planta> criarPorIdentificadorDeSemente(int identificadorDaSemente) const {
         if (identificadorDaSemente == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE) {
             return criarMirtilo();
