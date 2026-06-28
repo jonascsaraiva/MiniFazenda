@@ -29,21 +29,20 @@ namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace Grade = MiniFazenda::Dominio::Grade;
 namespace Plantas = MiniFazenda::Dominio::Plantas;
 
-void validarIndicesDaGrade(const Grade::GradeGlobalDeCanteiros& grade) {
-    for (std::size_t indice = 0; indice < grade.posicoesDeTilesExistentes().size(); ++indice) {
-        const Geometria::PosicaoNaGrade posicao = grade.posicoesDeTilesExistentes()[indice];
+void validarListasDaGrade(const Grade::GradeGlobalDeCanteiros& grade) {
+    assert(grade.posicoesDeTilesExistentes().size() == grade.quantidadeDeTilesExistentes());
+    assert(grade.posicoesDeCanteirosEmCrescimento().size() == grade.quantidadeDeCanteirosEmCrescimento());
+
+    for (const Geometria::PosicaoNaGrade posicao : grade.posicoesDeTilesExistentes()) {
         const Grade::TileDeTerra* tile = grade.obterTile(posicao);
         assert(tile != nullptr);
         assert(tile->existeNoMapa());
-        assert(tile->indiceNaListaDeTilesExistentes() == indice);
     }
 
-    for (std::size_t indice = 0; indice < grade.posicoesDeCanteirosEmCrescimento().size(); ++indice) {
-        const Geometria::PosicaoNaGrade posicao = grade.posicoesDeCanteirosEmCrescimento()[indice];
+    for (const Geometria::PosicaoNaGrade posicao : grade.posicoesDeCanteirosEmCrescimento()) {
         const Grade::TileDeTerra* tile = grade.obterTile(posicao);
         assert(tile != nullptr);
         assert(tile->existeNoMapa());
-        assert(tile->indiceNaListaDeCrescimento() == indice);
         assert(tile->canteiro().precisaAvancarCrescimento());
     }
 }
@@ -103,7 +102,7 @@ int main() {
     assert(jogo.tamanhoAtualDoGrid() == Constantes::TAMANHO_INICIAL_GRID);
     assert(jogo.grade().quantidadeDeTilesExistentes() == 4);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
-    validarIndicesDaGrade(jogo.grade());
+    validarListasDaGrade(jogo.grade());
 
     const Geometria::PosicaoNaGrade posicaoNova = posicaoLivreProximaDoNucleo();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
@@ -111,7 +110,7 @@ int main() {
     Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::CriarTerra);
     assert(jogo.grade().quantidadeDeTilesExistentes() == 5);
-    validarIndicesDaGrade(jogo.grade());
+    validarListasDaGrade(jogo.grade());
 
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
@@ -130,7 +129,7 @@ int main() {
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
     assert(jogo.grade().obterTile(posicaoNova)->canteiro().identificadorDaSemente() ==
            Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
-    validarIndicesDaGrade(jogo.grade());
+    validarListasDaGrade(jogo.grade());
 
     const Especies::PlantaMirtilo mirtilo;
 
@@ -158,13 +157,13 @@ int main() {
     assert(jogo.jogador().experiencia() == 5);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
-    validarIndicesDaGrade(jogo.grade());
+    validarListasDaGrade(jogo.grade());
 
     ararEPlantar(jogo, posicaoNova);
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaMorrer()));
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
-    validarIndicesDaGrade(jogo.grade());
+    validarListasDaGrade(jogo.grade());
 
     const std::size_t quantidadeAntesDeRemover = jogo.grade().quantidadeDeTilesExistentes();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::RemoverTerra);
@@ -172,7 +171,7 @@ int main() {
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::RemoverTerra);
     assert(jogo.grade().quantidadeDeTilesExistentes() == quantidadeAntesDeRemover - 1);
     assert(tile->existeNoMapa() == false);
-    validarIndicesDaGrade(jogo.grade());
+    validarListasDaGrade(jogo.grade());
 
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoNaGrade{-1, -1});
     assert(!resultado.houveMudanca());

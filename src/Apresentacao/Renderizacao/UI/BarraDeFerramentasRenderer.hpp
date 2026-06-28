@@ -4,7 +4,6 @@
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
 #include "Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp"
 #include "Apresentacao/Renderizacao/UI/IconesDasFerramentas.hpp"
-#include "Compartilhado/Constantes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Infraestrutura/Assets/RecursosDaFazenda.hpp"
 
@@ -88,12 +87,6 @@ inline void desenharInterface(
     Interface::AreaDeInteracao botaoLoja,
     const MiniFazenda::Infraestrutura::Assets::TexturasDosBotoes& texturasDosBotoes
 ) {
-    Primitivas::preencherRetangulo(
-        renderizador,
-        SDL_Rect{0, Compartilhado::Constantes::ALTURA_DA_JANELA - 84, Compartilhado::Constantes::LARGURA_DA_JANELA, 84},
-        SDL_Color{61, 65, 57, 210}
-    );
-
     const auto texturaDoIcone = [&texturasDosBotoes](Dominio::Ferramentas::TipoDeFerramenta ferramenta) {
         return texturasDosBotoes[Dominio::Ferramentas::indiceDaFerramenta(ferramenta)];
     };
