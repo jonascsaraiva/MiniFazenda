@@ -4,6 +4,7 @@
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
+#include "Compartilhado/Animacao/ConfigAnimacao.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
@@ -22,6 +23,7 @@ namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
 namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
 namespace Canteiros = MiniFazenda::Dominio::Canteiros;
+namespace ConfigAnimacao = MiniFazenda::Compartilhado::ConfigAnimacao;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
 namespace Especies = MiniFazenda::Dominio::Plantas::Especies;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
@@ -92,9 +94,43 @@ void validarFluxoDeCliqueDaLoja() {
     assert(*sementeClicada == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
 }
 
+void validarAnimacaoIdleDoPersonagem() {
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
+    const Grade::TileDeTerra* tileDoPersonagem = jogo.grade().obterTile(posicaoInicial);
+    assert(tileDoPersonagem != nullptr);
+    assert(tileDoPersonagem->existeNoMapa());
+
+    auto origem = jogo.personagem().retanguloDeOrigemIdle();
+    assert(origem.x == 0);
+    assert(origem.y == ConfigAnimacao::FRAME_ORIGEM_Y);
+    assert(origem.w == ConfigAnimacao::FRAME_LARGURA);
+    assert(origem.h == ConfigAnimacao::FRAME_ALTURA);
+
+    AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME / 2.0f);
+    origem = jogo.personagem().retanguloDeOrigemIdle();
+    assert(origem.x == 0);
+
+    AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME / 2.0f);
+    origem = jogo.personagem().retanguloDeOrigemIdle();
+    assert(origem.x == ConfigAnimacao::FRAME_LARGURA);
+
+    for (int frame = 2; frame < ConfigAnimacao::TOTAL_FRAMES_IDLE; ++frame) {
+        AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME);
+        origem = jogo.personagem().retanguloDeOrigemIdle();
+        assert(origem.x == frame * ConfigAnimacao::FRAME_LARGURA);
+    }
+
+    AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME);
+    origem = jogo.personagem().retanguloDeOrigemIdle();
+    assert(origem.x == 0);
+    assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
+}
+
 } // namespace
 
 int main() {
+    validarAnimacaoIdleDoPersonagem();
     validarFluxoDeCliqueDaLoja();
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();

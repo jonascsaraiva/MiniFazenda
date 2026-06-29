@@ -4,6 +4,7 @@
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
+#include "Dominio/Personagem/Personagem.hpp"
 
 #include <optional>
 
@@ -25,6 +26,14 @@ public:
 
     Dominio::Jogador::Jogador& jogador() {
         return jogador_;
+    }
+
+    const Dominio::Personagem::Personagem& personagem() const {
+        return personagem_;
+    }
+
+    Dominio::Personagem::Personagem& personagem() {
+        return personagem_;
     }
 
     Dominio::Ferramentas::TipoDeFerramenta ferramentaSelecionada() const {
@@ -82,6 +91,7 @@ public:
 private:
     Dominio::Grade::GradeGlobalDeCanteiros grade_;
     Dominio::Jogador::Jogador jogador_;
+    Dominio::Personagem::Personagem personagem_;
     Dominio::Ferramentas::TipoDeFerramenta ferramentaSelecionada_ = Dominio::Ferramentas::TipoDeFerramenta::Cursor;
     std::optional<int> identificadorDaSementeSelecionada_;
     int tamanhoAtualDoGrid_ = Compartilhado::Constantes::TAMANHO_INICIAL_GRID;

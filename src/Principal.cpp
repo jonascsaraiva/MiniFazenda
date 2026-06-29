@@ -7,6 +7,7 @@
 #include "Apresentacao/Renderizacao/Cursores/CursorCustomizado.hpp"
 #include "Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp"
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp"
+#include "Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp"
 #include "Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp"
 #include "Apresentacao/Renderizacao/UI/HudRenderer.hpp"
 #include "Compartilhado/Constantes.hpp"
@@ -212,6 +213,7 @@ int main(int, char**) {
         SDL_RenderClear(renderizador.ponteiro);
         Mundo::desenharFundo(renderizador.ponteiro, recursos.texturaFundo);
         Mundo::desenharGradeAtiva(renderizador.ponteiro, jogo, recursos.texturasCanteiro, configuracoes, camera, posicaoRealcada);
+        Mundo::desenharPersonagem(renderizador.ponteiro, recursos.texturaDoPersonagem, jogo.personagem(), configuracoes, camera);
         Mundo::desenharLimiteDaGradeJogavel(renderizador.ponteiro, jogo, configuracoes, camera);
         Mundo::desenharPreviewDeCriacaoDeTerra(renderizador.ponteiro, jogo, configuracoes, camera, posicaoRealcada);
         UI::desenharInterface(renderizador.ponteiro, jogo.ferramentaSelecionada(), botoes.cursor, botoes.enxada, botoes.removerTerra, botoes.semente, botoes.loja, recursos.texturasDosBotoes);

@@ -3,11 +3,7 @@ from rembg import remove
 from PIL import Image
 
 caminhos = [
-    r"C:\dev\MiniFazenda\assets\sprites\plantas\mirtilo\mirtilo_fase_1.png",
-    r"C:\dev\MiniFazenda\assets\sprites\plantas\mirtilo\mirtilo_fase_2.png",
-    r"C:\dev\MiniFazenda\assets\sprites\plantas\mirtilo\mirtilo_fase_3.png",
-    r"C:\dev\MiniFazenda\assets\sprites\plantas\mirtilo\mirtilo_fase_4.png",
-    r"C:\dev\MiniFazenda\assets\sprites\plantas\mirtilo\mirtilo_morto.png"
+    r"C:\dev\MiniFazenda\assets\sprites\personagem\bonequinho.png",
 ]
 
 # Definição do tamanho padrão baseado nas primeiras fases (ex: 1024x512 ou o tamanho real delas)

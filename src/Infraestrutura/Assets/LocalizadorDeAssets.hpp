@@ -61,6 +61,10 @@ inline std::filesystem::path caminhoDoIconeDeConfiguracoes(const std::filesystem
     return diretorioAssets / "sprites" / "icons" / "hud" / "settings.png";
 }
 
+inline std::filesystem::path caminhoDoSpriteDoPersonagem(const std::filesystem::path& diretorioAssets) {
+    return diretorioAssets / "sprites" / "personagem" / "bonequinho.png";
+}
+
 inline std::vector<std::filesystem::path> candidatosParaBackground(
     const std::filesystem::path& diretorioAssets,
     const Apresentacao::ConfiguracoesDoLayout& configuracoes

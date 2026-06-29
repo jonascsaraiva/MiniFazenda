@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Compartilhado/Animacao/ConfigAnimacao.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
@@ -100,6 +101,7 @@ struct TexturasDosCanteiros {
 
 struct RecursosDaFazenda {
     SDL_Texture* texturaFundo = nullptr;
+    SDL_Texture* texturaDoPersonagem = nullptr;
     TexturasDosCanteiros texturasCanteiro;
     TexturasDosBotoes texturasDosBotoes{};
     TexturasDasSementesPorSemente texturasDasSementes;
@@ -195,6 +197,48 @@ inline TexturasDosBotoes carregarTexturasDosBotoes(
     }
 
     return texturas;
+}
+
+inline void validarDimensoesDaTexturaDoPersonagem(
+    SDL_Texture* textura,
+    const std::filesystem::path& caminho
+) {
+    if (textura == nullptr) {
+        return;
+    }
+
+    int largura = 0;
+    int altura = 0;
+    if (SDL_QueryTexture(textura, nullptr, nullptr, &largura, &altura) != 0) {
+        std::cerr << "Dimensoes da textura do personagem nao consultadas: "
+                  << caminho.string() << " | " << SDL_GetError() << '\n';
+        return;
+    }
+
+    if (largura != Compartilhado::ConfigAnimacao::SPRITESHEET_LARGURA ||
+        altura != Compartilhado::ConfigAnimacao::SPRITESHEET_ALTURA) {
+        std::cerr << "Spritesheet do personagem fora do contrato fixo: " << caminho.string()
+                  << " | esperado "
+                  << Compartilhado::ConfigAnimacao::SPRITESHEET_LARGURA << 'x'
+                  << Compartilhado::ConfigAnimacao::SPRITESHEET_ALTURA
+                  << ", encontrado " << largura << 'x' << altura << '\n';
+    }
+}
+
+inline SDL_Texture* carregarTexturaDoPersonagem(
+    GerenciadorDeAtivosSDL& ativos,
+    const std::filesystem::path& diretorioAssets
+) {
+    const std::filesystem::path caminho = caminhoDoSpriteDoPersonagem(diretorioAssets);
+
+    if (!std::filesystem::exists(caminho)) {
+        std::cerr << "Sprite do personagem ausente: " << caminho.string() << '\n';
+        return nullptr;
+    }
+
+    SDL_Texture* textura = ativos.carregarTextura(caminho);
+    validarDimensoesDaTexturaDoPersonagem(textura, caminho);
+    return textura;
 }
 
 inline const char* nomeDaFaseVisualDaPlanta(std::size_t indice) {
@@ -362,6 +406,7 @@ inline RecursosDaFazenda carregarRecursosDaFazenda(
     RecursosDaFazenda recursos;
     const std::vector<std::unique_ptr<Dominio::Plantas::Planta>> especies = fabrica.todasAsEspecies();
     recursos.texturaFundo = carregarTexturaDeFundoPrincipal(ativos, diretorioAssets, configuracoes);
+    recursos.texturaDoPersonagem = carregarTexturaDoPersonagem(ativos, diretorioAssets);
     recursos.texturasCanteiro = carregarTexturasDosCanteiros(ativos, diretorioAssets);
     recursos.texturasDosBotoes = carregarTexturasDosBotoes(ativos, diretorioAssets);
     recursos.texturasCanteiro.plantasPorSemente = carregarSpritesDeTodasAsEspecies(
