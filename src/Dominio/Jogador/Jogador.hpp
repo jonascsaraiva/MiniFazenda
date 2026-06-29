@@ -35,10 +35,10 @@ public:
 
 private:
     void recalcularNivel() {
-        nivel_ = 1 + experiencia_ / 50;
+        nivel_ = 1 + experiencia_ / 100;
     }
 
-    int moedas_ = 50;
+    int moedas_ = 200;
     int experiencia_ = 0;
     int nivel_ = 1;
 };

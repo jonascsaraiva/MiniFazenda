@@ -8,6 +8,7 @@
 #include "Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp"
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp"
 #include "Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp"
+#include "Apresentacao/Renderizacao/UI/HudRenderer.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
@@ -18,6 +19,7 @@
 #include "Infraestrutura/SDL/ContextoSDL.hpp"
 
 #include <SDL.h>
+#include <SDL_mixer.h>
 #include <iostream>
 
 namespace {
@@ -27,8 +29,31 @@ namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerram
 namespace Camera = MiniFazenda::Apresentacao::Camera; namespace Configuracao = MiniFazenda::Infraestrutura::Configuracao;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
 namespace Cursores = MiniFazenda::Apresentacao::Renderizacao::Cursores; namespace Geometria = MiniFazenda::Compartilhado::Geometria;
+namespace HudRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::HudRenderer;
 namespace Mundo = MiniFazenda::Apresentacao::Renderizacao::Mundo; namespace Plantas = MiniFazenda::Dominio::Plantas;
 namespace SDLInfra = MiniFazenda::Infraestrutura::SDL; namespace UI = MiniFazenda::Apresentacao::Renderizacao::UI;
+
+SDL_Rect calcularAreaDoBotaoConfiguracoes() {
+    constexpr int margem = 12;
+    constexpr int tamanho = 36;
+    return SDL_Rect{Constantes::LARGURA_DA_JANELA - margem - tamanho, margem, tamanho, tamanho};
+}
+
+SDL_Rect calcularAreaDoPainelConfiguracoes() {
+    constexpr int largura = 480;
+    constexpr int altura = 320;
+    return SDL_Rect{
+        (Constantes::LARGURA_DA_JANELA - largura) / 2,
+        (Constantes::ALTURA_DA_JANELA - altura) / 2,
+        largura,
+        altura
+    };
+}
+
+bool pontoDentroDoRetangulo(int x, int y, const SDL_Rect& retangulo) {
+    const SDL_Point ponto{x, y};
+    return SDL_PointInRect(&ponto, &retangulo) == SDL_TRUE;
+}
 
 } // namespace
 
@@ -59,6 +84,7 @@ int main(int, char**) {
     Assets::RecursosDaFazenda recursos = Assets::carregarRecursosDaFazenda(
         ativos, diretorioAssets, configuracoes, fabricaDePlantas
     );
+    Assets::RecursosDeHud hud = Assets::carregarRecursosDeHud(ativos, diretorioAssets);
     if (sdl.audioInicializado) { ativos.tocarMusica(Assets::caminhoDaMusicaAmbiente(diretorioAssets)); }
 
     Camera::EstadoDaCamera camera;
@@ -70,6 +96,7 @@ int main(int, char**) {
     bool lojaAberta = false;
     int mouseX = Constantes::LARGURA_DA_JANELA / 2;
     int mouseY = Constantes::ALTURA_DA_JANELA / 2;
+    SDL_Rect retBotaoSom{0, 0, 0, 0};
     Uint32 ticksAnteriores = SDL_GetTicks();
 
     while (executando) {
@@ -115,6 +142,29 @@ int main(int, char**) {
                     if (camera.panAtivo) { continue; }
                     mouseX = evento.button.x;
                     mouseY = evento.button.y;
+
+                    const SDL_Rect areaBotaoConfiguracoes = calcularAreaDoBotaoConfiguracoes();
+                    if (pontoDentroDoRetangulo(mouseX, mouseY, areaBotaoConfiguracoes)) {
+                        jogo.alternarPainelConfiguracoes();
+                        continue;
+                    }
+
+                    if (jogo.painelConfiguracoesAberto()) {
+                        if (pontoDentroDoRetangulo(mouseX, mouseY, retBotaoSom)) {
+                            jogo.definirAudioMutado(!jogo.audioMutado());
+                            if (sdl.audioInicializado) {
+                                Mix_Volume(-1, jogo.audioMutado() ? 0 : MIX_MAX_VOLUME);
+                                Mix_VolumeMusic(jogo.audioMutado() ? 0 : MIX_MAX_VOLUME);
+                            }
+                            continue;
+                        }
+
+                        const SDL_Rect areaPainelConfiguracoes = calcularAreaDoPainelConfiguracoes();
+                        if (!pontoDentroDoRetangulo(mouseX, mouseY, areaPainelConfiguracoes)) {
+                            jogo.alternarPainelConfiguracoes();
+                        }
+                        continue;
+                    }
 
                     if (lojaAberta) {
                         const auto sementeClicada =
@@ -172,6 +222,11 @@ int main(int, char**) {
                 recursos.texturasDasSementes,
                 jogo.identificadorDaSementeSelecionada()
             );
+        }
+        HudRenderer::desenharStatusDoJogador(renderizador.ponteiro, hud.fonte, jogo.jogador());
+        HudRenderer::desenharBotaoConfiguracoes(renderizador.ponteiro, hud.iconeConfiguracoes, false);
+        if (jogo.painelConfiguracoesAberto()) {
+            retBotaoSom = HudRenderer::desenharPainelConfiguracoes(renderizador.ponteiro, hud.fonte, jogo.audioMutado());
         }
         Cursores::desenharCursorCustomizado(renderizador.ponteiro, mouseX, mouseY, jogo.ferramentaSelecionada());
         SDL_RenderPresent(renderizador.ponteiro);

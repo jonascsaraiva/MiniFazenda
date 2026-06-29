@@ -53,6 +53,14 @@ inline std::filesystem::path resolverArquivoDentroDeAssets(
     return diretorioAssets / caminhoRelativoOuAbsoluto;
 }
 
+inline std::filesystem::path caminhoDaFontePrincipal(const std::filesystem::path& diretorioAssets) {
+    return diretorioAssets / "fonts" / "ByteBounce.ttf";
+}
+
+inline std::filesystem::path caminhoDoIconeDeConfiguracoes(const std::filesystem::path& diretorioAssets) {
+    return diretorioAssets / "sprites" / "icons" / "hud" / "settings.png";
+}
+
 inline std::vector<std::filesystem::path> candidatosParaBackground(
     const std::filesystem::path& diretorioAssets,
     const Apresentacao::ConfiguracoesDoLayout& configuracoes

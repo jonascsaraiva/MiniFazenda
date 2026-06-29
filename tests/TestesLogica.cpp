@@ -118,14 +118,14 @@ int main() {
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(!resultado.houveMudanca());
-    assert(jogo.jogador().moedas() == 50);
+    assert(jogo.jogador().moedas() == 200);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
 
     jogo.selecionarSemente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     assert(jogo.identificadorDaSementeSelecionada().has_value());
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
-    assert(jogo.jogador().moedas() == 48);
+    assert(jogo.jogador().moedas() == 180);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
     assert(jogo.grade().obterTile(posicaoNova)->canteiro().identificadorDaSemente() ==
            Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
@@ -153,7 +153,7 @@ int main() {
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Cursor);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Colher);
-    assert(jogo.jogador().moedas() == 56);
+    assert(jogo.jogador().moedas() == 188);
     assert(jogo.jogador().experiencia() == 5);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);

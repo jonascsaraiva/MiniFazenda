@@ -11,6 +11,7 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 
 #include <array>
 #include <cstddef>
@@ -102,6 +103,11 @@ struct RecursosDaFazenda {
     TexturasDosCanteiros texturasCanteiro;
     TexturasDosBotoes texturasDosBotoes{};
     TexturasDasSementesPorSemente texturasDasSementes;
+};
+
+struct RecursosDeHud {
+    TTF_Font* fonte = nullptr;
+    SDL_Texture* iconeConfiguracoes = nullptr;
 };
 
 inline SDL_Texture* carregarPrimeiraTexturaExistente(
@@ -364,6 +370,31 @@ inline RecursosDaFazenda carregarRecursosDaFazenda(
         especies
     );
     recursos.texturasDasSementes = carregarIconesDasSementes(ativos, diretorioAssets, especies);
+
+    return recursos;
+}
+
+inline RecursosDeHud carregarRecursosDeHud(
+    GerenciadorDeAtivosSDL& ativos,
+    const std::filesystem::path& diretorioAssets
+) {
+    RecursosDeHud recursos;
+
+    const std::filesystem::path caminhoDaFonte = caminhoDaFontePrincipal(diretorioAssets);
+    if (std::filesystem::exists(caminhoDaFonte)) {
+        recursos.fonte = ativos.carregarFonte(caminhoDaFonte, 16);
+    } else {
+        std::cerr << "Fonte principal da HUD ausente. Texto da HUD desativado: "
+                  << caminhoDaFonte.string() << '\n';
+    }
+
+    const std::filesystem::path caminhoDoIcone = caminhoDoIconeDeConfiguracoes(diretorioAssets);
+    if (std::filesystem::exists(caminhoDoIcone)) {
+        recursos.iconeConfiguracoes = ativos.carregarTextura(caminhoDoIcone);
+    } else {
+        std::cerr << "Icone de configuracoes ausente. Fallback vetorial ativo: "
+                  << caminhoDoIcone.string() << '\n';
+    }
 
     return recursos;
 }
