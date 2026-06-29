@@ -4,6 +4,7 @@
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
+#include "Apresentacao/Isometria/Isometrico.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
@@ -30,6 +31,7 @@ namespace Especies = MiniFazenda::Dominio::Plantas::Especies;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace Grade = MiniFazenda::Dominio::Grade;
+namespace Isometria = MiniFazenda::Apresentacao::Isometria;
 namespace Personagem = MiniFazenda::Dominio::Personagem;
 namespace Plantas = MiniFazenda::Dominio::Plantas;
 
@@ -177,12 +179,134 @@ void validarMovimentoIsometricoDoPersonagem() {
     assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
 }
 
+void validarHitTestIsometricoDoCanteiro() {
+    constexpr int origemX = 37;
+    constexpr int origemY = 91;
+    const float zooms[] = {1.0f, 1.1f, 1.2f, 0.7f, 1.5f};
+    const Geometria::PosicaoNaGrade posicoes[] = {
+        Geometria::PosicaoNaGrade{0, 0},
+        Geometria::PosicaoNaGrade{10, 0},
+        Geometria::PosicaoNaGrade{-5, 7}
+    };
+
+    for (const float zoom : zooms) {
+        const Camera::DimensoesDoCanteiroRenderizado dimensoes =
+            Camera::calcularDimensoesDoCanteiroRenderizado(zoom);
+        const int metadeDaLargura = dimensoes.largura / 2;
+        const int metadeDaAltura = dimensoes.altura / 2;
+        assert(metadeDaLargura > 0);
+        assert(metadeDaAltura > 0);
+
+        for (const Geometria::PosicaoNaGrade posicao : posicoes) {
+            const Geometria::PosicaoNaTela destino = Isometria::converterGradeParaTela(
+                posicao.indiceColuna,
+                posicao.indiceLinha,
+                dimensoes.largura,
+                dimensoes.altura,
+                origemX,
+                origemY
+            );
+
+            const Geometria::PosicaoNaGrade topo = Isometria::converterTelaParaGrade(
+                destino.coordenadaHorizontal + metadeDaLargura,
+                destino.coordenadaVertical,
+                dimensoes.largura,
+                dimensoes.altura,
+                origemX,
+                origemY
+            );
+            assert(Geometria::posicoesDaGradeSaoIguais(topo, posicao));
+
+            const Geometria::PosicaoNaGrade centro = Isometria::converterTelaParaGrade(
+                destino.coordenadaHorizontal + metadeDaLargura,
+                destino.coordenadaVertical + metadeDaAltura,
+                dimensoes.largura,
+                dimensoes.altura,
+                origemX,
+                origemY
+            );
+            assert(Geometria::posicoesDaGradeSaoIguais(centro, posicao));
+
+            const Geometria::PosicaoNaGrade direitaInterior = Isometria::converterTelaParaGrade(
+                destino.coordenadaHorizontal + 2 * metadeDaLargura - 1,
+                destino.coordenadaVertical + metadeDaAltura,
+                dimensoes.largura,
+                dimensoes.altura,
+                origemX,
+                origemY
+            );
+            assert(Geometria::posicoesDaGradeSaoIguais(direitaInterior, posicao));
+
+            const Geometria::PosicaoNaGrade baixoInterior = Isometria::converterTelaParaGrade(
+                destino.coordenadaHorizontal + metadeDaLargura,
+                destino.coordenadaVertical + 2 * metadeDaAltura - 1,
+                dimensoes.largura,
+                dimensoes.altura,
+                origemX,
+                origemY
+            );
+            assert(Geometria::posicoesDaGradeSaoIguais(baixoInterior, posicao));
+
+            const Geometria::PosicaoNaGrade esquerdaInterior = Isometria::converterTelaParaGrade(
+                destino.coordenadaHorizontal + 1,
+                destino.coordenadaVertical + metadeDaAltura,
+                dimensoes.largura,
+                dimensoes.altura,
+                origemX,
+                origemY
+            );
+            assert(Geometria::posicoesDaGradeSaoIguais(esquerdaInterior, posicao));
+        }
+    }
+}
+
+void validarHitTestIsometricoGlobalComCamera() {
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+
+    Camera::EstadoDaCamera camera;
+    camera.offsetHorizontal = 37;
+    camera.offsetVertical = -19;
+    camera.zoomAtual = 1.5f;
+
+    const Camera::DimensoesDoCanteiroRenderizado dimensoes =
+        Camera::calcularDimensoesDoCanteiroRenderizado(camera.zoomAtual);
+    const Geometria::PosicaoNaGrade posicao{
+        Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + 3,
+        Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL + 4
+    };
+    const Geometria::PosicaoNaTela destino = Isometria::converterGradeGlobalParaTela(
+        posicao,
+        dimensoes.largura,
+        dimensoes.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+    const Geometria::PosicaoNaGrade posicaoConvertida = Isometria::converterTelaParaGradeGlobal(
+        destino.coordenadaHorizontal + dimensoes.largura / 2,
+        destino.coordenadaVertical + dimensoes.altura / 2,
+        dimensoes.largura,
+        dimensoes.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+
+    assert(Geometria::posicoesDaGradeSaoIguais(posicaoConvertida, posicao));
+}
+
 } // namespace
 
 int main() {
     validarAnimacaoIdleDoPersonagem();
     validarMovimentoIsometricoDoPersonagem();
     validarFluxoDeCliqueDaLoja();
+    validarHitTestIsometricoDoCanteiro();
+    validarHitTestIsometricoGlobalComCamera();
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
     assert(!jogo.identificadorDaSementeSelecionada().has_value());

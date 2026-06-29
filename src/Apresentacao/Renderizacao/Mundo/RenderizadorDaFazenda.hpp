@@ -72,6 +72,24 @@ inline bool retanguloApareceNaTela(SDL_Rect retangulo) {
            retangulo.y + retangulo.h > 0;
 }
 
+inline SDL_Rect calcularHitboxDoCanteiro(SDL_Rect destinoDoCanteiro) {
+    return SDL_Rect{
+        destinoDoCanteiro.x,
+        destinoDoCanteiro.y,
+        (destinoDoCanteiro.w / 2) * 2,
+        (destinoDoCanteiro.h / 2) * 2
+    };
+}
+
+inline void desenharDebugDaHitboxDoCanteiro(SDL_Renderer* renderizador, SDL_Rect destinoDoCanteiro) {
+    const SDL_Rect hitbox = calcularHitboxDoCanteiro(destinoDoCanteiro);
+    const int centroX = hitbox.x + hitbox.w / 2;
+    const int centroY = hitbox.y + hitbox.h / 2;
+
+    Primitivas::desenharContornoLosango(renderizador, hitbox, SDL_Color{255, 0, 0, 150});
+    Primitivas::preencherRetangulo(renderizador, SDL_Rect{centroX - 2, centroY - 2, 4, 4}, SDL_Color{255, 225, 0, 220});
+}
+
 inline SDL_Rect calcularDestinoDoSpriteDaPlanta(
     SDL_Rect destinoDoCanteiro,
     const Infraestrutura::Assets::SpriteDaPlanta& sprite
@@ -150,6 +168,10 @@ inline void desenharGradeAtiva(
             destino,
             Compartilhado::Geometria::posicoesDaGradeSaoIguais(posicaoRealcada, posicaoDoTile)
         );
+
+        if constexpr (Compartilhado::Constantes::DEBUG_HITBOX_TILES) {
+            desenharDebugDaHitboxDoCanteiro(renderizador, destino);
+        }
     }
 }
 
