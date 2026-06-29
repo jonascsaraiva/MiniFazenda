@@ -46,6 +46,9 @@ constexpr float PASSO_DO_ZOOM = 0.1f;
 constexpr float DESACELERACAO_DO_PAN = 1600.0f;
 constexpr float FRACAO_MINIMA_VISIVEL_AO_PAN = 0.25f;
 
+constexpr float VELOCIDADE_PERSONAGEM_EM_CELULAS_POR_SEGUNDO = 5.0f;
+constexpr float TOLERANCIA_CHEGADA_PERSONAGEM_EM_CELULAS = 0.001f;
+
 constexpr int TAMANHO_DO_BOTAO_DA_INTERFACE = 52;
 constexpr int ESPACAMENTO_DOS_BOTOES = 12;
 

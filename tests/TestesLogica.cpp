@@ -4,15 +4,16 @@
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
-#include "Compartilhado/Animacao/ConfigAnimacao.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
+#include "Dominio/Personagem/Personagem.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Dominio/Plantas/Especies/PlantaMirtilo.hpp"
+#include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -23,12 +24,13 @@ namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
 namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
 namespace Canteiros = MiniFazenda::Dominio::Canteiros;
-namespace ConfigAnimacao = MiniFazenda::Compartilhado::ConfigAnimacao;
+namespace ConfigPersonagem = MiniFazenda::Infraestrutura::Assets::ConfigVisualDoPersonagem;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
 namespace Especies = MiniFazenda::Dominio::Plantas::Especies;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace Grade = MiniFazenda::Dominio::Grade;
+namespace Personagem = MiniFazenda::Dominio::Personagem;
 namespace Plantas = MiniFazenda::Dominio::Plantas;
 
 void validarListasDaGrade(const Grade::GradeGlobalDeCanteiros& grade) {
@@ -96,34 +98,82 @@ void validarFluxoDeCliqueDaLoja() {
 
 void validarAnimacaoIdleDoPersonagem() {
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    const auto& configuracaoIdle = ConfigPersonagem::configuracaoParaAnimacao(
+        Personagem::AnimacaoVisualDoPersonagem::Idle
+    );
     const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
     const Grade::TileDeTerra* tileDoPersonagem = jogo.grade().obterTile(posicaoInicial);
     assert(tileDoPersonagem != nullptr);
     assert(tileDoPersonagem->existeNoMapa());
 
-    auto origem = jogo.personagem().retanguloDeOrigemIdle();
-    assert(origem.x == 0);
-    assert(origem.y == ConfigAnimacao::FRAME_ORIGEM_Y);
-    assert(origem.w == ConfigAnimacao::FRAME_LARGURA);
-    assert(origem.h == ConfigAnimacao::FRAME_ALTURA);
+    int indiceFrame = ConfigPersonagem::calcularIndiceFrame(
+        configuracaoIdle,
+        jogo.personagem().tempoDaAnimacaoIdle()
+    );
+    auto origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
+    assert(indiceFrame == 0);
+    assert(origem.x == ConfigPersonagem::frameOrigemX);
+    assert(origem.y == ConfigPersonagem::frameOrigemY);
+    assert(origem.w == ConfigPersonagem::frameLargura);
+    assert(origem.h == ConfigPersonagem::frameAltura);
 
-    AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME / 2.0f);
-    origem = jogo.personagem().retanguloDeOrigemIdle();
-    assert(origem.x == 0);
+    AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame / 2.0f);
+    indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
+    assert(indiceFrame == 0);
 
-    AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME / 2.0f);
-    origem = jogo.personagem().retanguloDeOrigemIdle();
-    assert(origem.x == ConfigAnimacao::FRAME_LARGURA);
+    AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame / 2.0f);
+    indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
+    origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
+    assert(indiceFrame == 1);
+    assert(origem.x == ConfigPersonagem::frameOrigemX + ConfigPersonagem::frameLargura);
 
-    for (int frame = 2; frame < ConfigAnimacao::TOTAL_FRAMES_IDLE; ++frame) {
-        AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME);
-        origem = jogo.personagem().retanguloDeOrigemIdle();
-        assert(origem.x == frame * ConfigAnimacao::FRAME_LARGURA);
+    for (int frame = 2; frame < configuracaoIdle.quantidadeFrames; ++frame) {
+        AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame);
+        indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
+        origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
+        assert(indiceFrame == frame);
+        assert(origem.x == ConfigPersonagem::frameOrigemX + frame * (
+            ConfigPersonagem::frameLargura + ConfigPersonagem::frameEspacamentoX
+        ));
     }
 
-    AppServicos::avancarTempoDoJogo(jogo, ConfigAnimacao::VELOCIDADE_FRAME);
-    origem = jogo.personagem().retanguloDeOrigemIdle();
-    assert(origem.x == 0);
+    AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame);
+    indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
+    origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
+    assert(indiceFrame == 0);
+    assert(origem.x == ConfigPersonagem::frameOrigemX);
+    assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
+}
+
+void validarMovimentoIsometricoDoPersonagem() {
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
+    const Geometria::PosicaoNaGrade destino{
+        posicaoInicial.indiceColuna + 2,
+        posicaoInicial.indiceLinha + 1
+    };
+
+    jogo.personagem().caminharAte(destino);
+    assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
+    assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoDireita);
+    assert(jogo.personagem().animacaoVisualAtual() == Personagem::AnimacaoVisualDoPersonagem::WalkBaixoDireita);
+
+    AppServicos::avancarTempoDoJogo(
+        jogo,
+        (2.0f + 0.01f) / Constantes::VELOCIDADE_PERSONAGEM_EM_CELULAS_POR_SEGUNDO
+    );
+    assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
+    assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoEsquerda);
+    assert(jogo.personagem().animacaoVisualAtual() == Personagem::AnimacaoVisualDoPersonagem::WalkBaixoEsquerda);
+
+    AppServicos::avancarTempoDoJogo(jogo, 2.0f);
+    assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Parado);
+    assert(jogo.personagem().animacaoVisualAtual() == Personagem::AnimacaoVisualDoPersonagem::Idle);
+    assert(Geometria::posicoesDaGradeSaoIguais(destino, jogo.personagem().posicaoNaGrade()));
+
+    jogo.personagem().caminharAte(posicaoInicial);
+    assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::CimaEsquerda);
+    AppServicos::avancarTempoDoJogo(jogo, 2.0f);
     assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
 }
 
@@ -131,6 +181,7 @@ void validarAnimacaoIdleDoPersonagem() {
 
 int main() {
     validarAnimacaoIdleDoPersonagem();
+    validarMovimentoIsometricoDoPersonagem();
     validarFluxoDeCliqueDaLoja();
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
@@ -157,17 +208,17 @@ int main() {
     assert(jogo.jogador().moedas() == 200);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
 
+    const Especies::PlantaMirtilo mirtilo;
+    const int moedasAntesDoPlantio = jogo.jogador().moedas();
     jogo.selecionarSemente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     assert(jogo.identificadorDaSementeSelecionada().has_value());
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
-    assert(jogo.jogador().moedas() == 180);
+    assert(jogo.jogador().moedas() == moedasAntesDoPlantio - mirtilo.custoEmMoedas());
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
     assert(jogo.grade().obterTile(posicaoNova)->canteiro().identificadorDaSemente() ==
            Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     validarListasDaGrade(jogo.grade());
-
-    const Especies::PlantaMirtilo mirtilo;
 
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaCrescer()));
     const Grade::TileDeTerra* tile = jogo.grade().obterTile(posicaoNova);
@@ -187,10 +238,12 @@ int main() {
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMadura);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Cursor);
+    const int moedasAntesDaColheita = jogo.jogador().moedas();
+    const Plantas::RecompensaDaColheita recompensaDaColheita = mirtilo.recompensaDaColheita();
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Colher);
-    assert(jogo.jogador().moedas() == 188);
-    assert(jogo.jogador().experiencia() == 5);
+    assert(jogo.jogador().moedas() == moedasAntesDaColheita + recompensaDaColheita.moedas);
+    assert(jogo.jogador().experiencia() == recompensaDaColheita.experiencia);
     assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
     assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
     validarListasDaGrade(jogo.grade());

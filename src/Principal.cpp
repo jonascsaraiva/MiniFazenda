@@ -56,6 +56,18 @@ bool pontoDentroDoRetangulo(int x, int y, const SDL_Rect& retangulo) {
     return SDL_PointInRect(&ponto, &retangulo) == SDL_TRUE;
 }
 
+bool pontoDentroDaAreaDeInteracao(int x, int y, const MiniFazenda::Apresentacao::Interface::AreaDeInteracao& area) {
+    return BarraFerramentas::verificarCliqueNoBotao(x, y, area);
+}
+
+bool posicaoEstaDentroDaAreaJogavelPrincipal(
+    Geometria::PosicaoNaGrade posicao,
+    int tamanhoAtualDoGrid
+) {
+    return MiniFazenda::Dominio::Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeGlobal(posicao) &&
+           MiniFazenda::Dominio::Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeAtual(posicao, tamanhoAtualDoGrid);
+}
+
 } // namespace
 
 int main(int, char**) {
@@ -179,6 +191,10 @@ int main(int, char**) {
                             }
                             continue;
                         }
+
+                        if (pontoDentroDaAreaDeInteracao(mouseX, mouseY, painelDaLoja.fundo)) {
+                            continue;
+                        }
                     }
 
                     auto ferramentaSelecionada = jogo.ferramentaSelecionada();
@@ -197,6 +213,10 @@ int main(int, char**) {
                     }
 
                     const auto posicaoNaGrade = Mundo::converterMouseParaGradeGlobal(mouseX, mouseY, configuracoes, camera);
+                    if (posicaoEstaDentroDaAreaJogavelPrincipal(posicaoNaGrade, jogo.tamanhoAtualDoGrid())) {
+                        jogo.personagem().caminharAte(posicaoNaGrade);
+                    }
+
                     const auto resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNaGrade);
                     if (sdl.audioInicializado) { Assets::tocarSomDaAcao(ativos, diretorioAssets, resultado); }
                 }
@@ -213,7 +233,7 @@ int main(int, char**) {
         SDL_RenderClear(renderizador.ponteiro);
         Mundo::desenharFundo(renderizador.ponteiro, recursos.texturaFundo);
         Mundo::desenharGradeAtiva(renderizador.ponteiro, jogo, recursos.texturasCanteiro, configuracoes, camera, posicaoRealcada);
-        Mundo::desenharPersonagem(renderizador.ponteiro, recursos.texturaDoPersonagem, jogo.personagem(), configuracoes, camera);
+        Mundo::desenharPersonagem(renderizador.ponteiro, recursos.texturasDoPersonagem, jogo.personagem(), configuracoes, camera);
         Mundo::desenharLimiteDaGradeJogavel(renderizador.ponteiro, jogo, configuracoes, camera);
         Mundo::desenharPreviewDeCriacaoDeTerra(renderizador.ponteiro, jogo, configuracoes, camera, posicaoRealcada);
         UI::desenharInterface(renderizador.ponteiro, jogo.ferramentaSelecionada(), botoes.cursor, botoes.enxada, botoes.removerTerra, botoes.semente, botoes.loja, recursos.texturasDosBotoes);

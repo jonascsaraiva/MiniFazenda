@@ -2,6 +2,7 @@
 
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
+#include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
 
 #include <SDL.h>
 
@@ -62,7 +63,10 @@ inline std::filesystem::path caminhoDoIconeDeConfiguracoes(const std::filesystem
 }
 
 inline std::filesystem::path caminhoDoSpriteDoPersonagem(const std::filesystem::path& diretorioAssets) {
-    return diretorioAssets / "sprites" / "personagem" / "bonequinho.png";
+    return resolverArquivoDentroDeAssets(
+        diretorioAssets,
+        ConfigVisualDoPersonagem::configuracaoIdle().caminhoTextura
+    );
 }
 
 inline std::vector<std::filesystem::path> candidatosParaBackground(

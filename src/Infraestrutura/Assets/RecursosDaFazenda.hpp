@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
-#include "Compartilhado/Animacao/ConfigAnimacao.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Dominio/Plantas/Planta.hpp"
+#include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
 
@@ -39,6 +39,7 @@ using TexturasDaPlantaPorFase = std::array<SpriteDaPlanta, QUANTIDADE_DE_FASES_V
 using TexturasDasPlantasPorSemente = std::unordered_map<int, TexturasDaPlantaPorFase>;
 using TexturasDasSementesPorSemente = std::unordered_map<int, SDL_Texture*>;
 using TexturasDosBotoes = std::array<SDL_Texture*, Dominio::Ferramentas::QUANTIDADE_DE_FERRAMENTAS>;
+using TexturasDoPersonagem = std::array<SDL_Texture*, ConfigVisualDoPersonagem::QUANTIDADE_DE_ANIMACOES>;
 
 inline bool estadoEhFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
     switch (estado) {
@@ -101,7 +102,7 @@ struct TexturasDosCanteiros {
 
 struct RecursosDaFazenda {
     SDL_Texture* texturaFundo = nullptr;
-    SDL_Texture* texturaDoPersonagem = nullptr;
+    TexturasDoPersonagem texturasDoPersonagem{};
     TexturasDosCanteiros texturasCanteiro;
     TexturasDosBotoes texturasDosBotoes{};
     TexturasDasSementesPorSemente texturasDasSementes;
@@ -201,7 +202,8 @@ inline TexturasDosBotoes carregarTexturasDosBotoes(
 
 inline void validarDimensoesDaTexturaDoPersonagem(
     SDL_Texture* textura,
-    const std::filesystem::path& caminho
+    const std::filesystem::path& caminho,
+    const ConfigVisualDoPersonagem::ConfiguracaoDaAnimacao& configuracao
 ) {
     if (textura == nullptr) {
         return;
@@ -215,30 +217,49 @@ inline void validarDimensoesDaTexturaDoPersonagem(
         return;
     }
 
-    if (largura != Compartilhado::ConfigAnimacao::SPRITESHEET_LARGURA ||
-        altura != Compartilhado::ConfigAnimacao::SPRITESHEET_ALTURA) {
-        std::cerr << "Spritesheet do personagem fora do contrato fixo: " << caminho.string()
-                  << " | esperado "
-                  << Compartilhado::ConfigAnimacao::SPRITESHEET_LARGURA << 'x'
-                  << Compartilhado::ConfigAnimacao::SPRITESHEET_ALTURA
-                  << ", encontrado " << largura << 'x' << altura << '\n';
+    if (configuracao.quantidadeFrames <= 0 ||
+        configuracao.frameLargura <= 0 ||
+        configuracao.frameAltura <= 0) {
+        std::cerr << "Configuracao de sprite do personagem invalida: " << caminho.string()
+                  << " | frames=" << configuracao.quantidadeFrames
+                  << ", frame=" << configuracao.frameLargura << 'x' << configuracao.frameAltura << '\n';
+        return;
+    }
+
+    const int larguraNecessaria = configuracao.frameOrigemX +
+        (configuracao.quantidadeFrames - 1) * (configuracao.frameLargura + configuracao.frameEspacamentoX) +
+        configuracao.frameLargura;
+    const int alturaNecessaria = configuracao.frameOrigemY + configuracao.frameAltura;
+
+    if (largura < larguraNecessaria || altura < alturaNecessaria) {
+        std::cerr << "Spritesheet do personagem fora do recorte configurado: " << caminho.string()
+                  << " | textura " << largura << 'x' << altura
+                  << ", recorte precisa de " << larguraNecessaria << 'x' << alturaNecessaria << '\n';
     }
 }
 
-inline SDL_Texture* carregarTexturaDoPersonagem(
+inline TexturasDoPersonagem carregarTexturasDoPersonagem(
     GerenciadorDeAtivosSDL& ativos,
     const std::filesystem::path& diretorioAssets
 ) {
-    const std::filesystem::path caminho = caminhoDoSpriteDoPersonagem(diretorioAssets);
+    TexturasDoPersonagem texturas{};
 
-    if (!std::filesystem::exists(caminho)) {
-        std::cerr << "Sprite do personagem ausente: " << caminho.string() << '\n';
-        return nullptr;
+    for (std::size_t indice = 0; indice < ConfigVisualDoPersonagem::CONFIGURACOES_POR_ANIMACAO.size(); ++indice) {
+        const ConfigVisualDoPersonagem::ConfiguracaoDaAnimacao& configuracao =
+            ConfigVisualDoPersonagem::CONFIGURACOES_POR_ANIMACAO[indice];
+        const std::filesystem::path caminho = resolverArquivoDentroDeAssets(diretorioAssets, configuracao.caminhoTextura);
+
+        if (!std::filesystem::exists(caminho)) {
+            std::cerr << "Sprite do personagem ausente: " << caminho.string() << '\n';
+            continue;
+        }
+
+        SDL_Texture* textura = ativos.carregarTextura(caminho);
+        validarDimensoesDaTexturaDoPersonagem(textura, caminho, configuracao);
+        texturas[indice] = textura;
     }
 
-    SDL_Texture* textura = ativos.carregarTextura(caminho);
-    validarDimensoesDaTexturaDoPersonagem(textura, caminho);
-    return textura;
+    return texturas;
 }
 
 inline const char* nomeDaFaseVisualDaPlanta(std::size_t indice) {
@@ -406,7 +427,7 @@ inline RecursosDaFazenda carregarRecursosDaFazenda(
     RecursosDaFazenda recursos;
     const std::vector<std::unique_ptr<Dominio::Plantas::Planta>> especies = fabrica.todasAsEspecies();
     recursos.texturaFundo = carregarTexturaDeFundoPrincipal(ativos, diretorioAssets, configuracoes);
-    recursos.texturaDoPersonagem = carregarTexturaDoPersonagem(ativos, diretorioAssets);
+    recursos.texturasDoPersonagem = carregarTexturasDoPersonagem(ativos, diretorioAssets);
     recursos.texturasCanteiro = carregarTexturasDosCanteiros(ativos, diretorioAssets);
     recursos.texturasDosBotoes = carregarTexturasDosBotoes(ativos, diretorioAssets);
     recursos.texturasCanteiro.plantasPorSemente = carregarSpritesDeTodasAsEspecies(
