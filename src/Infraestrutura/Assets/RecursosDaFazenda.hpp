@@ -142,7 +142,7 @@ inline SDL_Texture* carregarTexturaDeFundoPrincipal(
     );
 
     if (textura == nullptr) {
-        std::cerr << "Background principal nao localizado. Fallback verde ativo. Pasta assets: "
+        std::cerr << "Background principal não localizado. Fallback verde ativo. Pasta assets: "
                   << diretorioAssets.string() << '\n';
     }
 

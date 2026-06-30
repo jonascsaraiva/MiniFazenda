@@ -77,12 +77,9 @@ inline std::vector<std::filesystem::path> candidatosParaBackground(
     if (arquivoConfigurado.is_relative() && arquivoConfigurado.parent_path().empty()) {
         arquivoConfigurado = std::filesystem::path("background") / arquivoConfigurado;
     }
-
     return {
         resolverArquivoDentroDeAssets(diretorioAssets, arquivoConfigurado),
-        diretorioAssets / "background" / "background.png",
-        diretorioAssets / "background" / "plano_de_fundo.png",
-        diretorioAssets / "background" / "fazenda.png"
+        diretorioAssets / "background" / "fundo_gramado.png",
     };
 }
 
