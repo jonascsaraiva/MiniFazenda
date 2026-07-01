@@ -1,6 +1,6 @@
 # Medidas e posicionamento visual do jogo
 
-Este documento consolida as medidas que governam o posicionamento visual atual do jogo. Os valores abaixo foram extraídos do código-fonte e, quando são derivados, o próprio item indica a constante ou função usada como origem do cálculo. O único valor reservado que ainda não existe no código é o padrão futuro de frame `250 x 250 px`(falta implementar, se vc ler isso aqui no futuru ou tiver implementando,remover comentario e melhorar explicação do contexto desse arquivo), marcado explicitamente na seção do personagem como requisito de arte ainda pendente de migração.
+Este documento consolida as medidas que governam o posicionamento visual atual do jogo. Os valores abaixo foram extraídos do código-fonte e, quando são derivados, o próprio item indica a constante ou função usada como origem do cálculo. A seção do personagem já reflete a migração para o padrão de frame `250 x 250 px`.
 
 ## Como ler este documento
 
@@ -223,36 +223,34 @@ O código de renderizacao do personagem foi localizado em `src/Apresentacao/Rend
 
 ### Sprite e animação atual
 
-- **Textura usada atualmente** — `sprites/personagem/bonequinho.png`
+- **Textura usada atualmente** — `sprites/personagem/Boneco_piscando_olhos.png`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::caminhoTextura`
 - **Quantidade de animacoes configuradas** — `5`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::QUANTIDADE_DE_ANIMACOES`
-- **Animacoes de caminhada** — usam o mesmo idle
+- **Animacoes de caminhada** — usam o mesmo idle como fallback de configuração
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::configuracaoWalkBaixoDireita`, `configuracaoWalkBaixoEsquerda`, `configuracaoWalkCimaDireita`, `configuracaoWalkCimaEsquerda`
-- **Frames do idle** — `8`
+- **Frames do idle** — `5`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::quantidadeFramesIdle`
 - **Origem X do primeiro frame** — `0 px`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameOrigemX`
-- **Origem Y do primeiro frame** — `145 px`
+- **Origem Y do primeiro frame** — `0 px`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameOrigemY`
-- **Largura do frame atual** — `271 px`
+- **Largura do frame atual** — `250 px`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameLargura`
-- **Altura do frame atual** — `416 px`
+- **Altura do frame atual** — `250 px`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameAltura`
 - **Espacamento horizontal entre frames** — `0 px`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameEspacamentoX`
 - **Espacamento vertical entre frames** — `0 px`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameEspacamentoY`
-- **Duracao por frame** — `0.12 s`
+- **Duracao de referência por frame** — `0.065 s`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::duracaoPorFrame`
-- **Tolerancia usada na troca de frame** — `0.00001 s`
-  - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::calcularIndiceFrame`
-- **Largura minima exigida da spritesheet atual** — `2168 px`
-  - Origem: `0 + (8 - 1) * (271 + 0) + 271`, derivado de `validarDimensoesDaTexturaDoPersonagem`
-- **Altura minima exigida da spritesheet atual** — `561 px`
-  - Origem: `145 + 416`, derivado de `validarDimensoesDaTexturaDoPersonagem`
+- **Largura minima exigida da spritesheet atual** — `1250 px`
+  - Origem: `0 + (5 - 1) * (250 + 0) + 250`, derivado de `validarDimensoesDaTexturaDoPersonagem`
+- **Altura minima exigida da spritesheet atual** — `250 px`
+  - Origem: `0 + 250`, derivado de `validarDimensoesDaTexturaDoPersonagem`
 
-A animação idle atual é uma animação por spritesheet. A classe `src/Dominio/Animacao/AnimacaoIdle.hpp::AnimacaoIdle` apenas acumula tempo, e o indice do frame vem de `ConfigVisualDoPersonagem::calcularIndiceFrame`. Nao há deslocamento procedural de respiracao ou piscar no renderizador; esses efeitos, se existirem visualmente, precisam estar desenhados nos `8` frames do spritesheet atual.
+A animação idle atual usa uma spritesheet horizontal de cinco frames, mas a escolha do frame não é calculada pelo renderizador. A classe `src/Dominio/Animacao/AnimacaoIdle.hpp::AnimacaoIdle` controla intervalo aleatório, sorteio de expressão, sequência e frame atual; `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp` apenas consulta `Personagem::indiceFrameDaAnimacaoVisualAtual()`.
 
 ### Destino e âncora dos pés
 
@@ -260,7 +258,7 @@ A animação idle atual é uma animação por spritesheet. A classe `src/Dominio
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::destinoLargura`
 - **Altura de destino no zoom base** — `96 px`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::destinoAltura`
-- **Ponto dos pés dentro do destino no zoom base** — `(28, 95)`
+- **Ponto dos pés dentro do destino no zoom base** — `(32, 96)`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::pontoDosPesX` e `pontoDosPesY`
 - **Offset dos pés** — `(0, 0)`
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::offsetPeX` e `offsetPeY`
@@ -268,29 +266,29 @@ A animação idle atual é uma animação por spritesheet. A classe `src/Dominio
   - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::ajusteTelaX` e `ajusteTelaY`
 - **Destino no zoom mínimo** — `32 x 48 px`
   - Origem: `round(63 * 0.5)` e `round(96 * 0.5)`, derivados de `destinoLargura`, `destinoAltura` e `ZOOM_MINIMO`
-- **Ponto dos pés no destino no zoom mínimo** — `(14, 48)`
-  - Origem: `round(28 * 0.5)` e `round(95 * 0.5)`, derivados de `pontoDosPesX/Y` e `ZOOM_MINIMO`
+- **Ponto dos pés no destino no zoom mínimo** — `(16, 48)`
+  - Origem: `round(32 * 0.5)` e `round(96 * 0.5)`, derivados de `pontoDosPesX/Y` e `ZOOM_MINIMO`
 - **Destino no zoom máximo** — `126 x 192 px`
   - Origem: `round(63 * 2.0)` e `round(96 * 2.0)`, derivados de `destinoLargura`, `destinoAltura` e `ZOOM_MAXIMO`
-- **Ponto dos pés no destino no zoom máximo** — `(56, 190)`
-  - Origem: `round(28 * 2.0)` e `round(95 * 2.0)`, derivados de `pontoDosPesX/Y` e `ZOOM_MAXIMO`
+- **Ponto dos pés no destino no zoom máximo** — `(64, 192)`
+  - Origem: `round(32 * 2.0)` e `round(96 * 2.0)`, derivados de `pontoDosPesX/Y` e `ZOOM_MAXIMO`
 - **Ponto dos pés quando parado exatamente em um tile no zoom base** — `(64, 32)` relativo ao topo-esquerda do tile
   - Origem: `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`
-- **Retângulo do personagem relativo ao tile no zoom base** — `x=36, y=-63, w=63, h=96`
-  - Origem: `(64 - 28, 32 - 95, 63, 96)`, derivado de `calcularPontoDosPesDoPersonagemNaTela` e `calcularRetanguloDeDestino`
+- **Retângulo do personagem relativo ao tile no zoom base** — `x=32, y=-64, w=63, h=96`
+  - Origem: `(64 - 32, 32 - 96, 63, 96)`, derivado de `calcularPontoDosPesDoPersonagemNaTela` e `calcularRetanguloDeDestino`
 - **Posicao inicial dos pés na grade global** — `(128, 128)`
   - Origem: `src/Dominio/Personagem/Personagem.hpp::posicaoDosPesNaGrade_`, usando `COLUNA_CENTRAL_DA_GRADE_GLOBAL` e `LINHA_CENTRAL_DA_GRADE_GLOBAL`
 - **Posicao inicial dos pés na tela, sem pan e no zoom base** — `(576, 328)`
   - Origem: Derivado de `posicaoDosPesNaGrade_`, origem `(512, 232)`, `LARGURA_DO_CANTEIRO` e `ALTURA_DO_CANTEIRO`
-- **Retângulo inicial do personagem na tela, sem pan e no zoom base** — `x=548, y=233, w=63, h=96`
-  - Origem: `(576 - 28, 328 - 95, 63, 96)`, derivado de `calcularRetanguloDeDestino`
+- **Retângulo inicial do personagem na tela, sem pan e no zoom base** — `x=544, y=232, w=63, h=96`
+  - Origem: `(576 - 32, 328 - 96, 63, 96)`, derivado de `calcularRetanguloDeDestino`
 
-### Reserva para o novo padrão de arte
+### Padrão de arte atual
 
-- **Padrao futuro de frame** — `250 x 250 px`
-  - Origem: Requisito desta documentacao; ainda não existe constante ou identificador no código atual
-- **Estado da migração** — pendente
-  - Origem: O código ainda usa `frameLargura=271`, `frameAltura=416`, `destinoLargura=63`, `destinoAltura=96` em `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
+- **Frame do personagem** — `250 x 250 px`
+  - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameLargura` e `frameAltura`
+- **Convenção da âncora dos pés** — centro inferior do destino arredondado para inteiro, `((destinoLargura + 1) / 2, destinoAltura)`
+  - Origem: `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::pontoDosPesX` e `pontoDosPesY`
 
 ## 7. Interface e HUD
 
@@ -364,5 +362,5 @@ Estas medidas não alteram o posicionamento do mundo, mas fazem parte da composi
 - Para montar um canvas de referência de um tile, use os pontos `(64,0)`, `(128,32)`, `(64,64)` e `(0,32)` dentro de um retângulo `128 x 64 px` (`src/Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp::desenharLosango`).
 - No código atual, o ponto de contato de planta e personagem com o tile é o centro do losango, `(64,32)`, não a ponta inferior `(64,64)` (`src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularDestinoDoSpriteDaPlanta` e `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`).
 - Para sprites de planta, o motor procura a base no ponto mais baixo dos pixels opacos e centraliza essa base no ponto `(64,32)` do tile (`src/Infraestrutura/Assets/RecursosDaFazenda.hpp::calcularAncoraDaBaseDoSpriteDaPlanta`).
-- O personagem atual e desenhado em um destino de `63 x 96 px` no zoom base, com os pés em `(28,95)` dentro desse destino (`src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::destinoLargura`, `destinoAltura`, `pontoDosPesX`, `pontoDosPesY`).
-- O padrão futuro de frame `250 x 250 px` ainda não existe no código; enquanto a migração não acontecer, os valores operacionais continuam sendo `271 x 416 px` por frame de origem e `63 x 96 px` no destino renderizado (`src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameLargura`, `frameAltura`, `destinoLargura`, `destinoAltura`).
+- O personagem atual e desenhado em um destino de `63 x 96 px` no zoom base, com os pés em `(32,96)` dentro desse destino (`src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::destinoLargura`, `destinoAltura`, `pontoDosPesX`, `pontoDosPesY`).
+- O padrão atual de frame do personagem é `250 x 250 px`, com 5 frames alinhados horizontalmente e sem espaçamento (`src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameLargura`, `frameAltura`, `quantidadeFramesIdle`, `frameEspacamentoX`).

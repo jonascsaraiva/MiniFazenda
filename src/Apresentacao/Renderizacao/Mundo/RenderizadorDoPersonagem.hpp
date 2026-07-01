@@ -130,10 +130,7 @@ inline void desenharPersonagem(
         return;
     }
 
-    const int indiceFrame = Infraestrutura::Assets::ConfigVisualDoPersonagem::calcularIndiceFrame(
-        configuracaoVisual,
-        personagem.tempoDaAnimacaoVisualAtual()
-    );
+    const int indiceFrame = personagem.indiceFrameDaAnimacaoVisualAtual();
     const SDL_Rect origem = converterRetanguloLogicoParaSDL(
         Infraestrutura::Assets::ConfigVisualDoPersonagem::calcularRetanguloDeOrigem(
             configuracaoVisual,

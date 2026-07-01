@@ -7,6 +7,7 @@
 #include "Apresentacao/Isometria/Isometrico.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
+#include "Dominio/Animacao/AnimacaoIdle.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
@@ -22,6 +23,7 @@
 namespace {
 
 namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
+namespace Animacao = MiniFazenda::Dominio::Animacao;
 namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
 namespace Canteiros = MiniFazenda::Dominio::Canteiros;
@@ -108,43 +110,95 @@ void validarAnimacaoIdleDoPersonagem() {
     assert(tileDoPersonagem != nullptr);
     assert(tileDoPersonagem->existeNoMapa());
 
-    int indiceFrame = ConfigPersonagem::calcularIndiceFrame(
-        configuracaoIdle,
-        jogo.personagem().tempoDaAnimacaoIdle()
-    );
-    auto origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
-    assert(indiceFrame == 0);
-    assert(origem.x == ConfigPersonagem::frameOrigemX);
-    assert(origem.y == ConfigPersonagem::frameOrigemY);
-    assert(origem.w == ConfigPersonagem::frameLargura);
-    assert(origem.h == ConfigPersonagem::frameAltura);
+    assert(configuracaoIdle.quantidadeFrames == 5);
+    assert(configuracaoIdle.frameOrigemX == 0);
+    assert(configuracaoIdle.frameOrigemY == 0);
+    assert(configuracaoIdle.frameLargura == 250);
+    assert(configuracaoIdle.frameAltura == 250);
+    assert(configuracaoIdle.frameEspacamentoX == 0);
+    assert(configuracaoIdle.destinoLargura == 63);
+    assert(configuracaoIdle.destinoAltura == 96);
+    assert(configuracaoIdle.pontoDosPesX == 32);
+    assert(configuracaoIdle.pontoDosPesY == 96);
 
-    AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame / 2.0f);
-    indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
-    assert(indiceFrame == 0);
-
-    AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame / 2.0f);
-    indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
-    origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
-    assert(indiceFrame == 1);
-    assert(origem.x == ConfigPersonagem::frameOrigemX + ConfigPersonagem::frameLargura);
-
-    for (int frame = 2; frame < configuracaoIdle.quantidadeFrames; ++frame) {
-        AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame);
-        indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
-        origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
-        assert(indiceFrame == frame);
+    for (int frame = 0; frame < configuracaoIdle.quantidadeFrames; ++frame) {
+        const auto origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, frame);
         assert(origem.x == ConfigPersonagem::frameOrigemX + frame * (
             ConfigPersonagem::frameLargura + ConfigPersonagem::frameEspacamentoX
         ));
+        assert(origem.y == ConfigPersonagem::frameOrigemY);
+        assert(origem.w == ConfigPersonagem::frameLargura);
+        assert(origem.h == ConfigPersonagem::frameAltura);
     }
 
-    AppServicos::avancarTempoDoJogo(jogo, configuracaoIdle.duracaoPorFrame);
-    indiceFrame = ConfigPersonagem::calcularIndiceFrame(configuracaoIdle, jogo.personagem().tempoDaAnimacaoIdle());
-    origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, indiceFrame);
-    assert(indiceFrame == 0);
-    assert(origem.x == ConfigPersonagem::frameOrigemX);
+    const auto origemAposUltimoFrame =
+        ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, configuracaoIdle.quantidadeFrames);
+    assert(origemAposUltimoFrame.x == ConfigPersonagem::frameOrigemX);
+
+    const Geometria::PosicaoNaTela centroDoCanteiro{64, 32};
+    const auto destino = ConfigPersonagem::calcularRetanguloDeDestino(configuracaoIdle, centroDoCanteiro);
+    assert(destino.x == 32);
+    assert(destino.y == -64);
+    assert(destino.w == 63);
+    assert(destino.h == 96);
+    assert(destino.x + configuracaoIdle.pontoDosPesX == centroDoCanteiro.coordenadaHorizontal);
+    assert(destino.y + configuracaoIdle.pontoDosPesY == centroDoCanteiro.coordenadaVertical);
+    assert(destino.y + destino.h == centroDoCanteiro.coordenadaVertical);
+
+    assert(jogo.personagem().indiceFrameDaAnimacaoVisualAtual() == 0);
+    AppServicos::avancarTempoDoJogo(jogo, 2.49f);
+    assert(jogo.personagem().indiceFrameDaAnimacaoVisualAtual() == 0);
     assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
+}
+
+void validarSequenciasDaAnimacaoIdleDoPersonagem() {
+    Animacao::AnimacaoIdle animacao{7};
+    assert(animacao.indiceFrameAtual() == 0);
+
+    animacao.iniciarPiscadaRapida(0.06f);
+    assert(animacao.indiceFrameAtual() == 0);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 1);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 2);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 3);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 4);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 0);
+
+    animacao.iniciarPiscadaDupla(0.06f);
+    assert(animacao.indiceFrameAtual() == 0);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 1);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 2);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 3);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 0);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 1);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 2);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 3);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 4);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 0);
+
+    animacao.iniciarCansaco(0.06f, 1.6f);
+    assert(animacao.indiceFrameAtual() == 0);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 1);
+    animacao.avancar(1.59f);
+    assert(animacao.indiceFrameAtual() == 1);
+    animacao.avancar(0.01f);
+    assert(animacao.indiceFrameAtual() == 4);
+    animacao.avancar(0.06f);
+    assert(animacao.indiceFrameAtual() == 0);
 }
 
 void validarMovimentoIsometricoDoPersonagem() {
@@ -303,6 +357,7 @@ void validarHitTestIsometricoGlobalComCamera() {
 
 int main() {
     validarAnimacaoIdleDoPersonagem();
+    validarSequenciasDaAnimacaoIdleDoPersonagem();
     validarMovimentoIsometricoDoPersonagem();
     validarFluxoDeCliqueDaLoja();
     validarHitTestIsometricoDoCanteiro();

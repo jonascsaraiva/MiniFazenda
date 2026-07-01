@@ -76,16 +76,20 @@ public:
         return estadoAtual_ == EstadoDoPersonagem::Andando;
     }
 
-    void avancarAnimacaoIdle(float deltaTime) {
+    void avancarAnimacaoVisual(float deltaTime) {
+        if (estadoAtual_ != EstadoDoPersonagem::Parado) {
+            return;
+        }
+
         animacaoIdle_.avancar(deltaTime);
     }
 
-    float tempoDaAnimacaoIdle() const {
-        return animacaoIdle_.tempoAcumulado();
-    }
+    int indiceFrameDaAnimacaoVisualAtual() const {
+        if (estadoAtual_ != EstadoDoPersonagem::Parado) {
+            return 0;
+        }
 
-    float tempoDaAnimacaoVisualAtual() const {
-        return tempoDaAnimacaoIdle();
+        return animacaoIdle_.indiceFrameAtual();
     }
 
     void caminharAte(Compartilhado::Geometria::PosicaoNaGrade destino) {
@@ -195,6 +199,7 @@ private:
         estadoAtual_ = EstadoDoPersonagem::Parado;
         caminho_.clear();
         waypointAtual_ = 0;
+        animacaoIdle_.reiniciar();
     }
 
     void atualizarDirecaoPara(Compartilhado::Geometria::PosicaoNaGradeDecimal destinoAtual) {
