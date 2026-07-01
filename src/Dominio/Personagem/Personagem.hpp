@@ -2,7 +2,6 @@
 
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
-#include "Dominio/Animacao/AnimacaoIdle.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -21,14 +20,6 @@ enum class DirecaoIsometrica {
     BaixoEsquerda,
     CimaDireita,
     CimaEsquerda
-};
-
-enum class AnimacaoVisualDoPersonagem {
-    Idle,
-    WalkBaixoDireita,
-    WalkBaixoEsquerda,
-    WalkCimaDireita,
-    WalkCimaEsquerda
 };
 
 class Personagem {
@@ -52,44 +43,8 @@ public:
         return direcaoAtual_;
     }
 
-    AnimacaoVisualDoPersonagem animacaoVisualAtual() const {
-        if (estadoAtual_ == EstadoDoPersonagem::Parado) {
-            return AnimacaoVisualDoPersonagem::Idle;
-        }
-
-        if (direcaoAtual_ == DirecaoIsometrica::BaixoDireita) {
-            return AnimacaoVisualDoPersonagem::WalkBaixoDireita;
-        }
-
-        if (direcaoAtual_ == DirecaoIsometrica::BaixoEsquerda) {
-            return AnimacaoVisualDoPersonagem::WalkBaixoEsquerda;
-        }
-
-        if (direcaoAtual_ == DirecaoIsometrica::CimaDireita) {
-            return AnimacaoVisualDoPersonagem::WalkCimaDireita;
-        }
-
-        return AnimacaoVisualDoPersonagem::WalkCimaEsquerda;
-    }
-
     bool estaAndando() const {
         return estadoAtual_ == EstadoDoPersonagem::Andando;
-    }
-
-    void avancarAnimacaoVisual(float deltaTime) {
-        if (estadoAtual_ != EstadoDoPersonagem::Parado) {
-            return;
-        }
-
-        animacaoIdle_.avancar(deltaTime);
-    }
-
-    int indiceFrameDaAnimacaoVisualAtual() const {
-        if (estadoAtual_ != EstadoDoPersonagem::Parado) {
-            return 0;
-        }
-
-        return animacaoIdle_.indiceFrameAtual();
     }
 
     void caminharAte(Compartilhado::Geometria::PosicaoNaGrade destino) {
@@ -199,7 +154,6 @@ private:
         estadoAtual_ = EstadoDoPersonagem::Parado;
         caminho_.clear();
         waypointAtual_ = 0;
-        animacaoIdle_.reiniciar();
     }
 
     void atualizarDirecaoPara(Compartilhado::Geometria::PosicaoNaGradeDecimal destinoAtual) {
@@ -228,7 +182,6 @@ private:
     DirecaoIsometrica direcaoAtual_ = DirecaoIsometrica::BaixoDireita;
     std::vector<Compartilhado::Geometria::PosicaoNaGradeDecimal> caminho_;
     std::size_t waypointAtual_ = 0;
-    Animacao::AnimacaoIdle animacaoIdle_;
 };
 
 } // namespace MiniFazenda::Dominio::Personagem

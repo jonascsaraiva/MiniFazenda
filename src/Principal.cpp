@@ -1,6 +1,7 @@
 #include "Aplicacao/Servicos/InicializadorDaFazenda.hpp"
 #include "Aplicacao/Servicos/ServicoDeFerramentas.hpp"
 #include "Aplicacao/Servicos/ServicoDeTempo.hpp"
+#include "Apresentacao/Animacao/AnimadorDoPersonagem.hpp"
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
@@ -26,6 +27,7 @@
 namespace {
 
 namespace AppServicos = MiniFazenda::Aplicacao::Servicos; namespace Assets = MiniFazenda::Infraestrutura::Assets;
+namespace AnimacaoPersonagem = MiniFazenda::Apresentacao::Animacao;
 namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera; namespace Configuracao = MiniFazenda::Infraestrutura::Configuracao;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
@@ -91,6 +93,7 @@ int main(int, char**) {
     Configuracao::carregarConfiguracoesDoLayout(diretorioAssets / "config.ini", configuracoes);
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    AnimacaoPersonagem::EstadoVisualDoPersonagem estadoVisualDoPersonagem;
     Assets::GerenciadorDeAtivosSDL ativos(renderizador.ponteiro);
     const Plantas::FabricaDePlantas fabricaDePlantas;
     const auto especiesDaLoja = fabricaDePlantas.todasAsEspecies();
@@ -224,6 +227,7 @@ int main(int, char**) {
         }
 
         AppServicos::avancarTempoDoJogo(jogo, deltaTime);
+        AnimacaoPersonagem::avancarAnimacaoDoPersonagem(estadoVisualDoPersonagem, jogo.personagem(), deltaTime);
         Camera::atualizarInerciaDaCamera(camera, configuracoes, jogo.tamanhoAtualDoGrid(), deltaTime);
         const auto posicaoRealcada = camera.panAtivo
             ? Geometria::PosicaoNaGrade{-1, -1}
@@ -233,7 +237,14 @@ int main(int, char**) {
         SDL_RenderClear(renderizador.ponteiro);
         Mundo::desenharFundo(renderizador.ponteiro, recursos.texturaFundo);
         Mundo::desenharGradeAtiva(renderizador.ponteiro, jogo, recursos.texturasCanteiro, configuracoes, camera, posicaoRealcada);
-        Mundo::desenharPersonagem(renderizador.ponteiro, recursos.texturasDoPersonagem, jogo.personagem(), configuracoes, camera);
+        Mundo::desenharPersonagem(
+            renderizador.ponteiro,
+            recursos.texturasDoPersonagem,
+            estadoVisualDoPersonagem,
+            jogo.personagem(),
+            configuracoes,
+            camera
+        );
         Mundo::desenharLimiteDaGradeJogavel(renderizador.ponteiro, jogo, configuracoes, camera);
         Mundo::desenharPreviewDeCriacaoDeTerra(renderizador.ponteiro, jogo, configuracoes, camera, posicaoRealcada);
         UI::desenharInterface(renderizador.ponteiro, jogo.ferramentaSelecionada(), botoes.cursor, botoes.enxada, botoes.removerTerra, botoes.semente, botoes.loja, recursos.texturasDosBotoes);

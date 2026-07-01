@@ -48,6 +48,8 @@ Contém as regras do jogo em C++ puro, sem dependência de SDL2.
 
 É aqui que devem ficar as decisões de gameplay, como regras de canteiros, plantas, ferramentas, grade, jogador e demais comportamentos centrais do jogo.
 
+O dominio nao deve conter representacao visual de entidades. No personagem, isso significa manter apenas estado logico como parado, andando, direcao, posicao dos pes e caminho em execucao; indice de frame, spritesheet, piscadas e temporizacao de animacao pertencem a apresentacao/infraestrutura.
+
 ### `Aplicacao/`
 
 Contém o estado agregado e os casos de uso que orquestram o domínio.
@@ -59,6 +61,8 @@ Esta camada coordena as ações do jogo, como inicializar a fazenda, aplicar fer
 Contém câmera, isometria, interface e renderização com SDL.
 
 Esta camada lê o estado do jogo e transforma esse estado em saída visual. Ela pode lidar com câmera, layout, cursores, HUD, barra de ferramentas, renderização da fazenda e desenho de elementos visuais.
+
+A animacao visual do personagem tambem fica nesta camada: ela le o estado logico exposto pelo dominio e mantem o estado visual necessario para desenhar frames, piscadas e loops de spritesheet.
 
 ### `Infraestrutura/`
 
@@ -236,6 +240,17 @@ Controla:
 - nível;
 - aplicação de recompensa.
 
+### `src/Dominio/Personagem/Personagem.hpp`
+
+Controla apenas estado logico de gameplay:
+
+- posicao dos pes na grade;
+- estado parado/andando;
+- direcao isometrica atual;
+- caminho em segmentos.
+
+Nao expoe animacao visual, spritesheet, indice de frame, piscada ou tempo de desenho.
+
 ### `src/Aplicacao/`
 
 #### `Estado/EstadoDoJogo.hpp`
@@ -265,6 +280,8 @@ Esses serviços coordenam o domínio sem tocar diretamente em SDL.
 
 Arquivos e módulos principais:
 
+- `Animacao/AnimadorDoPersonagem.hpp`
+- `Animacao/AnimacaoIdleDoPersonagem.hpp`
 - `ConfiguracoesDoLayout.hpp`
 - `Camera/CameraDoJogo.hpp`
 - `Isometria/Isometrico.hpp`
@@ -520,9 +537,10 @@ cmake --build build --config Debug
 ctest --test-dir build --output-on-failure -C Debug
 rg "SDL|SDL_|IMG_|TTF_|Mix_" src/Dominio
 rg "switch" src/Dominio
+rg "frame|sprite|animacao|spritesheet|pisc" src/Dominio/Personagem src/Dominio/Animacao
 ```
 
-As duas últimas buscas devem retornar vazio.
+As buscas de arquitetura devem retornar vazio.
 
 Isso confirma que:
 

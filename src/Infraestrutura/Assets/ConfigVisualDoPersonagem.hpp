@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Compartilhado/Geometria/Posicoes.hpp"
-#include "Dominio/Personagem/Personagem.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,6 +13,20 @@ namespace MiniFazenda::Infraestrutura::Assets::ConfigVisualDoPersonagem {
 // visual aqui para o renderizador nao depender de numeros magicos.
 // Para adicionar novas animacoes, crie uma nova funcao de configuracao e inclua
 // a entrada em CONFIGURACOES_POR_ANIMACAO.
+enum class AnimacaoVisualDoPersonagem {
+    Idle,
+    WalkBaixoDireita,
+    WalkBaixoEsquerda,
+    WalkCimaDireita,
+    WalkCimaEsquerda
+};
+
+enum class ModoDeReproducaoDaAnimacao {
+    FrameFixo,
+    LoopContinuo,
+    IdleComPiscadas
+};
+
 constexpr const char* caminhoTextura = "sprites/personagem/Boneco_piscando_olhos.png";
 
 constexpr int quantidadeFramesIdle = 5;
@@ -54,6 +67,7 @@ struct ConfiguracaoDaAnimacao {
     int ajusteTelaY = 0;
     int pontoDosPesX = 0;
     int pontoDosPesY = 0;
+    ModoDeReproducaoDaAnimacao modoDeReproducao = ModoDeReproducaoDaAnimacao::FrameFixo;
 };
 
 constexpr ConfiguracaoDaAnimacao configuracaoIdle() {
@@ -74,7 +88,8 @@ constexpr ConfiguracaoDaAnimacao configuracaoIdle() {
         ajusteTelaX,
         ajusteTelaY,
         pontoDosPesX,
-        pontoDosPesY
+        pontoDosPesY,
+        ModoDeReproducaoDaAnimacao::IdleComPiscadas
     };
 }
 
@@ -82,19 +97,27 @@ constexpr ConfiguracaoDaAnimacao configuracaoIdle() {
 // spritesheets futuras, crie constantes equivalentes acima e retorne outra
 // ConfiguracaoDaAnimacao na funcao correspondente.
 constexpr ConfiguracaoDaAnimacao configuracaoWalkBaixoDireita() {
-    return configuracaoIdle();
+    ConfiguracaoDaAnimacao configuracao = configuracaoIdle();
+    configuracao.modoDeReproducao = ModoDeReproducaoDaAnimacao::FrameFixo;
+    return configuracao;
 }
 
 constexpr ConfiguracaoDaAnimacao configuracaoWalkBaixoEsquerda() {
-    return configuracaoIdle();
+    ConfiguracaoDaAnimacao configuracao = configuracaoIdle();
+    configuracao.modoDeReproducao = ModoDeReproducaoDaAnimacao::FrameFixo;
+    return configuracao;
 }
 
 constexpr ConfiguracaoDaAnimacao configuracaoWalkCimaDireita() {
-    return configuracaoIdle();
+    ConfiguracaoDaAnimacao configuracao = configuracaoIdle();
+    configuracao.modoDeReproducao = ModoDeReproducaoDaAnimacao::FrameFixo;
+    return configuracao;
 }
 
 constexpr ConfiguracaoDaAnimacao configuracaoWalkCimaEsquerda() {
-    return configuracaoIdle();
+    ConfiguracaoDaAnimacao configuracao = configuracaoIdle();
+    configuracao.modoDeReproducao = ModoDeReproducaoDaAnimacao::FrameFixo;
+    return configuracao;
 }
 
 constexpr std::size_t QUANTIDADE_DE_ANIMACOES = 5;
@@ -107,17 +130,17 @@ inline constexpr std::array<ConfiguracaoDaAnimacao, QUANTIDADE_DE_ANIMACOES> CON
     configuracaoWalkCimaEsquerda()
 }};
 
-inline std::size_t indiceDaAnimacao(Dominio::Personagem::AnimacaoVisualDoPersonagem animacao) {
+inline std::size_t indiceDaAnimacao(AnimacaoVisualDoPersonagem animacao) {
     switch (animacao) {
-        case Dominio::Personagem::AnimacaoVisualDoPersonagem::Idle:
+        case AnimacaoVisualDoPersonagem::Idle:
             return 0;
-        case Dominio::Personagem::AnimacaoVisualDoPersonagem::WalkBaixoDireita:
+        case AnimacaoVisualDoPersonagem::WalkBaixoDireita:
             return 1;
-        case Dominio::Personagem::AnimacaoVisualDoPersonagem::WalkBaixoEsquerda:
+        case AnimacaoVisualDoPersonagem::WalkBaixoEsquerda:
             return 2;
-        case Dominio::Personagem::AnimacaoVisualDoPersonagem::WalkCimaDireita:
+        case AnimacaoVisualDoPersonagem::WalkCimaDireita:
             return 3;
-        case Dominio::Personagem::AnimacaoVisualDoPersonagem::WalkCimaEsquerda:
+        case AnimacaoVisualDoPersonagem::WalkCimaEsquerda:
             return 4;
         default:
             return 0;
@@ -125,7 +148,7 @@ inline std::size_t indiceDaAnimacao(Dominio::Personagem::AnimacaoVisualDoPersona
 }
 
 inline const ConfiguracaoDaAnimacao& configuracaoParaAnimacao(
-    Dominio::Personagem::AnimacaoVisualDoPersonagem animacao
+    AnimacaoVisualDoPersonagem animacao
 ) {
     return CONFIGURACOES_POR_ANIMACAO[indiceDaAnimacao(animacao)];
 }

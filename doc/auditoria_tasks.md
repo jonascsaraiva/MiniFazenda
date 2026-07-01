@@ -272,7 +272,8 @@ Inicio:
 Arquivos envolvidos:
 
 - `Dominio/Personagem/Personagem.hpp`
-- `Dominio/Animacao/AnimacaoIdle.hpp`
+- `Apresentacao/Animacao/AnimadorDoPersonagem.hpp`
+- `Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`
 - `Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
 - `Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
 
@@ -281,17 +282,17 @@ Fluxo atual:
 - Posicao logica do personagem representa os pes em coordenadas de grade decimal.
 - Movimento e feito por waypoints em L isometrico.
 - Renderizacao converte a posicao dos pes para tela e ancora o sprite por esse ponto.
-- Idle tem animacao aleatoria no dominio.
+- Idle tem animacao aleatoria na apresentacao.
 - Caminhadas usam configuracao visual de idle como fallback.
 
 Contrato preservado:
 
 - A ancora logica pelos pes esta preservada.
 
-Acoplamento observado:
+Acoplamento corrigido:
 
-- O dominio possui `AnimacaoVisualDoPersonagem`, `indiceFrameDaAnimacaoVisualAtual()` e constantes de frames da piscada.
-- Isso mantem o dominio sem SDL, mas nao totalmente livre de conceitos visuais.
+- O dominio do personagem nao possui `AnimacaoVisualDoPersonagem`, indice de frame, piscada ou maquina de spritesheet.
+- A apresentacao escolhe a animacao visual a partir de `estadoAtual()` e `direcaoAtual()`.
 
 ### 2.10. HUD, audio e configuracoes
 
@@ -364,7 +365,7 @@ Risco:
 
 Arquivos principais:
 
-- `Canteiros`, `Ferramentas`, `Grade`, `Jogador`, `Personagem`, `Plantas`, `Animacao`.
+- `Canteiros`, `Ferramentas`, `Grade`, `Jogador`, `Personagem`, `Plantas`.
 
 Estado:
 
@@ -377,12 +378,11 @@ Estado:
 Violacoes ou desvios:
 
 - A dependencia visual do dominio de plantas foi removida; especies expoem apenas dados de gameplay e `identificadorDaSemente`.
-- `Dominio/Personagem/Personagem.hpp` expoe `AnimacaoVisualDoPersonagem` e indice de frame visual.
-- `Dominio/Animacao/AnimacaoIdle.hpp` conhece indices de frames da spritesheet.
+- A dependencia visual do dominio do personagem foi removida; personagem expoe apenas estado logico de movimento.
 
 Conclusao:
 
-- O dominio esta puro em termos de SDL e infraestrutura. Ainda ha semantica visual no personagem, mas nao no dominio de plantas.
+- O dominio esta puro em termos de SDL, infraestrutura e semantica visual do personagem.
 
 ### 3.3. Aplicacao
 
@@ -477,35 +477,34 @@ Recomendacao:
 - Manter no dominio apenas identificador, nome de gameplay, custo, tempos e recompensa.
 - Manter metadados visuais de planta no catalogo de infraestrutura, indexado por `identificadorDaSemente`.
 
-#### A2. Dominio do personagem conhece animacao visual e indices de frames
+#### A2. Acoplamento visual do personagem no dominio corrigido
 
 Arquivo/fluxo:
 
 - `src/Dominio/Personagem/Personagem.hpp`
-- `src/Dominio/Animacao/AnimacaoIdle.hpp`
+- `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`
+- `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`
 - `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
 - `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
 
-Problema:
+Status:
 
-- O dominio expoe `AnimacaoVisualDoPersonagem`.
-- O dominio calcula `indiceFrameDaAnimacaoVisualAtual()`.
-- `AnimacaoIdle` possui constantes de frame como `FRAME_OLHOS_ABERTOS_INICIAL` e `FRAME_OLHOS_ABERTOS_FINAL`.
+- Corrigido. O dominio do personagem expoe apenas estado logico: parado, andando, direcao e posicao dos pes.
+- `AnimacaoVisualDoPersonagem`, indice de frame, piscada e temporizacao visual ficam fora do dominio.
+- A maquina de idle visual vive em `Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`.
 
 Por que importa:
 
-- Nao ha SDL no dominio, mas ha contrato de spritesheet e frame visual dentro dele.
-- `ConfigVisualDoPersonagem::duracaoPorFrame` existe, mas a duracao real da idle e controlada por constantes internas do dominio.
+- Trocar spritesheet, numero de frames ou modelo de animacao nao exige mudanca no dominio.
+- Movimento e animacao visual podem ser testados separadamente.
 
 Impacto provavel:
 
-- Trocar a spritesheet, numero de frames ou modelo de animacao pode exigir mudanca no dominio.
-- Fica mais dificil testar movimento sem tambem carregar semantica de animacao visual.
+- Novas animacoes de caminhada podem ser adicionadas alterando configuracao visual e apresentacao.
 
-Recomendacao:
+Regra preservada:
 
 - Manter no dominio apenas estado fisico/logico: parado, andando, direcao e posicao dos pes.
-- Mover maquina de animacao visual para apresentacao ou para um servico de apresentacao, usando o estado do personagem como entrada.
 
 ### Medio
 
@@ -890,7 +889,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 ## 5. Divergencias entre documentacao e codigo
 
-1. `doc/arquitetura.md` afirma que o dominio deve ficar sem dependencia visual. O dominio de plantas agora cumpre esse contrato; permanecem dependencias visuais no personagem (`AnimacaoVisualDoPersonagem` e indices de frame em `AnimacaoIdle`).
+1. Corrigido: `doc/arquitetura.md` afirma que o dominio deve ficar sem dependencia visual, e o dominio do personagem agora cumpre esse contrato.
 
 2. `doc/arquitetura.md` lista uma futura extracao de `CenaFazenda`. O codigo atual ainda nao possui `CenaFazenda`; `Principal.cpp` concentra a cena.
 
@@ -900,7 +899,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 5. A recompensa de `PlantaMirtilo.hpp` esta documentada no proprio retorno como `{35,3}`.
 
-6. `doc/personagem.md` descreve `duracaoPorFrame` como parte da configuracao visual, mas a animacao idle real sorteia tempos dentro de `Dominio/Animacao/AnimacaoIdle.hpp`.
+6. Corrigido: a animacao idle real sorteia tempos em `Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`, fora do dominio.
 
 ## 6. Pontos fortes
 
@@ -918,7 +917,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 ## 7. Pontos frageis
 
 - `Principal.cpp` e o centro de quase todos os fluxos de runtime.
-- Dominio ainda tem semantica visual no personagem.
+- Estado de animacao visual do personagem ainda fica no loop principal, ate uma futura extracao de cena.
 - Estado de UI/audio esta junto do estado de gameplay.
 - Renderizadores conhecem estruturas concretas de infraestrutura de assets.
 - Testes dependem de `assert`.
@@ -930,7 +929,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 ## 8. Riscos futuros
 
 1. Ao adicionar novas plantas, o risco principal e esquecer o cadastro correspondente no catalogo visual de infraestrutura.
-2. Ao adicionar novas animacoes, o dominio do personagem pode precisar conhecer mais frames e estados visuais.
+2. Ao adicionar novas animacoes, o risco principal e esquecer de ajustar a configuracao visual ou o modo de reproducao da apresentacao.
 3. Ao adicionar novas telas, `Principal.cpp` pode se tornar o gargalo de manutencao.
 4. Ao adicionar salvamento, `EstadoDoJogo` pode persistir indevidamente estado de UI/audio.
 5. Ao adicionar CI Release, testes com `assert` podem virar falsos positivos.
@@ -990,9 +989,9 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
    **onde:** `src/Dominio/Plantas/Planta.hpp`, `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`, `src/Infraestrutura/Assets/CatalogoVisualDePlantas.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
    **prioridade:** Alta
 
-2. **Remover lógica visual da animação do personagem no domínio**
-   **corrigir:** O domínio deve guardar apenas estado lógico: parado, andando, direção e posição dos pés. Índice de frame, piscada, tempo visual e spritesheet devem ir para apresentação/infraestrutura.
-   **onde:** `src/Dominio/Personagem/Personagem.hpp`, `src/Dominio/Animacao/AnimacaoIdle.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`, `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
+2. **Remover lógica visual da animação do personagem no domínio** (CONCLUIDO)
+   **corrigido:** O domínio guarda apenas estado lógico: parado, andando, direção, caminho e posição dos pés. Índice de frame, piscada, tempo visual e spritesheet foram movidos para apresentação/infraestrutura.
+   **onde:** `src/Dominio/Personagem/Personagem.hpp`, `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`, `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`, `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
    **prioridade:** Alta
 
 3. **Separar estado de UI/audio do estado de gameplay**

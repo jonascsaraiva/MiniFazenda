@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Apresentacao/Animacao/AnimadorDoPersonagem.hpp"
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp"
@@ -97,7 +98,7 @@ inline void desenharDebugDoPersonagem(
 
 inline SDL_Texture* texturaParaAnimacaoDoPersonagem(
     const Infraestrutura::Assets::TexturasDoPersonagem& texturas,
-    Dominio::Personagem::AnimacaoVisualDoPersonagem animacao
+    Infraestrutura::Assets::ConfigVisualDoPersonagem::AnimacaoVisualDoPersonagem animacao
 ) {
     const std::size_t indice = Infraestrutura::Assets::ConfigVisualDoPersonagem::indiceDaAnimacao(animacao);
     return indice < texturas.size() ? texturas[indice] : nullptr;
@@ -106,11 +107,12 @@ inline SDL_Texture* texturaParaAnimacaoDoPersonagem(
 inline void desenharPersonagem(
     SDL_Renderer* renderizador,
     const Infraestrutura::Assets::TexturasDoPersonagem& texturasDoPersonagem,
+    const Animacao::EstadoVisualDoPersonagem& estadoVisualDoPersonagem,
     const Dominio::Personagem::Personagem& personagem,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera
 ) {
-    const Dominio::Personagem::AnimacaoVisualDoPersonagem animacao = personagem.animacaoVisualAtual();
+    const auto animacao = estadoVisualDoPersonagem.animacaoAtual;
     const auto& configuracaoVisual =
         Infraestrutura::Assets::ConfigVisualDoPersonagem::configuracaoParaAnimacao(animacao);
     SDL_Texture* texturaDoPersonagem = texturaParaAnimacaoDoPersonagem(texturasDoPersonagem, animacao);
@@ -130,11 +132,10 @@ inline void desenharPersonagem(
         return;
     }
 
-    const int indiceFrame = personagem.indiceFrameDaAnimacaoVisualAtual();
     const SDL_Rect origem = converterRetanguloLogicoParaSDL(
         Infraestrutura::Assets::ConfigVisualDoPersonagem::calcularRetanguloDeOrigem(
             configuracaoVisual,
-            indiceFrame
+            estadoVisualDoPersonagem.indiceFrameAtual
         )
     );
     SDL_RenderCopy(renderizador, texturaDoPersonagem, &origem, &destinoDoPersonagem);

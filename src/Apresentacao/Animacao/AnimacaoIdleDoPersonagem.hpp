@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <random>
 
-namespace MiniFazenda::Dominio::Animacao {
+namespace MiniFazenda::Apresentacao::Animacao {
 
 enum class ExpressaoIdleDoPersonagem {
     PiscadaRapida,
@@ -13,13 +13,13 @@ enum class ExpressaoIdleDoPersonagem {
     Cansaco
 };
 
-class AnimacaoIdle {
+class AnimacaoIdleDoPersonagem {
 public:
-    AnimacaoIdle()
-        : AnimacaoIdle(criarSementeAleatoria()) {
+    AnimacaoIdleDoPersonagem()
+        : AnimacaoIdleDoPersonagem(criarSementeAleatoria()) {
     }
 
-    explicit AnimacaoIdle(unsigned int sementeAleatoria)
+    explicit AnimacaoIdleDoPersonagem(unsigned int sementeAleatoria)
         : geradorAleatorio_(sementeAleatoria) {
         reiniciar();
     }
@@ -252,4 +252,4 @@ private:
     std::mt19937 geradorAleatorio_;
 };
 
-} // namespace MiniFazenda::Dominio::Animacao
+} // namespace MiniFazenda::Apresentacao::Animacao

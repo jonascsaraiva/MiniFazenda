@@ -1,13 +1,13 @@
 #include "Aplicacao/Servicos/InicializadorDaFazenda.hpp"
 #include "Aplicacao/Servicos/ServicoDeFerramentas.hpp"
 #include "Aplicacao/Servicos/ServicoDeTempo.hpp"
+#include "Apresentacao/Animacao/AnimadorDoPersonagem.hpp"
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
 #include "Apresentacao/Isometria/Isometrico.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
-#include "Dominio/Animacao/AnimacaoIdle.hpp"
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
@@ -23,7 +23,7 @@
 namespace {
 
 namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
-namespace Animacao = MiniFazenda::Dominio::Animacao;
+namespace Animacao = MiniFazenda::Apresentacao::Animacao;
 namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
 namespace Canteiros = MiniFazenda::Dominio::Canteiros;
@@ -103,8 +103,9 @@ void validarFluxoDeCliqueDaLoja() {
 void validarAnimacaoIdleDoPersonagem() {
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
     const auto& configuracaoIdle = ConfigPersonagem::configuracaoParaAnimacao(
-        Personagem::AnimacaoVisualDoPersonagem::Idle
+        ConfigPersonagem::AnimacaoVisualDoPersonagem::Idle
     );
+    Animacao::EstadoVisualDoPersonagem estadoVisualDoPersonagem;
     const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
     const Grade::TileDeTerra* tileDoPersonagem = jogo.grade().obterTile(posicaoInicial);
     assert(tileDoPersonagem != nullptr);
@@ -145,14 +146,15 @@ void validarAnimacaoIdleDoPersonagem() {
     assert(destino.y + configuracaoIdle.pontoDosPesY == centroDoCanteiro.coordenadaVertical);
     assert(destino.y + destino.h == centroDoCanteiro.coordenadaVertical);
 
-    assert(jogo.personagem().indiceFrameDaAnimacaoVisualAtual() == 0);
+    assert(estadoVisualDoPersonagem.indiceFrameAtual == 0);
     AppServicos::avancarTempoDoJogo(jogo, 2.49f);
-    assert(jogo.personagem().indiceFrameDaAnimacaoVisualAtual() == 0);
+    Animacao::avancarAnimacaoDoPersonagem(estadoVisualDoPersonagem, jogo.personagem(), 2.49f);
+    assert(estadoVisualDoPersonagem.indiceFrameAtual == 0);
     assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
 }
 
 void validarSequenciasDaAnimacaoIdleDoPersonagem() {
-    Animacao::AnimacaoIdle animacao{7};
+    Animacao::AnimacaoIdleDoPersonagem animacao{7};
     assert(animacao.indiceFrameAtual() == 0);
 
     animacao.iniciarPiscadaRapida(0.06f);
@@ -212,7 +214,8 @@ void validarMovimentoIsometricoDoPersonagem() {
     jogo.personagem().caminharAte(destino);
     assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
     assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoDireita);
-    assert(jogo.personagem().animacaoVisualAtual() == Personagem::AnimacaoVisualDoPersonagem::WalkBaixoDireita);
+    assert(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
+           ConfigPersonagem::AnimacaoVisualDoPersonagem::WalkBaixoDireita);
 
     AppServicos::avancarTempoDoJogo(
         jogo,
@@ -220,11 +223,13 @@ void validarMovimentoIsometricoDoPersonagem() {
     );
     assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
     assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoEsquerda);
-    assert(jogo.personagem().animacaoVisualAtual() == Personagem::AnimacaoVisualDoPersonagem::WalkBaixoEsquerda);
+    assert(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
+           ConfigPersonagem::AnimacaoVisualDoPersonagem::WalkBaixoEsquerda);
 
     AppServicos::avancarTempoDoJogo(jogo, 2.0f);
     assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Parado);
-    assert(jogo.personagem().animacaoVisualAtual() == Personagem::AnimacaoVisualDoPersonagem::Idle);
+    assert(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
+           ConfigPersonagem::AnimacaoVisualDoPersonagem::Idle);
     assert(Geometria::posicoesDaGradeSaoIguais(destino, jogo.personagem().posicaoNaGrade()));
 
     jogo.personagem().caminharAte(posicaoInicial);

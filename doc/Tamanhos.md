@@ -250,7 +250,7 @@ O código de renderizacao do personagem foi localizado em `src/Apresentacao/Rend
 - **Altura minima exigida da spritesheet atual** — `250 px`
   - Origem: `0 + 250`, derivado de `validarDimensoesDaTexturaDoPersonagem`
 
-A animação idle atual usa uma spritesheet horizontal de cinco frames, mas a escolha do frame não é calculada pelo renderizador. A classe `src/Dominio/Animacao/AnimacaoIdle.hpp::AnimacaoIdle` controla intervalo aleatório, sorteio de expressão, sequência e frame atual; `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp` apenas consulta `Personagem::indiceFrameDaAnimacaoVisualAtual()`.
+A animação idle atual usa uma spritesheet horizontal de cinco frames. A escolha do frame fica em `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`, e o estado visual do personagem é avançado por `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`; o domínio informa apenas se o personagem está parado, andando e qual é a direção lógica atual.
 
 ### Destino e âncora dos pés
 

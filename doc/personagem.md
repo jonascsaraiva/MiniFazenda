@@ -30,21 +30,35 @@ Essa camada controla:
 - Posição dos pés na grade.
 - Caminho em segmentos.
 
+Essa camada não controla animação, spritesheet, índice de frame, tempo visual, piscadas, textura ou qualquer escolha de desenho.
+
 O avanço de tempo do jogo chama essa lógica por meio de:
 
 `src/Aplicacao/Servicos/ServicoDeTempo.hpp`
 
-### 1.2. Renderização
+Esse serviço avança movimento e crescimento. Ele não avança animação visual do personagem.
+
+### 1.2. Animação visual de apresentação
+
+A animação visual do personagem fica em:
+
+`src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`
+
+`src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`
+
+Essa camada lê apenas `estadoAtual()` e `direcaoAtual()` do domínio. A partir disso, escolhe a animação visual, mantém índice de frame, tempo acumulado, sequência de idle e sorteio de piscadas.
+
+### 1.3. Renderização
 
 A renderização do personagem fica em:
 
 `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
 
-Essa camada deve apenas ler o estado atual do personagem e desenhar o sprite correspondente.
+Essa camada deve ler o estado lógico do personagem, o estado visual produzido pela apresentação e desenhar o sprite correspondente.
 
 O renderizador não deve concentrar regras de recorte, escala, offsets manuais ou valores fixos de posicionamento visual.
 
-### 1.3. Configuração visual do sprite
+### 1.4. Configuração visual do sprite
 
 Os ajustes visuais manuais do sprite ficam em:
 
@@ -165,7 +179,7 @@ No padrão atual do personagem, o frame de origem possui `250 x 250 px`, mas ess
 
 ### 4.5. Cálculo do recorte do frame
 
-As animações do personagem usam spritesheets horizontais. O renderizador não calcula tempo nem escolhe transições; ele recebe do personagem o índice do frame atual e calcula apenas a origem do recorte:
+As animações do personagem usam spritesheets horizontais. A apresentação calcula o índice do frame atual e o renderizador usa esse índice junto da configuração visual para calcular a origem do recorte:
 
 ```text
 src.x = frameOrigemX + indiceFrame * (frameLargura + frameEspacamentoX)
@@ -174,7 +188,7 @@ src.w = frameLargura
 src.h = frameAltura
 ```
 
-No idle, o índice do frame vem de `src/Dominio/Animacao/AnimacaoIdle.hpp`, que controla intervalos aleatórios, sorteio de expressão e sequência da piscada.
+No idle, o índice do frame vem de `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`, que controla intervalos aleatórios, sorteio de expressão e sequência da piscada.
 
 ---
 
@@ -200,6 +214,9 @@ Para adicionar sprites novas, altere a configuração da animação corresponden
 - Espaçamento entre frames.
 - Duração por frame.
 - Offset visual próprio.
+- Modo de reprodução (`FrameFixo`, `LoopContinuo` ou `IdleComPiscadas`).
+
+A escolha de qual animação visual corresponde a `Parado` ou `Andando + Direção` fica na apresentação. Novas spritesheets de caminhada não exigem alteração em `src/Dominio/Personagem/Personagem.hpp`.
 
 ---
 

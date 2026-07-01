@@ -107,6 +107,19 @@ if(RESULTADO_SWITCHES_DOMINIO EQUAL 0)
 elseif(NOT RESULTADO_SWITCHES_DOMINIO EQUAL 1)
     message(FATAL_ERROR "Falha ao executar rg para switches de dominio:\n${ERRO_SWITCHES_DOMINIO}")
 endif()
+
+execute_process(
+    COMMAND "${RG_EXECUTABLE}" --line-number --with-filename [=[frame|sprite|animacao|spritesheet|pisc]=] "${PROJECT_SOURCE_DIR}/src/Dominio/Personagem" "${PROJECT_SOURCE_DIR}/src/Dominio/Animacao"
+    RESULT_VARIABLE RESULTADO_VISUAL_PERSONAGEM_DOMINIO
+    OUTPUT_VARIABLE SAIDA_VISUAL_PERSONAGEM_DOMINIO
+    ERROR_VARIABLE ERRO_VISUAL_PERSONAGEM_DOMINIO
+)
+
+if(RESULTADO_VISUAL_PERSONAGEM_DOMINIO EQUAL 0)
+    message(FATAL_ERROR "Arquitetura invalida: dominio do personagem nao pode conter logica visual de animacao:\n${SAIDA_VISUAL_PERSONAGEM_DOMINIO}")
+elseif(NOT RESULTADO_VISUAL_PERSONAGEM_DOMINIO EQUAL 1)
+    message(FATAL_ERROR "Falha ao executar rg para logica visual no dominio do personagem:\n${ERRO_VISUAL_PERSONAGEM_DOMINIO}")
+endif()
 ]==]
     )
 
