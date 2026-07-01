@@ -81,14 +81,14 @@ Fluxo atual:
 
 - O background vem de `arquivoBackgroundPrincipal`; se nao existir, tenta `background/fundo_gramado.png`.
 - Texturas de terra sao carregadas por estado.
-- Sprites de plantas sao carregados por especie e por convencao de nome.
+- Sprites de plantas sao carregados pelo catalogo visual de `Infraestrutura/Assets`, indexado por `identificadorDaSemente`.
 - Ancora de planta e calculada por varredura de pixels opacos.
 - Texturas do personagem sao carregadas por configuracao visual centralizada.
 - Icones de toolbar, sementes, fonte e icone de configuracoes tem fallback parcial.
 
 Acoplamento observado:
 
-- `Dominio::Plantas::Planta` expoe `pastaDeSprites()`, uma informacao de asset visual.
+- `Dominio::Plantas::Planta` fornece `identificadorDaSemente`; a resolucao de pasta e arquivos visuais fica no catalogo de assets.
 - `Infraestrutura::Assets::RecursosDaFazenda` depende de `Dominio::Plantas::FabricaDePlantas` para descobrir especies carregaveis.
 - `Apresentacao::Renderizacao` recebe estruturas concretas de `Infraestrutura::Assets`, entao a apresentacao nao esta totalmente isolada de detalhes de infraestrutura.
 
@@ -376,14 +376,13 @@ Estado:
 
 Violacoes ou desvios:
 
-- `Dominio/Plantas/Planta.hpp` declara `pastaDeSprites()`, vazando estrutura de asset para o dominio.
-- `Dominio/Plantas/Especies/PlantaMirtilo.hpp` documenta nomes de sprites dentro da especie.
+- A dependencia visual do dominio de plantas foi removida; especies expoem apenas dados de gameplay e `identificadorDaSemente`.
 - `Dominio/Personagem/Personagem.hpp` expoe `AnimacaoVisualDoPersonagem` e indice de frame visual.
 - `Dominio/Animacao/AnimacaoIdle.hpp` conhece indices de frames da spritesheet.
 
 Conclusao:
 
-- O dominio esta puro em termos de SDL e infraestrutura, mas nao esta completamente puro em termos visuais.
+- O dominio esta puro em termos de SDL e infraestrutura. Ainda ha semantica visual no personagem, mas nao no dominio de plantas.
 
 ### 3.3. Aplicacao
 
@@ -448,34 +447,35 @@ Nenhum achado critico confirmado.
 
 ### Alto
 
-#### A1. Dominio contem dependencia visual por nomes de pasta/sprites
+#### A1. Dependencia visual do dominio de plantas corrigida
 
 Arquivo/fluxo:
 
 - `src/Dominio/Plantas/Planta.hpp`
 - `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`
 - `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
+- `src/Infraestrutura/Assets/CatalogoVisualDePlantas.hpp`
 
-Problema:
+Estado atual:
 
-- A interface `Planta` exige `pastaDeSprites()`.
-- `PlantaMirtilo` retorna `"mirtilo"` e comenta nomes esperados de arquivos de sprite.
-- A infraestrutura usa esse valor para montar caminhos de imagem.
+- A interface `Planta` expoe somente dados de gameplay e `identificadorDaSemente`.
+- `PlantaMirtilo` nao guarda pasta, sprite, caminho de asset ou convencao visual.
+- A infraestrutura usa `CatalogoVisualDePlantas.hpp` para resolver pasta, arquivos de sprite e icone da semente a partir do identificador.
 
 Por que importa:
 
-- O dominio deixa de modelar apenas regra de gameplay e passa a conhecer convencao visual de assets.
-- A documentacao diz que o dominio deve permanecer sem dependencia visual.
+- O dominio modela apenas regra de gameplay.
+- A documentacao diz que o dominio deve permanecer sem dependencia visual, e o contrato de plantas agora cumpre esse ponto.
 
 Impacto provavel:
 
-- Adicionar nova planta exige tocar no dominio por causa de asset/pasta, nao apenas por regra.
-- Mudancas de pipeline visual podem forcar alteracoes em classes de gameplay.
+- Adicionar nova planta ainda exige criar a especie no dominio por regra de jogo e cadastrar sua configuracao visual na infraestrutura.
+- Mudancas de pipeline visual ficam concentradas no catalogo visual e no carregamento de assets.
 
 Recomendacao:
 
-- Mover metadados visuais de planta para um catalogo de apresentacao/infraestrutura, indexado por `identificadorDaSemente`.
 - Manter no dominio apenas identificador, nome de gameplay, custo, tempos e recompensa.
+- Manter metadados visuais de planta no catalogo de infraestrutura, indexado por `identificadorDaSemente`.
 
 #### A2. Dominio do personagem conhece animacao visual e indices de frames
 
@@ -890,7 +890,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 ## 5. Divergencias entre documentacao e codigo
 
-1. `doc/arquitetura.md` afirma que o dominio deve ficar sem dependencia visual. O dominio nao inclui SDL, mas `Planta::pastaDeSprites()`, comentarios de sprites em `PlantaMirtilo`, `AnimacaoVisualDoPersonagem` e indices de frame em `AnimacaoIdle` sao dependencias visuais confirmadas.
+1. `doc/arquitetura.md` afirma que o dominio deve ficar sem dependencia visual. O dominio de plantas agora cumpre esse contrato; permanecem dependencias visuais no personagem (`AnimacaoVisualDoPersonagem` e indices de frame em `AnimacaoIdle`).
 
 2. `doc/arquitetura.md` lista uma futura extracao de `CenaFazenda`. O codigo atual ainda nao possui `CenaFazenda`; `Principal.cpp` concentra a cena.
 
@@ -898,7 +898,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 4. `assets/config.ini` usa `deslocamentoGradeHorizontal/Vertical`, mas o leitor sobrescreve esses campos com centralizacao automatica antes do uso final.
 
-5. `PlantaMirtilo.hpp` retorna recompensa `{35,3}` e comenta "40 moedas e 10 de experiencia".
+5. A recompensa de `PlantaMirtilo.hpp` esta documentada no proprio retorno como `{35,3}`.
 
 6. `doc/personagem.md` descreve `duracaoPorFrame` como parte da configuracao visual, mas a animacao idle real sorteia tempos dentro de `Dominio/Animacao/AnimacaoIdle.hpp`.
 
@@ -918,7 +918,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 ## 7. Pontos frageis
 
 - `Principal.cpp` e o centro de quase todos os fluxos de runtime.
-- Dominio ainda tem semantica visual em plantas e personagem.
+- Dominio ainda tem semantica visual no personagem.
 - Estado de UI/audio esta junto do estado de gameplay.
 - Renderizadores conhecem estruturas concretas de infraestrutura de assets.
 - Testes dependem de `assert`.
@@ -929,7 +929,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 ## 8. Riscos futuros
 
-1. Ao adicionar novas plantas, a mistura de dominio com pasta de sprites tende a aumentar.
+1. Ao adicionar novas plantas, o risco principal e esquecer o cadastro correspondente no catalogo visual de infraestrutura.
 2. Ao adicionar novas animacoes, o dominio do personagem pode precisar conhecer mais frames e estados visuais.
 3. Ao adicionar novas telas, `Principal.cpp` pode se tornar o gargalo de manutencao.
 4. Ao adicionar salvamento, `EstadoDoJogo` pode persistir indevidamente estado de UI/audio.
@@ -942,7 +942,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 ### Prioridade 1
 
-1. Remover dependencia visual do dominio de plantas: substituir `pastaDeSprites()` por catalogo visual fora do dominio.
+1. Manter o contrato novo de plantas: dominio fornece `identificadorDaSemente`, catalogo visual externo resolve assets.
 2. Separar estado de UI/audio de `EstadoDoJogo`.
 3. Extrair o roteamento de input ou iniciar a `CenaFazenda`, mantendo comportamento atual.
 4. Trocar testes baseados em `assert` por verificacoes sempre ativas.
@@ -964,8 +964,8 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 ## 10. Proximos passos sugeridos
 
-1. Task pequena: corrigir divergencias documentais e de configuracao sem mudar gameplay (`PlantaMirtilo` comentario, background configurado, README/caminho, script auxiliar).
-2. Task de arquitetura: mover catalogo visual de plantas para infraestrutura/apresentacao e remover `pastaDeSprites()` do dominio.
+1. Task pequena: corrigir divergencias documentais e de configuracao sem mudar gameplay (background configurado, README/caminho, script auxiliar).
+2. Task de arquitetura de plantas concluida: catalogo visual em infraestrutura, dominio fornece apenas `identificadorDaSemente`.
 3. Task de estado: separar `EstadoDaInterface` ou `EstadoDaCenaFazenda` de `EstadoDoJogo`.
 4. Task de input: extrair `CenaFazenda` ou controlador de input, cobrindo toolbar, loja, painel e mundo.
 5. Task de testes: substituir `assert` por checagens sempre ativas e adicionar cobertura do fluxo de input sem SDL real quando possivel.
@@ -985,9 +985,9 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 ## 12. Tasks:
 
-1. **Remover dependência visual do domínio de plantas** (EXECUTANDO AGORA)
-   **corrigir:** Tirar `pastaDeSprites()` do domínio. Planta não deve saber nome de pasta, sprite ou convenção visual. Criar um catálogo visual fora do domínio, indexado por `identificadorDaSemente`.
-   **onde:** `src/Dominio/Plantas/Planta.hpp`, `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
+1. **Remover dependência visual do domínio de plantas** (CONCLUIDO)
+   **corrigido:** Planta nao sabe nome de pasta, sprite ou convencao visual. O dominio fornece `identificadorDaSemente`; o catalogo visual externo resolve pasta, sprites e icone.
+   **onde:** `src/Dominio/Plantas/Planta.hpp`, `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`, `src/Infraestrutura/Assets/CatalogoVisualDePlantas.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
    **prioridade:** Alta
 
 2. **Remover lógica visual da animação do personagem no domínio**

@@ -2,11 +2,13 @@
 
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
+#include "Infraestrutura/Assets/CatalogoVisualDePlantas.hpp"
 #include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
 
 #include <SDL.h>
 
 #include <array>
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -128,29 +130,22 @@ inline std::filesystem::path candidatosParaIconeDaFerramenta(
 
 inline std::filesystem::path caminhoDoIconeDaSemente(
     const std::filesystem::path& diretorioAssets,
-    const std::string& pastaEspecie
+    const ConfigVisualDaPlanta& configuracao
 ) {
-    return diretorioAssets / "sprites" / "icons" / "seeds" / ("semente_" + pastaEspecie + ".png");
+    return diretorioAssets / "sprites" / "icons" / "seeds" / configuracao.arquivoDoIconeDaSemente;
 }
 
 inline std::filesystem::path caminhoDoSpriteDaPlanta(
     const std::filesystem::path& diretorioAssets,
-    const std::string& pastaEspecie,
-    const std::string& nomeArquivo
+    const ConfigVisualDaPlanta& configuracao,
+    std::size_t indiceDaFase
 ) {
-    return diretorioAssets / "sprites" / "plantas" / pastaEspecie / nomeArquivo;
-}
+    if (indiceDaFase >= configuracao.arquivosPorFase.size()) {
+        return {};
+    }
 
-inline std::array<std::string, 5> nomesDeArquivoPorFaseVisual(const std::string& pastaEspecie) {
-    // Contrato do pipeline: SementePlantada, PlantaCrescendo, PlantaJovem,
-    // PlantaMadura e PlantaMorta, nessa ordem.
-    return {
-        pastaEspecie + "_fase_1.png",
-        pastaEspecie + "_fase_2.png",
-        pastaEspecie + "_fase_3.png",
-        pastaEspecie + "_fase_4.png",
-        pastaEspecie + "_morto.png"
-    };
+    return diretorioAssets / "sprites" / "plantas" /
+        configuracao.pastaDaEspecie / configuracao.arquivosPorFase[indiceDaFase];
 }
 
 } // namespace MiniFazenda::Infraestrutura::Assets

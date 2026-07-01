@@ -402,12 +402,19 @@ Para adicionar uma nova ferramenta:
 
 `Planta` define:
 
+- identificador da semente;
+- nome;
+- custo;
 - tempo para crescer;
 - tempo para maturar;
 - tempo para morrer;
 - recompensa.
 
-`Canteiro` contém uma planta polimórfica e consulta essa planta para saber a fase visual em cada segundo.
+`Planta` nao conhece pasta, sprite, caminho de asset ou convencao visual.
+
+`Canteiro` contém uma planta polimórfica e consulta essa planta para saber a fase visual em cada segundo. A fase continua sendo derivada das regras de tempo da planta.
+
+A infraestrutura resolve os assets por meio de `Infraestrutura/Assets/CatalogoVisualDePlantas.hpp`, indexado por `identificadorDaSemente`.
 
 ### Como adicionar uma planta
 
@@ -419,7 +426,7 @@ Para adicionar uma nova planta:
 4. Definir tempos de crescimento, maturação e morte.
 5. Definir a recompensa.
 6. Adicionar a criação em `FabricaDePlantas`.
-7. Mapear sprites em `Infraestrutura/Assets` ou no catálogo visual correspondente.
+7. Mapear a configuracao visual no catalogo de `Infraestrutura/Assets`, usando o mesmo `identificadorDaSemente`.
 
 ---
 

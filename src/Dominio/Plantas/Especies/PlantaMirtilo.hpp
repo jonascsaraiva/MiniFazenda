@@ -30,13 +30,6 @@ public:
         return "Mirtilo";
     }
 
-    // Sprites esperados em assets/sprites/plantas/mirtilo:
-    // mirtilo_fase_1.png = semente plantada; mirtilo_fase_2.png = crescendo;
-    // mirtilo_fase_3.png = jovem; mirtilo_fase_4.png = madura; mirtilo_morto.png = morta.
-    std::string pastaDeSprites() const override {
-        return "mirtilo";
-    }
-
     int custoEmMoedas() const override {
         return CUSTO_EM_MOEDAS;
     }

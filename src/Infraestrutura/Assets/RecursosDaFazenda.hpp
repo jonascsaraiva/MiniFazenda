@@ -6,6 +6,7 @@
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Dominio/Plantas/Planta.hpp"
+#include "Infraestrutura/Assets/CatalogoVisualDePlantas.hpp"
 #include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
@@ -24,8 +25,6 @@
 #include <vector>
 
 namespace MiniFazenda::Infraestrutura::Assets {
-
-constexpr std::size_t QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA = 5;
 
 struct SpriteDaPlanta {
     SDL_Texture* textura = nullptr;
@@ -360,14 +359,20 @@ inline TexturasDasPlantasPorSemente carregarSpritesDeTodasAsEspecies(
             continue;
         }
 
-        const std::string pastaEspecie = especie->pastaDeSprites();
-        const std::array<std::string, QUANTIDADE_DE_FASES_VISUAIS_DA_PLANTA> nomesArquivos =
-            nomesDeArquivoPorFaseVisual(pastaEspecie);
+        const int identificadorDaSemente = especie->identificadorDaSemente();
+        const ConfigVisualDaPlanta* configuracaoVisual =
+            configuracaoVisualDaPlantaPorSemente(identificadorDaSemente);
+
+        if (configuracaoVisual == nullptr) {
+            std::cerr << "Catalogo visual de planta ausente para " << especie->nome()
+                      << " (semente " << identificadorDaSemente << "). Sprites da planta nao carregados.\n";
+            continue;
+        }
 
         TexturasDaPlantaPorFase texturasDaPlanta{};
-        for (std::size_t indice = 0; indice < nomesArquivos.size(); ++indice) {
+        for (std::size_t indice = 0; indice < configuracaoVisual->arquivosPorFase.size(); ++indice) {
             const std::filesystem::path caminho =
-                caminhoDoSpriteDaPlanta(diretorioAssets, pastaEspecie, nomesArquivos[indice]);
+                caminhoDoSpriteDaPlanta(diretorioAssets, *configuracaoVisual, indice);
 
             if (!std::filesystem::exists(caminho)) {
                 std::cerr << "Sprite ausente para " << especie->nome() << " na fase "
@@ -380,7 +385,7 @@ inline TexturasDasPlantasPorSemente carregarSpritesDeTodasAsEspecies(
             texturasDaPlanta[indice] = sprite;
         }
 
-        texturasPorSemente[especie->identificadorDaSemente()] = texturasDaPlanta;
+        texturasPorSemente[identificadorDaSemente] = texturasDaPlanta;
     }
 
     return texturasPorSemente;
@@ -398,7 +403,17 @@ inline TexturasDasSementesPorSemente carregarIconesDasSementes(
             continue;
         }
 
-        const std::filesystem::path caminho = caminhoDoIconeDaSemente(diretorioAssets, especie->pastaDeSprites());
+        const int identificadorDaSemente = especie->identificadorDaSemente();
+        const ConfigVisualDaPlanta* configuracaoVisual =
+            configuracaoVisualDaPlantaPorSemente(identificadorDaSemente);
+
+        if (configuracaoVisual == nullptr) {
+            std::cerr << "Catalogo visual de planta ausente para " << especie->nome()
+                      << " (semente " << identificadorDaSemente << "). Icone de semente nao carregado.\n";
+            continue;
+        }
+
+        const std::filesystem::path caminho = caminhoDoIconeDaSemente(diretorioAssets, *configuracaoVisual);
         if (!std::filesystem::exists(caminho)) {
             std::cerr << "Icone de semente ausente. Fallback vetorial ativo para "
                       << especie->nome() << ": " << caminho.string() << '\n';
@@ -412,7 +427,7 @@ inline TexturasDasSementesPorSemente carregarIconesDasSementes(
             continue;
         }
 
-        texturasPorSemente[especie->identificadorDaSemente()] = textura;
+        texturasPorSemente[identificadorDaSemente] = textura;
     }
 
     return texturasPorSemente;
