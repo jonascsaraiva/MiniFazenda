@@ -12,6 +12,41 @@
 
 namespace MiniFazenda::Apresentacao::Renderizacao::UI::HudRenderer {
 
+inline SDL_Rect calcularAreaDoBotaoConfiguracoes() {
+    constexpr int margem = 12;
+    constexpr int tamanho = 36;
+    return SDL_Rect{
+        Compartilhado::Constantes::LARGURA_DA_JANELA - margem - tamanho,
+        margem,
+        tamanho,
+        tamanho
+    };
+}
+
+inline SDL_Rect calcularAreaDoPainelConfiguracoes() {
+    constexpr int larguraDoPainel = 480;
+    constexpr int alturaDoPainel = 320;
+    return SDL_Rect{
+        (Compartilhado::Constantes::LARGURA_DA_JANELA - larguraDoPainel) / 2,
+        (Compartilhado::Constantes::ALTURA_DA_JANELA - alturaDoPainel) / 2,
+        larguraDoPainel,
+        alturaDoPainel
+    };
+}
+
+inline SDL_Rect calcularAreaDoBotaoSomConfiguracoes() {
+    constexpr int larguraDoBotao = 160;
+    constexpr int alturaDoBotao = 40;
+    const SDL_Rect painel = calcularAreaDoPainelConfiguracoes();
+
+    return SDL_Rect{
+        painel.x + (painel.w - larguraDoBotao) / 2,
+        painel.y + 150,
+        larguraDoBotao,
+        alturaDoBotao
+    };
+}
+
 inline void desenharStatusDoJogador(
     SDL_Renderer* renderizador,
     TTF_Font* fonte,
@@ -53,14 +88,7 @@ inline void desenharStatusDoJogador(
 }
 
 inline void desenharBotaoConfiguracoes(SDL_Renderer* renderizador, SDL_Texture* textura, bool destacado) {
-    constexpr int margem = 12;
-    constexpr int tamanho = 36;
-    SDL_Rect area{
-        Compartilhado::Constantes::LARGURA_DA_JANELA - margem - tamanho,
-        margem,
-        tamanho,
-        tamanho
-    };
+    SDL_Rect area = calcularAreaDoBotaoConfiguracoes();
 
     if (textura != nullptr) {
         SDL_RenderCopy(renderizador, textura, nullptr, &area);
@@ -92,23 +120,8 @@ inline SDL_Rect desenharPainelConfiguracoes(
     TTF_Font* fonte,
     const MiniFazenda::Apresentacao::Interface::EstadoDaCenaFazenda& estadoDaCena
 ) {
-    constexpr int larguraDoPainel = 480;
-    constexpr int alturaDoPainel = 320;
-    constexpr int larguraDoBotao = 160;
-    constexpr int alturaDoBotao = 40;
-
-    SDL_Rect painel{
-        (Compartilhado::Constantes::LARGURA_DA_JANELA - larguraDoPainel) / 2,
-        (Compartilhado::Constantes::ALTURA_DA_JANELA - alturaDoPainel) / 2,
-        larguraDoPainel,
-        alturaDoPainel
-    };
-    SDL_Rect botaoSom{
-        painel.x + (painel.w - larguraDoBotao) / 2,
-        painel.y + 150,
-        larguraDoBotao,
-        alturaDoBotao
-    };
+    SDL_Rect painel = calcularAreaDoPainelConfiguracoes();
+    SDL_Rect botaoSom = calcularAreaDoBotaoSomConfiguracoes();
 
     Primitivas::preencherRetangulo(renderizador, painel, SDL_Color{50, 50, 50, 220});
     Primitivas::definirCor(renderizador, SDL_Color{180, 180, 180, 255});

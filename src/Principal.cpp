@@ -1,19 +1,6 @@
-#include "Aplicacao/Servicos/InicializadorDaFazenda.hpp"
-#include "Aplicacao/Servicos/ServicoDeFerramentas.hpp"
-#include "Aplicacao/Servicos/ServicoDeTempo.hpp"
-#include "Apresentacao/Animacao/AnimadorDoPersonagem.hpp"
-#include "Apresentacao/Camera/CameraDoJogo.hpp"
+#include "Apresentacao/Cenas/CenaFazenda.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
-#include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
-#include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
-#include "Apresentacao/Renderizacao/Cursores/CursorCustomizado.hpp"
-#include "Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp"
-#include "Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp"
-#include "Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp"
-#include "Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp"
-#include "Apresentacao/Renderizacao/UI/HudRenderer.hpp"
 #include "Compartilhado/Constantes.hpp"
-#include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
@@ -22,70 +9,45 @@
 #include "Infraestrutura/SDL/ContextoSDL.hpp"
 
 #include <SDL.h>
-#include <SDL_mixer.h>
+
 #include <iostream>
+#include <utility>
 
 namespace {
 
-namespace AppServicos = MiniFazenda::Aplicacao::Servicos; namespace Assets = MiniFazenda::Infraestrutura::Assets;
-namespace AnimacaoPersonagem = MiniFazenda::Apresentacao::Animacao;
-namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
-namespace Camera = MiniFazenda::Apresentacao::Camera; namespace Configuracao = MiniFazenda::Infraestrutura::Configuracao;
+namespace Assets = MiniFazenda::Infraestrutura::Assets;
+namespace Cenas = MiniFazenda::Apresentacao::Cenas;
+namespace Configuracao = MiniFazenda::Infraestrutura::Configuracao;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
-namespace Cursores = MiniFazenda::Apresentacao::Renderizacao::Cursores; namespace Geometria = MiniFazenda::Compartilhado::Geometria;
-namespace HudRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::HudRenderer;
-namespace Interface = MiniFazenda::Apresentacao::Interface;
-namespace Mundo = MiniFazenda::Apresentacao::Renderizacao::Mundo; namespace Plantas = MiniFazenda::Dominio::Plantas;
-namespace SDLInfra = MiniFazenda::Infraestrutura::SDL; namespace UI = MiniFazenda::Apresentacao::Renderizacao::UI;
-
-SDL_Rect calcularAreaDoBotaoConfiguracoes() {
-    constexpr int margem = 12;
-    constexpr int tamanho = 36;
-    return SDL_Rect{Constantes::LARGURA_DA_JANELA - margem - tamanho, margem, tamanho, tamanho};
-}
-
-SDL_Rect calcularAreaDoPainelConfiguracoes() {
-    constexpr int largura = 480;
-    constexpr int altura = 320;
-    return SDL_Rect{
-        (Constantes::LARGURA_DA_JANELA - largura) / 2,
-        (Constantes::ALTURA_DA_JANELA - altura) / 2,
-        largura,
-        altura
-    };
-}
-
-bool pontoDentroDoRetangulo(int x, int y, const SDL_Rect& retangulo) {
-    const SDL_Point ponto{x, y};
-    return SDL_PointInRect(&ponto, &retangulo) == SDL_TRUE;
-}
-
-bool pontoDentroDaAreaDeInteracao(int x, int y, const MiniFazenda::Apresentacao::Interface::AreaDeInteracao& area) {
-    return BarraFerramentas::verificarCliqueNoBotao(x, y, area);
-}
-
-bool posicaoEstaDentroDaAreaJogavelPrincipal(
-    Geometria::PosicaoNaGrade posicao,
-    int tamanhoAtualDoGrid
-) {
-    return MiniFazenda::Dominio::Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeGlobal(posicao) &&
-           MiniFazenda::Dominio::Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeAtual(posicao, tamanhoAtualDoGrid);
-}
+namespace Plantas = MiniFazenda::Dominio::Plantas;
+namespace SDLInfra = MiniFazenda::Infraestrutura::SDL;
 
 } // namespace
 
 int main(int, char**) {
     SDLInfra::InicializacaoSDL sdl;
-    if (!sdl.inicializar()) { return 1; }
+    if (!sdl.inicializar()) {
+        return 1;
+    }
 
     SDLInfra::JanelaSDL janela(SDL_CreateWindow(
-        Constantes::TITULO_DA_JANELA, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        Constantes::LARGURA_DA_JANELA, Constantes::ALTURA_DA_JANELA, SDL_WINDOW_SHOWN
+        Constantes::TITULO_DA_JANELA,
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        Constantes::LARGURA_DA_JANELA,
+        Constantes::ALTURA_DA_JANELA,
+        SDL_WINDOW_SHOWN
     ));
-    if (janela.ponteiro == nullptr) { std::cerr << "Falha ao criar janela: " << SDL_GetError() << '\n'; return 1; }
+    if (janela.ponteiro == nullptr) {
+        std::cerr << "Falha ao criar janela: " << SDL_GetError() << '\n';
+        return 1;
+    }
 
     SDLInfra::RenderizadorSDL renderizador(SDLInfra::criarRenderizador(janela.ponteiro));
-    if (renderizador.ponteiro == nullptr) { std::cerr << "Falha ao criar renderizador: " << SDL_GetError() << '\n'; return 1; }
+    if (renderizador.ponteiro == nullptr) {
+        std::cerr << "Falha ao criar renderizador: " << SDL_GetError() << '\n';
+        return 1;
+    }
 
     SDL_SetRenderDrawBlendMode(renderizador.ponteiro, SDL_BLENDMODE_BLEND);
     SDLInfra::CursorOculto cursorOculto;
@@ -94,180 +56,53 @@ int main(int, char**) {
     MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
     Configuracao::carregarConfiguracoesDoLayout(diretorioAssets / "config.ini", configuracoes);
 
-    auto jogo = AppServicos::criarEstadoInicialDoJogo();
-    Interface::EstadoDaCenaFazenda estadoDaCena;
-    AnimacaoPersonagem::EstadoVisualDoPersonagem estadoVisualDoPersonagem;
     Assets::GerenciadorDeAtivosSDL ativos(renderizador.ponteiro);
     const Plantas::FabricaDePlantas fabricaDePlantas;
     const auto especiesDaLoja = fabricaDePlantas.todasAsEspecies();
     Assets::RecursosDaFazenda recursos = Assets::carregarRecursosDaFazenda(
-        ativos, diretorioAssets, configuracoes, fabricaDePlantas
+        ativos,
+        diretorioAssets,
+        configuracoes,
+        fabricaDePlantas
     );
     Assets::RecursosDeHud hud = Assets::carregarRecursosDeHud(ativos, diretorioAssets);
-    if (sdl.audioInicializado) { ativos.tocarMusica(Assets::caminhoDaMusicaAmbiente(diretorioAssets)); }
+    if (sdl.audioInicializado) {
+        ativos.tocarMusica(Assets::caminhoDaMusicaAmbiente(diretorioAssets));
+    }
 
-    Camera::EstadoDaCamera camera;
-    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
-    const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
-    const BarraFerramentas::PainelDaLoja painelDaLoja = BarraFerramentas::criarPainelDaLoja(botoes, especiesDaLoja);
+    Cenas::CenaFazenda cena(
+        renderizador.ponteiro,
+        ativos,
+        diretorioAssets,
+        std::move(configuracoes),
+        std::move(recursos),
+        std::move(hud),
+        especiesDaLoja,
+        sdl.audioInicializado
+    );
 
-    bool executando = true;
-    int mouseX = Constantes::LARGURA_DA_JANELA / 2;
-    int mouseY = Constantes::ALTURA_DA_JANELA / 2;
-    SDL_Rect retBotaoSom{0, 0, 0, 0};
     Uint32 ticksAnteriores = SDL_GetTicks();
-
-    while (executando) {
+    while (cena.deveContinuar()) {
         const Uint32 inicioDoQuadro = SDL_GetTicks();
         const float deltaTime = (inicioDoQuadro - ticksAnteriores) / 1000.0f;
         ticksAnteriores = inicioDoQuadro;
 
         SDL_Event evento;
         while (SDL_PollEvent(&evento) != 0) {
-            if (evento.type == SDL_QUIT) { executando = false; }
-            if (evento.type == SDL_MOUSEMOTION) {
-                mouseX = evento.motion.x;
-                mouseY = evento.motion.y;
-                if (camera.panAtivo) {
-                    Camera::moverPanDaCamera(camera, configuracoes, jogo.tamanhoAtualDoGrid(), evento.motion.xrel, evento.motion.yrel, evento.motion.timestamp);
-                }
-            }
-            if (evento.type == SDL_MOUSEBUTTONUP) { Camera::finalizarPanDaCamera(camera, evento.button.button); }
-            if (evento.type == SDL_MOUSEWHEEL) {
-                int mouseXNoScroll = 0;
-                int mouseYNoScroll = 0;
-                SDL_GetMouseState(&mouseXNoScroll, &mouseYNoScroll);
-                Camera::aplicarZoomNoPonto(camera, configuracoes, jogo.tamanhoAtualDoGrid(), mouseXNoScroll, mouseYNoScroll, evento.wheel.y);
-            }
-            if (evento.type == SDL_KEYDOWN) {
-                if (evento.key.keysym.sym == SDLK_ESCAPE) { executando = false; }
-                if (evento.key.keysym.sym == SDLK_F5) {
-                    Configuracao::carregarConfiguracoesDoLayout(diretorioAssets / "config.ini", configuracoes);
-                    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
-                    Camera::limitarPanAosLimitesDoGrid(camera, configuracoes, jogo.tamanhoAtualDoGrid());
-                    recursos.texturaFundo = Assets::carregarTexturaDeFundoPrincipal(ativos, diretorioAssets, configuracoes);
-                }
-                if (evento.key.keysym.sym == SDLK_HOME) {
-                    Camera::centralizarCamera(camera);
-                    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
-                }
-            }
-            if (evento.type == SDL_MOUSEBUTTONDOWN) {
-                if (evento.button.button == SDL_BUTTON_MIDDLE || evento.button.button == SDL_BUTTON_RIGHT) {
-                    Camera::iniciarPanDaCamera(camera, evento.button.button, evento.button.timestamp);
-                    continue;
-                } else if (evento.button.button == SDL_BUTTON_LEFT) {
-                    if (camera.panAtivo) { continue; }
-                    mouseX = evento.button.x;
-                    mouseY = evento.button.y;
-
-                    const SDL_Rect areaBotaoConfiguracoes = calcularAreaDoBotaoConfiguracoes();
-                    if (pontoDentroDoRetangulo(mouseX, mouseY, areaBotaoConfiguracoes)) {
-                        estadoDaCena.alternarPainelConfiguracoes();
-                        continue;
-                    }
-
-                    if (estadoDaCena.painelConfiguracoesAberto()) {
-                        if (pontoDentroDoRetangulo(mouseX, mouseY, retBotaoSom)) {
-                            estadoDaCena.alternarAudioMutado();
-                            if (sdl.audioInicializado) {
-                                Mix_Volume(-1, estadoDaCena.audioMutado() ? 0 : MIX_MAX_VOLUME);
-                                Mix_VolumeMusic(estadoDaCena.audioMutado() ? 0 : MIX_MAX_VOLUME);
-                            }
-                            continue;
-                        }
-
-                        const SDL_Rect areaPainelConfiguracoes = calcularAreaDoPainelConfiguracoes();
-                        if (!pontoDentroDoRetangulo(mouseX, mouseY, areaPainelConfiguracoes)) {
-                            estadoDaCena.fecharPainelConfiguracoes();
-                        }
-                        continue;
-                    }
-
-                    if (estadoDaCena.painelDaLojaAberto()) {
-                        const auto sementeClicada =
-                            BarraFerramentas::sementeClicadaNoPainelDaLoja(mouseX, mouseY, painelDaLoja);
-                        if (sementeClicada.has_value()) {
-                            jogo.selecionarSemente(*sementeClicada);
-                            jogo.selecionarFerramenta(MiniFazenda::Dominio::Ferramentas::TipoDeFerramenta::Semente);
-                            estadoDaCena.fecharPainelDaLoja();
-                            if (sdl.audioInicializado) {
-                                ativos.tocarSom(Assets::caminhoDoSomDeCliqueDaInterface(diretorioAssets));
-                            }
-                            continue;
-                        }
-
-                        if (pontoDentroDaAreaDeInteracao(mouseX, mouseY, painelDaLoja.fundo)) {
-                            continue;
-                        }
-                    }
-
-                    auto ferramentaSelecionada = jogo.ferramentaSelecionada();
-                    if (BarraFerramentas::processarCliqueNaInterface(
-                            mouseX,
-                            mouseY,
-                            botoes,
-                            ferramentaSelecionada,
-                            estadoDaCena
-                        )) {
-                        jogo.selecionarFerramenta(ferramentaSelecionada);
-                        if (sdl.audioInicializado) {
-                            ativos.tocarSom(Assets::caminhoDoSomDeCliqueDaInterface(diretorioAssets));
-                        }
-                        continue;
-                    }
-
-                    const auto posicaoNaGrade = Mundo::converterMouseParaGradeGlobal(mouseX, mouseY, configuracoes, camera);
-                    if (posicaoEstaDentroDaAreaJogavelPrincipal(posicaoNaGrade, jogo.tamanhoAtualDoGrid())) {
-                        jogo.personagem().caminharAte(posicaoNaGrade);
-                    }
-
-                    const auto resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNaGrade);
-                    if (sdl.audioInicializado) { Assets::tocarSomDaAcao(ativos, diretorioAssets, resultado); }
-                }
-            }
+            cena.processarEvento(evento);
         }
 
-        AppServicos::avancarTempoDoJogo(jogo, deltaTime);
-        AnimacaoPersonagem::avancarAnimacaoDoPersonagem(estadoVisualDoPersonagem, jogo.personagem(), deltaTime);
-        Camera::atualizarInerciaDaCamera(camera, configuracoes, jogo.tamanhoAtualDoGrid(), deltaTime);
-        const auto posicaoRealcada = camera.panAtivo
-            ? Geometria::PosicaoNaGrade{-1, -1}
-            : Mundo::converterMouseParaGradeGlobal(mouseX, mouseY, configuracoes, camera);
+        cena.atualizar(deltaTime);
 
         SDL_SetRenderDrawColor(renderizador.ponteiro, 0, 0, 0, 255);
         SDL_RenderClear(renderizador.ponteiro);
-        Mundo::desenharFundo(renderizador.ponteiro, recursos.texturaFundo);
-        Mundo::desenharGradeAtiva(renderizador.ponteiro, jogo, recursos.texturasCanteiro, configuracoes, camera, posicaoRealcada);
-        Mundo::desenharPersonagem(
-            renderizador.ponteiro,
-            recursos.texturasDoPersonagem,
-            estadoVisualDoPersonagem,
-            jogo.personagem(),
-            configuracoes,
-            camera
-        );
-        Mundo::desenharLimiteDaGradeJogavel(renderizador.ponteiro, jogo, configuracoes, camera);
-        Mundo::desenharPreviewDeCriacaoDeTerra(renderizador.ponteiro, jogo, configuracoes, camera, posicaoRealcada);
-        UI::desenharInterface(renderizador.ponteiro, jogo.ferramentaSelecionada(), botoes.cursor, botoes.enxada, botoes.removerTerra, botoes.semente, botoes.loja, recursos.texturasDosBotoes);
-        if (estadoDaCena.painelDaLojaAberto()) {
-            UI::desenharPainelDaLoja(
-                renderizador.ponteiro,
-                painelDaLoja,
-                recursos.texturasDasSementes,
-                jogo.identificadorDaSementeSelecionada()
-            );
-        }
-        HudRenderer::desenharStatusDoJogador(renderizador.ponteiro, hud.fonte, jogo.jogador());
-        HudRenderer::desenharBotaoConfiguracoes(renderizador.ponteiro, hud.iconeConfiguracoes, false);
-        if (estadoDaCena.painelConfiguracoesAberto()) {
-            retBotaoSom = HudRenderer::desenharPainelConfiguracoes(renderizador.ponteiro, hud.fonte, estadoDaCena);
-        }
-        Cursores::desenharCursorCustomizado(renderizador.ponteiro, mouseX, mouseY, jogo.ferramentaSelecionada());
+        cena.renderizar();
         SDL_RenderPresent(renderizador.ponteiro);
 
         const Uint32 duracaoDoQuadro = SDL_GetTicks() - inicioDoQuadro;
-        if (duracaoDoQuadro < Constantes::MILISSEGUNDOS_POR_QUADRO) { SDL_Delay(Constantes::MILISSEGUNDOS_POR_QUADRO - duracaoDoQuadro); }
+        if (duracaoDoQuadro < Constantes::MILISSEGUNDOS_POR_QUADRO) {
+            SDL_Delay(Constantes::MILISSEGUNDOS_POR_QUADRO - duracaoDoQuadro);
+        }
     }
 
     return 0;

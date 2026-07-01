@@ -999,7 +999,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
    **onde:** `src/Aplicacao/Estado/EstadoDoJogo.hpp`, `src/Principal.cpp`, `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
    **prioridade:** Alta
 
-4. **Extrair o fluxo principal de cena/input do `Principal.cpp`**
+4. **Extrair o fluxo principal de cena/input do `Principal.cpp`** (CONCLUIDO)
    **corrigir:** Tirar do `Principal.cpp` o roteamento de evento, UI, loja, painel, câmera, áudio e interação com mundo. Criar `CenaFazenda` ou controladores menores mantendo o comportamento atual.
    **onde:** `src/Principal.cpp`, possível novo `src/Apresentacao/Cenas/CenaFazenda.hpp`
    **prioridade:** Média

@@ -171,7 +171,7 @@ Flags de interface, preferencia visual/sonora da cena, paineis abertos e estados
 
 Entry point SDL.
 
-Responsável por criar a janela, carregar recursos, montar o estado inicial e executar o loop principal do jogo.
+Responsável por inicializar SDL, criar a janela e o renderer, carregar recursos principais, criar a `CenaFazenda` e executar o loop de alto nível.
 
 ### `src/Compartilhado/`
 
@@ -295,6 +295,7 @@ Esses serviços coordenam o domínio sem tocar diretamente em SDL.
 
 Arquivos e módulos principais:
 
+- `Cenas/CenaFazenda.hpp`
 - `Animacao/AnimadorDoPersonagem.hpp`
 - `Animacao/AnimacaoIdleDoPersonagem.hpp`
 - `ConfiguracoesDoLayout.hpp`
@@ -310,6 +311,8 @@ Arquivos e módulos principais:
 - `Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
 - `Renderizacao/UI/HudRenderer.hpp`
 - `Renderizacao/Cursores/CursorCustomizado.hpp`
+
+`Cenas/CenaFazenda.hpp` concentra o ciclo da cena principal da fazenda: processa eventos SDL relevantes, atualiza serviços de aplicação, coordena câmera, loja, painel de configurações, estado visual do personagem e chama os renderizadores existentes.
 
 Essa camada concentra câmera, isometria, interface, estado temporario da cena e desenho visual do jogo.
 
@@ -362,6 +365,8 @@ Pode depender de `Aplicacao` para ler `EstadoDoJogo`.
 Também pode depender de `Dominio` para ler estados, grade e ferramenta selecionada.
 
 Tambem e dona de estados temporarios da cena/interface, como `EstadoDaCenaFazenda`, consumidos por HUD e renderizadores.
+
+Cenas de borda SDL podem receber recursos e gerenciadores de infraestrutura compostos pelo `Principal.cpp`, sem mover SDL, assets ou audio para o dominio ou para a aplicacao.
 
 ### `Aplicacao`
 
@@ -573,11 +578,11 @@ Isso confirma que:
 
 Alguns pontos ainda são aceitos temporariamente porque não quebram o contrato principal da arquitetura.
 
-### `Principal.cpp` ainda contém o loop SDL completo
+### `CenaFazenda` ainda concentra a cena principal inteira
 
-`Principal.cpp` está menor e já usa serviços e módulos, mas ainda concentra o loop SDL completo.
+`Principal.cpp` foi reduzido ao bootstrap e ao loop de alto nivel, mas `CenaFazenda` ainda concentra input, loja, painel de configuracoes, camera, estado visual do personagem e chamadas de renderizacao da cena principal.
 
-Uma próxima etapa pode extrair uma `CenaFazenda` dedicada.
+Isso e aceito por enquanto como uma cena de borda. Se esse arquivo crescer, uma proxima etapa pode extrair controladores menores para input de UI, painel de configuracoes ou fluxo da loja.
 
 ### A apresentação ainda usa `switch` para ícones e cores
 

@@ -116,6 +116,12 @@ public:
         }
     }
 
+    void definirAudioMutado(bool audioMutado) {
+        const int volume = audioMutado ? 0 : MIX_MAX_VOLUME;
+        Mix_Volume(-1, volume);
+        Mix_VolumeMusic(volume);
+    }
+
 private:
     void liberarTudo() {
         for (auto& par : texturas) {
