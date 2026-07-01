@@ -58,7 +58,7 @@ public:
     }
 
     RecompensaDaColheita recompensaDaColheita() const override {
-        return RecompensaDaColheita{35,3}; // 40 moedas e 10 de experiência como recompensa da colheita.
+        return RecompensaDaColheita{35,3}; // 35 moedas e 3 de experiência como recompensa da colheita.
     }
 };
 
