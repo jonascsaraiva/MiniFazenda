@@ -18,8 +18,9 @@
 #include "Dominio/Plantas/Especies/PlantaMirtilo.hpp"
 #include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
 
-#include <cassert>
 #include <cstddef>
+#include <cstdlib>
+#include <iostream>
 
 namespace {
 
@@ -39,21 +40,33 @@ namespace Isometria = MiniFazenda::Apresentacao::Isometria;
 namespace Personagem = MiniFazenda::Dominio::Personagem;
 namespace Plantas = MiniFazenda::Dominio::Plantas;
 
+[[noreturn]] void falharTeste(const char* arquivo, int linha, const char* condicao) {
+    std::cerr << arquivo << ':' << linha << ": falha no teste: esperado `" << condicao << "`\n";
+    std::exit(EXIT_FAILURE);
+}
+
+#define VERIFICAR(condicao) \
+    do { \
+        if (!(condicao)) { \
+            falharTeste(__FILE__, __LINE__, #condicao); \
+        } \
+    } while (false)
+
 void validarListasDaGrade(const Grade::GradeGlobalDeCanteiros& grade) {
-    assert(grade.posicoesDeTilesExistentes().size() == grade.quantidadeDeTilesExistentes());
-    assert(grade.posicoesDeCanteirosEmCrescimento().size() == grade.quantidadeDeCanteirosEmCrescimento());
+    VERIFICAR(grade.posicoesDeTilesExistentes().size() == grade.quantidadeDeTilesExistentes());
+    VERIFICAR(grade.posicoesDeCanteirosEmCrescimento().size() == grade.quantidadeDeCanteirosEmCrescimento());
 
     for (const Geometria::PosicaoNaGrade posicao : grade.posicoesDeTilesExistentes()) {
         const Grade::TileDeTerra* tile = grade.obterTile(posicao);
-        assert(tile != nullptr);
-        assert(tile->existeNoMapa());
+        VERIFICAR(tile != nullptr);
+        VERIFICAR(tile->existeNoMapa());
     }
 
     for (const Geometria::PosicaoNaGrade posicao : grade.posicoesDeCanteirosEmCrescimento()) {
         const Grade::TileDeTerra* tile = grade.obterTile(posicao);
-        assert(tile != nullptr);
-        assert(tile->existeNoMapa());
-        assert(tile->canteiro().precisaAvancarCrescimento());
+        VERIFICAR(tile != nullptr);
+        VERIFICAR(tile->existeNoMapa());
+        VERIFICAR(tile->canteiro().precisaAvancarCrescimento());
     }
 }
 
@@ -67,12 +80,12 @@ Geometria::PosicaoNaGrade posicaoLivreProximaDoNucleo() {
 void ararEPlantar(MiniFazenda::Aplicacao::Estado::EstadoDoJogo& jogo, Geometria::PosicaoNaGrade posicao) {
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
-    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
 
     jogo.selecionarSemente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
-    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
 }
 
 void validarFluxoDeCliqueDaLoja() {
@@ -88,40 +101,40 @@ void validarFluxoDeCliqueDaLoja() {
     const bool clicouNaLoja =
         BarraFerramentas::processarCliqueNaInterface(xDaLoja, yDaLoja, botoes, ferramentaSelecionada, estadoDaCena);
 
-    assert(clicouNaLoja);
-    assert(estadoDaCena.painelDaLojaAberto());
-    assert(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Loja);
-    assert(!painel.opcoes.empty());
+    VERIFICAR(clicouNaLoja);
+    VERIFICAR(estadoDaCena.painelDaLojaAberto());
+    VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Loja);
+    VERIFICAR(!painel.opcoes.empty());
 
     const BarraFerramentas::OpcaoDeSementeDaLoja& opcaoMirtilo = painel.opcoes.front();
     const int xDaSemente = opcaoMirtilo.area.posicaoBotaoHorizontal + opcaoMirtilo.area.tamanhoBotaoLargura / 2;
     const int yDaSemente = opcaoMirtilo.area.posicaoBotaoVertical + opcaoMirtilo.area.tamanhoBotaoAltura / 2;
     const auto sementeClicada = BarraFerramentas::sementeClicadaNoPainelDaLoja(xDaSemente, yDaSemente, painel);
 
-    assert(sementeClicada.has_value());
-    assert(*sementeClicada == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+    VERIFICAR(sementeClicada.has_value());
+    VERIFICAR(*sementeClicada == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
 }
 
 void validarEstadoDaCenaFazenda() {
     Interface::EstadoDaCenaFazenda estadoDaCena;
 
-    assert(!estadoDaCena.painelConfiguracoesAberto());
+    VERIFICAR(!estadoDaCena.painelConfiguracoesAberto());
     estadoDaCena.alternarPainelConfiguracoes();
-    assert(estadoDaCena.painelConfiguracoesAberto());
+    VERIFICAR(estadoDaCena.painelConfiguracoesAberto());
     estadoDaCena.fecharPainelConfiguracoes();
-    assert(!estadoDaCena.painelConfiguracoesAberto());
+    VERIFICAR(!estadoDaCena.painelConfiguracoesAberto());
 
-    assert(!estadoDaCena.audioMutado());
+    VERIFICAR(!estadoDaCena.audioMutado());
     estadoDaCena.alternarAudioMutado();
-    assert(estadoDaCena.audioMutado());
+    VERIFICAR(estadoDaCena.audioMutado());
     estadoDaCena.definirAudioMutado(false);
-    assert(!estadoDaCena.audioMutado());
+    VERIFICAR(!estadoDaCena.audioMutado());
 
-    assert(!estadoDaCena.painelDaLojaAberto());
+    VERIFICAR(!estadoDaCena.painelDaLojaAberto());
     estadoDaCena.alternarPainelDaLoja();
-    assert(estadoDaCena.painelDaLojaAberto());
+    VERIFICAR(estadoDaCena.painelDaLojaAberto());
     estadoDaCena.fecharPainelDaLoja();
-    assert(!estadoDaCena.painelDaLojaAberto());
+    VERIFICAR(!estadoDaCena.painelDaLojaAberto());
 }
 
 void validarAnimacaoIdleDoPersonagem() {
@@ -132,99 +145,99 @@ void validarAnimacaoIdleDoPersonagem() {
     Animacao::EstadoVisualDoPersonagem estadoVisualDoPersonagem;
     const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
     const Grade::TileDeTerra* tileDoPersonagem = jogo.grade().obterTile(posicaoInicial);
-    assert(tileDoPersonagem != nullptr);
-    assert(tileDoPersonagem->existeNoMapa());
+    VERIFICAR(tileDoPersonagem != nullptr);
+    VERIFICAR(tileDoPersonagem->existeNoMapa());
 
-    assert(configuracaoIdle.quantidadeFrames == 5);
-    assert(configuracaoIdle.frameOrigemX == 0);
-    assert(configuracaoIdle.frameOrigemY == 0);
-    assert(configuracaoIdle.frameLargura == 250);
-    assert(configuracaoIdle.frameAltura == 250);
-    assert(configuracaoIdle.frameEspacamentoX == 0);
-    assert(configuracaoIdle.destinoLargura == 63);
-    assert(configuracaoIdle.destinoAltura == 96);
-    assert(configuracaoIdle.pontoDosPesX == 32);
-    assert(configuracaoIdle.pontoDosPesY == 96);
+    VERIFICAR(configuracaoIdle.quantidadeFrames == 5);
+    VERIFICAR(configuracaoIdle.frameOrigemX == 0);
+    VERIFICAR(configuracaoIdle.frameOrigemY == 0);
+    VERIFICAR(configuracaoIdle.frameLargura == 250);
+    VERIFICAR(configuracaoIdle.frameAltura == 250);
+    VERIFICAR(configuracaoIdle.frameEspacamentoX == 0);
+    VERIFICAR(configuracaoIdle.destinoLargura == 63);
+    VERIFICAR(configuracaoIdle.destinoAltura == 96);
+    VERIFICAR(configuracaoIdle.pontoDosPesX == 32);
+    VERIFICAR(configuracaoIdle.pontoDosPesY == 96);
 
     for (int frame = 0; frame < configuracaoIdle.quantidadeFrames; ++frame) {
         const auto origem = ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, frame);
-        assert(origem.x == ConfigPersonagem::frameOrigemX + frame * (
+        VERIFICAR(origem.x == ConfigPersonagem::frameOrigemX + frame * (
             ConfigPersonagem::frameLargura + ConfigPersonagem::frameEspacamentoX
         ));
-        assert(origem.y == ConfigPersonagem::frameOrigemY);
-        assert(origem.w == ConfigPersonagem::frameLargura);
-        assert(origem.h == ConfigPersonagem::frameAltura);
+        VERIFICAR(origem.y == ConfigPersonagem::frameOrigemY);
+        VERIFICAR(origem.w == ConfigPersonagem::frameLargura);
+        VERIFICAR(origem.h == ConfigPersonagem::frameAltura);
     }
 
     const auto origemAposUltimoFrame =
         ConfigPersonagem::calcularRetanguloDeOrigem(configuracaoIdle, configuracaoIdle.quantidadeFrames);
-    assert(origemAposUltimoFrame.x == ConfigPersonagem::frameOrigemX);
+    VERIFICAR(origemAposUltimoFrame.x == ConfigPersonagem::frameOrigemX);
 
     const Geometria::PosicaoNaTela centroDoCanteiro{64, 32};
     const auto destino = ConfigPersonagem::calcularRetanguloDeDestino(configuracaoIdle, centroDoCanteiro);
-    assert(destino.x == 32);
-    assert(destino.y == -64);
-    assert(destino.w == 63);
-    assert(destino.h == 96);
-    assert(destino.x + configuracaoIdle.pontoDosPesX == centroDoCanteiro.coordenadaHorizontal);
-    assert(destino.y + configuracaoIdle.pontoDosPesY == centroDoCanteiro.coordenadaVertical);
-    assert(destino.y + destino.h == centroDoCanteiro.coordenadaVertical);
+    VERIFICAR(destino.x == 32);
+    VERIFICAR(destino.y == -64);
+    VERIFICAR(destino.w == 63);
+    VERIFICAR(destino.h == 96);
+    VERIFICAR(destino.x + configuracaoIdle.pontoDosPesX == centroDoCanteiro.coordenadaHorizontal);
+    VERIFICAR(destino.y + configuracaoIdle.pontoDosPesY == centroDoCanteiro.coordenadaVertical);
+    VERIFICAR(destino.y + destino.h == centroDoCanteiro.coordenadaVertical);
 
-    assert(estadoVisualDoPersonagem.indiceFrameAtual == 0);
+    VERIFICAR(estadoVisualDoPersonagem.indiceFrameAtual == 0);
     AppServicos::avancarTempoDoJogo(jogo, 2.49f);
     Animacao::avancarAnimacaoDoPersonagem(estadoVisualDoPersonagem, jogo.personagem(), 2.49f);
-    assert(estadoVisualDoPersonagem.indiceFrameAtual == 0);
-    assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
+    VERIFICAR(estadoVisualDoPersonagem.indiceFrameAtual == 0);
+    VERIFICAR(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
 }
 
 void validarSequenciasDaAnimacaoIdleDoPersonagem() {
     Animacao::AnimacaoIdleDoPersonagem animacao{7};
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
 
     animacao.iniciarPiscadaRapida(0.06f);
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 1);
+    VERIFICAR(animacao.indiceFrameAtual() == 1);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 2);
+    VERIFICAR(animacao.indiceFrameAtual() == 2);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 3);
+    VERIFICAR(animacao.indiceFrameAtual() == 3);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 4);
+    VERIFICAR(animacao.indiceFrameAtual() == 4);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
 
     animacao.iniciarPiscadaDupla(0.06f);
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 1);
+    VERIFICAR(animacao.indiceFrameAtual() == 1);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 2);
+    VERIFICAR(animacao.indiceFrameAtual() == 2);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 3);
+    VERIFICAR(animacao.indiceFrameAtual() == 3);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 1);
+    VERIFICAR(animacao.indiceFrameAtual() == 1);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 2);
+    VERIFICAR(animacao.indiceFrameAtual() == 2);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 3);
+    VERIFICAR(animacao.indiceFrameAtual() == 3);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 4);
+    VERIFICAR(animacao.indiceFrameAtual() == 4);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
 
     animacao.iniciarCansaco(0.06f, 1.6f);
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 1);
+    VERIFICAR(animacao.indiceFrameAtual() == 1);
     animacao.avancar(1.59f);
-    assert(animacao.indiceFrameAtual() == 1);
+    VERIFICAR(animacao.indiceFrameAtual() == 1);
     animacao.avancar(0.01f);
-    assert(animacao.indiceFrameAtual() == 4);
+    VERIFICAR(animacao.indiceFrameAtual() == 4);
     animacao.avancar(0.06f);
-    assert(animacao.indiceFrameAtual() == 0);
+    VERIFICAR(animacao.indiceFrameAtual() == 0);
 }
 
 void validarMovimentoIsometricoDoPersonagem() {
@@ -236,30 +249,30 @@ void validarMovimentoIsometricoDoPersonagem() {
     };
 
     jogo.personagem().caminharAte(destino);
-    assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
-    assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoDireita);
-    assert(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
+    VERIFICAR(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
+    VERIFICAR(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoDireita);
+    VERIFICAR(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
            ConfigPersonagem::AnimacaoVisualDoPersonagem::WalkBaixoDireita);
 
     AppServicos::avancarTempoDoJogo(
         jogo,
         (2.0f + 0.01f) / Constantes::VELOCIDADE_PERSONAGEM_EM_CELULAS_POR_SEGUNDO
     );
-    assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
-    assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoEsquerda);
-    assert(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
+    VERIFICAR(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
+    VERIFICAR(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoEsquerda);
+    VERIFICAR(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
            ConfigPersonagem::AnimacaoVisualDoPersonagem::WalkBaixoEsquerda);
 
     AppServicos::avancarTempoDoJogo(jogo, 2.0f);
-    assert(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Parado);
-    assert(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
+    VERIFICAR(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Parado);
+    VERIFICAR(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
            ConfigPersonagem::AnimacaoVisualDoPersonagem::Idle);
-    assert(Geometria::posicoesDaGradeSaoIguais(destino, jogo.personagem().posicaoNaGrade()));
+    VERIFICAR(Geometria::posicoesDaGradeSaoIguais(destino, jogo.personagem().posicaoNaGrade()));
 
     jogo.personagem().caminharAte(posicaoInicial);
-    assert(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::CimaEsquerda);
+    VERIFICAR(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::CimaEsquerda);
     AppServicos::avancarTempoDoJogo(jogo, 2.0f);
-    assert(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
+    VERIFICAR(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
 }
 
 void validarHitTestIsometricoDoCanteiro() {
@@ -277,8 +290,8 @@ void validarHitTestIsometricoDoCanteiro() {
             Camera::calcularDimensoesDoCanteiroRenderizado(zoom);
         const int metadeDaLargura = dimensoes.largura / 2;
         const int metadeDaAltura = dimensoes.altura / 2;
-        assert(metadeDaLargura > 0);
-        assert(metadeDaAltura > 0);
+        VERIFICAR(metadeDaLargura > 0);
+        VERIFICAR(metadeDaAltura > 0);
 
         for (const Geometria::PosicaoNaGrade posicao : posicoes) {
             const Geometria::PosicaoNaTela destino = Isometria::converterGradeParaTela(
@@ -298,7 +311,7 @@ void validarHitTestIsometricoDoCanteiro() {
                 origemX,
                 origemY
             );
-            assert(Geometria::posicoesDaGradeSaoIguais(topo, posicao));
+            VERIFICAR(Geometria::posicoesDaGradeSaoIguais(topo, posicao));
 
             const Geometria::PosicaoNaGrade centro = Isometria::converterTelaParaGrade(
                 destino.coordenadaHorizontal + metadeDaLargura,
@@ -308,7 +321,7 @@ void validarHitTestIsometricoDoCanteiro() {
                 origemX,
                 origemY
             );
-            assert(Geometria::posicoesDaGradeSaoIguais(centro, posicao));
+            VERIFICAR(Geometria::posicoesDaGradeSaoIguais(centro, posicao));
 
             const Geometria::PosicaoNaGrade direitaInterior = Isometria::converterTelaParaGrade(
                 destino.coordenadaHorizontal + 2 * metadeDaLargura - 1,
@@ -318,7 +331,7 @@ void validarHitTestIsometricoDoCanteiro() {
                 origemX,
                 origemY
             );
-            assert(Geometria::posicoesDaGradeSaoIguais(direitaInterior, posicao));
+            VERIFICAR(Geometria::posicoesDaGradeSaoIguais(direitaInterior, posicao));
 
             const Geometria::PosicaoNaGrade baixoInterior = Isometria::converterTelaParaGrade(
                 destino.coordenadaHorizontal + metadeDaLargura,
@@ -328,7 +341,7 @@ void validarHitTestIsometricoDoCanteiro() {
                 origemX,
                 origemY
             );
-            assert(Geometria::posicoesDaGradeSaoIguais(baixoInterior, posicao));
+            VERIFICAR(Geometria::posicoesDaGradeSaoIguais(baixoInterior, posicao));
 
             const Geometria::PosicaoNaGrade esquerdaInterior = Isometria::converterTelaParaGrade(
                 destino.coordenadaHorizontal + 1,
@@ -338,7 +351,7 @@ void validarHitTestIsometricoDoCanteiro() {
                 origemX,
                 origemY
             );
-            assert(Geometria::posicoesDaGradeSaoIguais(esquerdaInterior, posicao));
+            VERIFICAR(Geometria::posicoesDaGradeSaoIguais(esquerdaInterior, posicao));
         }
     }
 }
@@ -379,7 +392,7 @@ void validarHitTestIsometricoGlobalComCamera() {
         camera.offsetVertical
     );
 
-    assert(Geometria::posicoesDaGradeSaoIguais(posicaoConvertida, posicao));
+    VERIFICAR(Geometria::posicoesDaGradeSaoIguais(posicaoConvertida, posicao));
 }
 
 } // namespace
@@ -394,85 +407,85 @@ int main() {
     validarHitTestIsometricoGlobalComCamera();
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
-    assert(!jogo.identificadorDaSementeSelecionada().has_value());
-    assert(jogo.tamanhoAtualDoGrid() == Constantes::TAMANHO_INICIAL_GRID);
-    assert(jogo.grade().quantidadeDeTilesExistentes() == 4);
-    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    VERIFICAR(!jogo.identificadorDaSementeSelecionada().has_value());
+    VERIFICAR(jogo.tamanhoAtualDoGrid() == Constantes::TAMANHO_INICIAL_GRID);
+    VERIFICAR(jogo.grade().quantidadeDeTilesExistentes() == 4);
+    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
     validarListasDaGrade(jogo.grade());
 
     const Geometria::PosicaoNaGrade posicaoNova = posicaoLivreProximaDoNucleo();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
 
     Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::CriarTerra);
-    assert(jogo.grade().quantidadeDeTilesExistentes() == 5);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::CriarTerra);
+    VERIFICAR(jogo.grade().quantidadeDeTilesExistentes() == 5);
     validarListasDaGrade(jogo.grade());
 
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(!resultado.houveMudanca());
-    assert(jogo.jogador().moedas() == 200);
-    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    VERIFICAR(!resultado.houveMudanca());
+    VERIFICAR(jogo.jogador().moedas() == 200);
+    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
 
     const Especies::PlantaMirtilo mirtilo;
     const int moedasAntesDoPlantio = jogo.jogador().moedas();
     jogo.selecionarSemente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
-    assert(jogo.identificadorDaSementeSelecionada().has_value());
+    VERIFICAR(jogo.identificadorDaSementeSelecionada().has_value());
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
-    assert(jogo.jogador().moedas() == moedasAntesDoPlantio - mirtilo.custoEmMoedas());
-    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
-    assert(jogo.grade().obterTile(posicaoNova)->canteiro().identificadorDaSemente() ==
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
+    VERIFICAR(jogo.jogador().moedas() == moedasAntesDoPlantio - mirtilo.custoEmMoedas());
+    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
+    VERIFICAR(jogo.grade().obterTile(posicaoNova)->canteiro().identificadorDaSemente() ==
            Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     validarListasDaGrade(jogo.grade());
 
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaCrescer()));
     const Grade::TileDeTerra* tile = jogo.grade().obterTile(posicaoNova);
-    assert(tile != nullptr);
-    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
+    VERIFICAR(tile != nullptr);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
 
     AppServicos::avancarTempoDoJogo(
         jogo,
         static_cast<float>(mirtilo.tempoParaFicarJovem() - mirtilo.tempoParaCrescer())
     );
-    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaJovem);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaJovem);
 
     AppServicos::avancarTempoDoJogo(
         jogo,
         static_cast<float>(mirtilo.tempoParaMaturar() - mirtilo.tempoParaFicarJovem())
     );
-    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMadura);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMadura);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Cursor);
     const int moedasAntesDaColheita = jogo.jogador().moedas();
     const Plantas::RecompensaDaColheita recompensaDaColheita = mirtilo.recompensaDaColheita();
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::Colher);
-    assert(jogo.jogador().moedas() == moedasAntesDaColheita + recompensaDaColheita.moedas);
-    assert(jogo.jogador().experiencia() == recompensaDaColheita.experiencia);
-    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
-    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Colher);
+    VERIFICAR(jogo.jogador().moedas() == moedasAntesDaColheita + recompensaDaColheita.moedas);
+    VERIFICAR(jogo.jogador().experiencia() == recompensaDaColheita.experiencia);
+    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
     validarListasDaGrade(jogo.grade());
 
     ararEPlantar(jogo, posicaoNova);
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaMorrer()));
-    assert(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
-    assert(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
+    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
     validarListasDaGrade(jogo.grade());
 
     const std::size_t quantidadeAntesDeRemover = jogo.grade().quantidadeDeTilesExistentes();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::RemoverTerra);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
-    assert(resultado.acao == Ferramentas::AcaoDaFerramenta::RemoverTerra);
-    assert(jogo.grade().quantidadeDeTilesExistentes() == quantidadeAntesDeRemover - 1);
-    assert(tile->existeNoMapa() == false);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::RemoverTerra);
+    VERIFICAR(jogo.grade().quantidadeDeTilesExistentes() == quantidadeAntesDeRemover - 1);
+    VERIFICAR(tile->existeNoMapa() == false);
     validarListasDaGrade(jogo.grade());
 
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoNaGrade{-1, -1});
-    assert(!resultado.houveMudanca());
+    VERIFICAR(!resultado.houveMudanca());
 
     const Geometria::PosicaoNaGrade foraDaGradeJogavel{
         Grade::GradeGlobalDeCanteiros::calcularColunaInicialDaGradeAtual(jogo.tamanhoAtualDoGrid()) - 1,
@@ -480,7 +493,7 @@ int main() {
     };
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, foraDaGradeJogavel);
-    assert(!resultado.houveMudanca());
+    VERIFICAR(!resultado.houveMudanca());
 
     MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
     Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
@@ -490,8 +503,8 @@ int main() {
         camera,
         jogo.tamanhoAtualDoGrid()
     );
-    assert(retangulo.x + retangulo.largura / 2 == configuracoes.centroVisualBackgroundX);
-    assert(retangulo.y + retangulo.altura / 2 == configuracoes.centroVisualBackgroundY);
+    VERIFICAR(retangulo.x + retangulo.largura / 2 == configuracoes.centroVisualBackgroundX);
+    VERIFICAR(retangulo.y + retangulo.altura / 2 == configuracoes.centroVisualBackgroundY);
 
     Camera::aplicarOrigemCentradaDaGrade(configuracoes, Constantes::TAMANHO_MAXIMO_GRID);
     retangulo = Camera::calcularRetanguloDaGradeRenderizada(
@@ -499,8 +512,8 @@ int main() {
         camera,
         Constantes::TAMANHO_MAXIMO_GRID
     );
-    assert(retangulo.x + retangulo.largura / 2 == configuracoes.centroVisualBackgroundX);
-    assert(retangulo.y + retangulo.altura / 2 == configuracoes.centroVisualBackgroundY);
+    VERIFICAR(retangulo.x + retangulo.largura / 2 == configuracoes.centroVisualBackgroundX);
+    VERIFICAR(retangulo.y + retangulo.altura / 2 == configuracoes.centroVisualBackgroundY);
 
     const bool zoomAplicado = Camera::aplicarZoomNoPonto(
         camera,
@@ -510,12 +523,12 @@ int main() {
         Constantes::ALTURA_DA_JANELA / 2,
         1
     );
-    assert(zoomAplicado);
-    assert(camera.zoomAtual > Constantes::ZOOM_INICIAL);
+    VERIFICAR(zoomAplicado);
+    VERIFICAR(camera.zoomAtual > Constantes::ZOOM_INICIAL);
     Camera::centralizarCamera(camera);
-    assert(camera.zoomAtual == Constantes::ZOOM_INICIAL);
-    assert(camera.offsetHorizontal == 0);
-    assert(camera.offsetVertical == 0);
+    VERIFICAR(camera.zoomAtual == Constantes::ZOOM_INICIAL);
+    VERIFICAR(camera.offsetHorizontal == 0);
+    VERIFICAR(camera.offsetVertical == 0);
 
     return 0;
 }
