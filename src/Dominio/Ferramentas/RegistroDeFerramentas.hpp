@@ -2,8 +2,8 @@
 
 #include "Dominio/Ferramentas/CursorDeColheita.hpp"
 #include "Dominio/Ferramentas/Enxada.hpp"
+#include "Dominio/Ferramentas/FerramentaDaLoja.hpp"
 #include "Dominio/Ferramentas/FerramentaDeSemente.hpp"
-#include "Dominio/Ferramentas/PresenteAcelerador.hpp"
 #include "Dominio/Ferramentas/RemovedorDeTerra.hpp"
 
 #include <array>
@@ -18,7 +18,7 @@ public:
         registrar(std::make_unique<Enxada>());
         registrar(std::make_unique<RemovedorDeTerra>());
         registrar(std::make_unique<FerramentaDeSemente>());
-        registrar(std::make_unique<PresenteAcelerador>());
+        registrar(std::make_unique<FerramentaDaLoja>());
     }
 
     const Ferramenta& obter(TipoDeFerramenta tipo) const {

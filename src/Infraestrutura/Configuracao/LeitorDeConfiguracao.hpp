@@ -90,8 +90,8 @@ inline bool carregarConfiguracoesDoLayout(
 
     aplicarValorInteiroSeExistir(valores, "centroVisualBackgroundX", configuracoes.centroVisualBackgroundX);
     aplicarValorInteiroSeExistir(valores, "centroVisualBackgroundY", configuracoes.centroVisualBackgroundY);
-    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.centroVisualBackgroundX);
-    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.centroVisualBackgroundY);
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeHorizontal", configuracoes.origemGradeHorizontal);
+    aplicarValorInteiroSeExistir(valores, "deslocamentoGradeVertical", configuracoes.origemGradeVertical);
     Apresentacao::Camera::aplicarOrigemCentradaDaGrade(configuracoes, Compartilhado::Constantes::TAMANHO_INICIAL_GRID);
     aplicarValorInteiroSeExistir(valores, "origemGradeHorizontal", configuracoes.origemGradeHorizontal);
     aplicarValorInteiroSeExistir(valores, "origemGradeVertical", configuracoes.origemGradeVertical);

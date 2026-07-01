@@ -35,9 +35,10 @@ inline PosicaoNaGrade converterTelaParaGrade(
     int deslocamentoHorizontal,
     int deslocamentoVertical
 ) {
-    const double metadeDaLargura = larguraDoCanteiro / 2.0;
-    const double metadeDaAltura = alturaDoCanteiro / 2.0;
-    const double posicaoHorizontalAjustada = posicaoMouseHorizontal - deslocamentoHorizontal;
+    const double metadeDaLargura = static_cast<double>(larguraDoCanteiro / 2);
+    const double metadeDaAltura = static_cast<double>(alturaDoCanteiro / 2);
+    const double posicaoHorizontalAjustada =
+        posicaoMouseHorizontal - deslocamentoHorizontal - metadeDaLargura;
     const double posicaoVerticalAjustada = posicaoMouseVertical - deslocamentoVertical;
 
     PosicaoNaGrade gradeCalculada;

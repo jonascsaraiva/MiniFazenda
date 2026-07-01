@@ -15,6 +15,7 @@ inline Dominio::Ferramentas::ResultadoDaFerramenta aplicarFerramentaNoJogo(
     Dominio::Ferramentas::ContextoDaFerramenta contexto{
         jogo.grade(),
         jogo.jogador(),
+        jogo.identificadorDaSementeSelecionada(),
         jogo.tamanhoAtualDoGrid()
     };
 

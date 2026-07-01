@@ -51,7 +51,7 @@ src/
       Planta.hpp
         Interface base polimorfica para especies.
       FabricaDePlantas.hpp
-        Criacao centralizada de plantas a partir da semente atual.
+        Criacao centralizada de plantas a partir da semente selecionada.
       Especies/PlantaMirtilo.hpp
         Especie inicial, preservando tempos e recompensa legados.
 
@@ -63,7 +63,7 @@ src/
       Enxada.hpp
       FerramentaDeSemente.hpp
       CursorDeColheita.hpp
-      PresenteAcelerador.hpp
+      FerramentaDaLoja.hpp
       RemovedorDeTerra.hpp
         Cada ferramenta implementa sua propria regra de aplicacao.
 
@@ -193,6 +193,10 @@ removerTile()
 sincronizarCrescimentoDoCanteiro()
 removerCanteiroDaListaDeCrescimento()
 ```
+
+## Progressão do Grid
+
+O grid visual de 12x12 definido por `TAMANHO_INICIAL_GRID` representa a área jogável potencial da fase atual, não a quantidade de tiles disponíveis no início. Por design, `criarEstadoInicialDoJogo()` ativa apenas um núcleo central de 2x2 tiles, criando um espaço inicial pequeno e legível. O jogador usa a Enxada para ativar novos tiles dentro dessa área de 12x12, e essa expansão progressiva é a mecânica central de crescimento da fazenda neste momento do jogo. Quando o sistema de progressão por nível for implementado, o tamanho máximo do grid jogável poderá crescer além dos 12x12 iniciais, respeitando o limite definido por `TAMANHO_MAXIMO_GRID`.
 
 ## Build
 

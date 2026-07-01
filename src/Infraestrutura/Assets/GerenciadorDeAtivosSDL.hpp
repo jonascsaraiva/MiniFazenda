@@ -39,6 +39,11 @@ public:
             return nullptr;
         }
 
+        if (SDL_SetTextureBlendMode(textura, SDL_BLENDMODE_BLEND) != 0) {
+            std::cerr << "Blend alpha nao configurado para textura: " << chave
+                      << " | " << SDL_GetError() << '\n';
+        }
+
         texturas[chave] = textura;
         return textura;
     }

@@ -48,6 +48,8 @@ inline void avancarCrescimentoDosCanteiros(
 }
 
 inline void avancarTempoDoJogo(Estado::EstadoDoJogo& jogo, float deltaTime) {
+    jogo.personagem().avancarAnimacaoIdle(deltaTime);
+    jogo.personagem().avancarMovimento(deltaTime);
     jogo.adicionarAoAcumuladorDeSegundos(deltaTime);
 
     while (jogo.acumuladorDeSegundos() >= 1.0f) {

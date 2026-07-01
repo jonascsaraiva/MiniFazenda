@@ -3,6 +3,9 @@
 #include "Dominio/Ferramentas/Ferramenta.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 
+#include <memory>
+#include <utility>
+
 namespace MiniFazenda::Dominio::Ferramentas {
 
 class FerramentaDeSemente final : public Ferramenta {
@@ -20,11 +23,21 @@ public:
         }
 
         Canteiros::Canteiro* canteiro = contexto.grade.obterCanteiro(posicao);
-        if (canteiro == nullptr || !canteiro->estaArado() || !contexto.jogador.gastarMoedas(CUSTO_DA_SEMENTE)) {
+        if (canteiro == nullptr || !canteiro->estaArado()) {
             return ResultadoDaFerramenta{};
         }
 
-        if (!canteiro->plantar(fabricaDePlantas_.criarPlantaInicial())) {
+        if (!contexto.identificadorDaSementeSelecionada.has_value()) {
+            return ResultadoDaFerramenta{};
+        }
+
+        std::unique_ptr<Plantas::Planta> planta =
+            fabricaDePlantas_.criarPorIdentificadorDeSemente(*contexto.identificadorDaSementeSelecionada);
+        if (planta == nullptr || !contexto.jogador.gastarMoedas(planta->custoEmMoedas())) {
+            return ResultadoDaFerramenta{};
+        }
+
+        if (!canteiro->plantar(std::move(planta))) {
             return ResultadoDaFerramenta{};
         }
 
@@ -33,7 +46,6 @@ public:
     }
 
 private:
-    static constexpr int CUSTO_DA_SEMENTE = 2;
     Plantas::FabricaDePlantas fabricaDePlantas_;
 };
 

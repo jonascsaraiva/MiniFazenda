@@ -9,7 +9,7 @@ enum class TipoDeFerramenta {
     Enxada = 1,
     RemoverTerra = 2,
     Semente = 3,
-    Presente = 4
+    Loja = 4
 };
 
 constexpr std::size_t QUANTIDADE_DE_FERRAMENTAS = 5;

@@ -37,12 +37,14 @@ inline void desenharIconeSemente(SDL_Renderer* renderizador, SDL_Rect area, SDL_
     SDL_RenderDrawLine(renderizador, area.x + 36, area.y + 15, area.x + 42, area.y + 18);
 }
 
-inline void desenharIconePresente(SDL_Renderer* renderizador, SDL_Rect area, SDL_Color cor) {
-    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 14, area.y + 24, 28, 20}, cor);
-    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 12, area.y + 18, 32, 8}, cor);
-    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 26, area.y + 18, 4, 26}, SDL_Color{255, 242, 178, 255});
-    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 20, area.y + 13, 7, 7}, cor);
-    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 30, area.y + 13, 7, 7}, cor);
+inline void desenharIconeLoja(SDL_Renderer* renderizador, SDL_Rect area, SDL_Color cor) {
+    Primitivas::definirCor(renderizador, cor);
+    SDL_RenderDrawLine(renderizador, area.x + 16, area.y + 18, area.x + 40, area.y + 18);
+    SDL_RenderDrawLine(renderizador, area.x + 16, area.y + 18, area.x + 12, area.y + 27);
+    SDL_RenderDrawLine(renderizador, area.x + 40, area.y + 18, area.x + 44, area.y + 27);
+    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 14, area.y + 28, 28, 17}, cor);
+    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 18, area.y + 32, 8, 13}, SDL_Color{255, 242, 178, 255});
+    Primitivas::preencherRetangulo(renderizador, SDL_Rect{area.x + 30, area.y + 32, 8, 6}, SDL_Color{255, 242, 178, 255});
 }
 
 inline void desenharIconeRemoverTerra(SDL_Renderer* renderizador, SDL_Rect area, SDL_Color cor) {

@@ -74,3 +74,53 @@ add_executable(MiniFazenda2Tests
 target_include_directories(MiniFazenda2Tests PRIVATE src)
 
 add_test(NAME MiniFazenda2Tests COMMAND MiniFazenda2Tests)
+
+find_program(RG_EXECUTABLE rg)
+
+if(RG_EXECUTABLE)
+    set(VALIDAR_ARQUITETURA_SCRIPT "${CMAKE_BINARY_DIR}/ValidarArquitetura.cmake")
+    file(GENERATE
+        OUTPUT "${VALIDAR_ARQUITETURA_SCRIPT}"
+        CONTENT [==[
+execute_process(
+    COMMAND "${RG_EXECUTABLE}" --line-number --with-filename [=[#\s*include\s*[<"][^>"]*(SDL|SDL_image|SDL_ttf|SDL_mixer)[^>"]*[>"]]=] "${PROJECT_SOURCE_DIR}/src/Dominio"
+    RESULT_VARIABLE RESULTADO_INCLUDES_SDL
+    OUTPUT_VARIABLE SAIDA_INCLUDES_SDL
+    ERROR_VARIABLE ERRO_INCLUDES_SDL
+)
+
+if(RESULTADO_INCLUDES_SDL EQUAL 0)
+    message(FATAL_ERROR "Arquitetura invalida: src/Dominio nao pode incluir SDL, SDL_image, SDL_ttf ou SDL_mixer:\n${SAIDA_INCLUDES_SDL}")
+elseif(NOT RESULTADO_INCLUDES_SDL EQUAL 1)
+    message(FATAL_ERROR "Falha ao executar rg para inclusoes de SDL no dominio:\n${ERRO_INCLUDES_SDL}")
+endif()
+
+execute_process(
+    COMMAND "${RG_EXECUTABLE}" --line-number --with-filename --multiline [=[switch\s*\([^)]*(TipoDeFerramenta|EstadoVisualDoCanteiro)[^)]*\)]=] "${PROJECT_SOURCE_DIR}/src/Dominio"
+    RESULT_VARIABLE RESULTADO_SWITCHES_DOMINIO
+    OUTPUT_VARIABLE SAIDA_SWITCHES_DOMINIO
+    ERROR_VARIABLE ERRO_SWITCHES_DOMINIO
+)
+
+if(RESULTADO_SWITCHES_DOMINIO EQUAL 0)
+    message(FATAL_ERROR "Arquitetura invalida: src/Dominio nao pode conter switch com TipoDeFerramenta ou EstadoVisualDoCanteiro:\n${SAIDA_SWITCHES_DOMINIO}")
+elseif(NOT RESULTADO_SWITCHES_DOMINIO EQUAL 1)
+    message(FATAL_ERROR "Falha ao executar rg para switches de dominio:\n${ERRO_SWITCHES_DOMINIO}")
+endif()
+]==]
+    )
+
+    add_custom_target(validar-arquitetura
+        COMMAND ${CMAKE_COMMAND}
+                "-DRG_EXECUTABLE=${RG_EXECUTABLE}"
+                "-DPROJECT_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+                -P "${VALIDAR_ARQUITETURA_SCRIPT}"
+        VERBATIM
+    )
+else()
+    message(WARNING "rg nao encontrado; validacoes de arquitetura serao ignoradas.")
+    add_custom_target(validar-arquitetura
+        COMMAND ${CMAKE_COMMAND} -E echo "rg nao encontrado; validacoes de arquitetura ignoradas."
+        VERBATIM
+    )
+endif()

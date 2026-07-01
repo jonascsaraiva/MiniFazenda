@@ -12,6 +12,18 @@ struct PosicaoNaGrade {
     int indiceLinha = -1;
 };
 
+struct PosicaoNaGradeDecimal {
+    float indiceColuna = -1.0f;
+    float indiceLinha = -1.0f;
+};
+
+struct Retangulo {
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+};
+
 inline bool posicoesDaGradeSaoIguais(PosicaoNaGrade primeira, PosicaoNaGrade segunda) {
     return primeira.indiceColuna == segunda.indiceColuna &&
            primeira.indiceLinha == segunda.indiceLinha;

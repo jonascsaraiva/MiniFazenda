@@ -19,14 +19,6 @@ public:
         return canteiro_;
     }
 
-    std::size_t indiceNaListaDeTilesExistentes() const {
-        return indiceNaListaDeTilesExistentes_;
-    }
-
-    std::size_t indiceNaListaDeCrescimento() const {
-        return indiceNaListaDeCrescimento_;
-    }
-
 private:
     friend class GradeGlobalDeCanteiros;
 
