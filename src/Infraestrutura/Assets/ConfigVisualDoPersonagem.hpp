@@ -12,17 +12,18 @@ namespace MiniFazenda::Infraestrutura::Assets::ConfigVisualDoPersonagem {
 
 // Ajustes manuais do sprite do personagem. Mantenha recorte, escala e ancora
 // visual aqui para o renderizador nao depender de numeros magicos.
-// Para adicionar novas animacoes, crie uma nova funcao de configuracao e adicione
-constexpr const char* caminhoTextura = "sprites/personagem/bonequinho.png";
+// Para adicionar novas animacoes, crie uma nova funcao de configuracao e inclua
+// a entrada em CONFIGURACOES_POR_ANIMACAO.
+constexpr const char* caminhoTextura = "sprites/personagem/Boneco_piscando_olhos.png";
 
-constexpr int quantidadeFramesIdle = 8;
+constexpr int quantidadeFramesIdle = 5;
 constexpr int frameOrigemX = 0;
-constexpr int frameOrigemY = 145;
-constexpr int frameLargura = 271;
-constexpr int frameAltura = 416;
+constexpr int frameOrigemY = 0;
+constexpr int frameLargura = 250;
+constexpr int frameAltura = 250;
 constexpr int frameEspacamentoX = 0;
 constexpr int frameEspacamentoY = 0;
-constexpr float duracaoPorFrame = 0.12f;
+constexpr float duracaoPorFrame = 0.065f;
 
 constexpr int destinoLargura = 63;
 constexpr int destinoAltura = 96;
@@ -30,8 +31,8 @@ constexpr int offsetPeX = 0;
 constexpr int offsetPeY = 0;
 constexpr int ajusteTelaX = 0;
 constexpr int ajusteTelaY = 0;
-constexpr int pontoDosPesX = 28;
-constexpr int pontoDosPesY = 95;
+constexpr int pontoDosPesX = (destinoLargura + 1) / 2;
+constexpr int pontoDosPesY = destinoAltura;
 
 constexpr bool debugDesenhoDoPersonagem = false;
 
@@ -127,18 +128,6 @@ inline const ConfiguracaoDaAnimacao& configuracaoParaAnimacao(
     Dominio::Personagem::AnimacaoVisualDoPersonagem animacao
 ) {
     return CONFIGURACOES_POR_ANIMACAO[indiceDaAnimacao(animacao)];
-}
-
-inline int calcularIndiceFrame(const ConfiguracaoDaAnimacao& configuracao, float tempoDaAnimacao) {
-    if (configuracao.quantidadeFrames <= 0 || configuracao.duracaoPorFrame <= 0.0f || tempoDaAnimacao <= 0.0f) {
-        return 0;
-    }
-
-    constexpr float toleranciaDeBordaDoFrame = 0.00001f;
-    const int indiceSemLoop = static_cast<int>(
-        std::floor((tempoDaAnimacao + toleranciaDeBordaDoFrame) / configuracao.duracaoPorFrame)
-    );
-    return indiceSemLoop % configuracao.quantidadeFrames;
 }
 
 inline Compartilhado::Geometria::Retangulo calcularRetanguloDeOrigem(

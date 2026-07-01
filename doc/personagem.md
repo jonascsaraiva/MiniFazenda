@@ -156,14 +156,16 @@ Todos os ajustes do sprite devem ser feitos em:
 - `pontoDosPesX`: define a posição horizontal dos pés dentro do destino final.
 - `pontoDosPesY`: define a posição vertical dos pés dentro do destino final.
 
+No padrão atual do personagem, o frame de origem possui `250 x 250 px`, mas esse tamanho não é o tamanho desenhado na tela. Os pés ficam no centro da borda inferior do canvas de origem; depois da escala para o destino, essa convenção equivale ao centro inferior do destino arredondado para inteiro, `pontoDosPesX = (destinoLargura + 1) / 2` e `pontoDosPesY = destinoAltura`.
+
 ### 4.4. Ajustes finais de tela
 
 - `ajusteTelaX`: aplica ajuste horizontal final sem alterar a lógica dos pés.
 - `ajusteTelaY`: aplica ajuste vertical final sem alterar a lógica dos pés.
 
-### 4.5. Cálculo do frame no idle atual
+### 4.5. Cálculo do recorte do frame
 
-O idle atual usa uma spritesheet horizontal. A origem do frame é calculada assim:
+As animações do personagem usam spritesheets horizontais. O renderizador não calcula tempo nem escolhe transições; ele recebe do personagem o índice do frame atual e calcula apenas a origem do recorte:
 
 ```text
 src.x = frameOrigemX + indiceFrame * (frameLargura + frameEspacamentoX)
@@ -171,6 +173,8 @@ src.y = frameOrigemY
 src.w = frameLargura
 src.h = frameAltura
 ```
+
+No idle, o índice do frame vem de `src/Dominio/Animacao/AnimacaoIdle.hpp`, que controla intervalos aleatórios, sorteio de expressão e sequência da piscada.
 
 ---
 
@@ -184,7 +188,7 @@ As animações futuras já possuem entradas previstas para:
 - `WalkCimaDireita`
 - `WalkCimaEsquerda`
 
-No momento, as animações de caminhada usam o idle como fallback.
+No momento, as animações de caminhada usam o idle como fallback de configuração visual.
 
 Para adicionar sprites novas, altere a configuração da animação correspondente informando:
 
