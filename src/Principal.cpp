@@ -5,6 +5,7 @@
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
+#include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
 #include "Apresentacao/Renderizacao/Cursores/CursorCustomizado.hpp"
 #include "Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp"
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp"
@@ -33,6 +34,7 @@ namespace Camera = MiniFazenda::Apresentacao::Camera; namespace Configuracao = M
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
 namespace Cursores = MiniFazenda::Apresentacao::Renderizacao::Cursores; namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace HudRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::HudRenderer;
+namespace Interface = MiniFazenda::Apresentacao::Interface;
 namespace Mundo = MiniFazenda::Apresentacao::Renderizacao::Mundo; namespace Plantas = MiniFazenda::Dominio::Plantas;
 namespace SDLInfra = MiniFazenda::Infraestrutura::SDL; namespace UI = MiniFazenda::Apresentacao::Renderizacao::UI;
 
@@ -93,6 +95,7 @@ int main(int, char**) {
     Configuracao::carregarConfiguracoesDoLayout(diretorioAssets / "config.ini", configuracoes);
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    Interface::EstadoDaCenaFazenda estadoDaCena;
     AnimacaoPersonagem::EstadoVisualDoPersonagem estadoVisualDoPersonagem;
     Assets::GerenciadorDeAtivosSDL ativos(renderizador.ponteiro);
     const Plantas::FabricaDePlantas fabricaDePlantas;
@@ -109,7 +112,6 @@ int main(int, char**) {
     const BarraFerramentas::PainelDaLoja painelDaLoja = BarraFerramentas::criarPainelDaLoja(botoes, especiesDaLoja);
 
     bool executando = true;
-    bool lojaAberta = false;
     int mouseX = Constantes::LARGURA_DA_JANELA / 2;
     int mouseY = Constantes::ALTURA_DA_JANELA / 2;
     SDL_Rect retBotaoSom{0, 0, 0, 0};
@@ -161,34 +163,34 @@ int main(int, char**) {
 
                     const SDL_Rect areaBotaoConfiguracoes = calcularAreaDoBotaoConfiguracoes();
                     if (pontoDentroDoRetangulo(mouseX, mouseY, areaBotaoConfiguracoes)) {
-                        jogo.alternarPainelConfiguracoes();
+                        estadoDaCena.alternarPainelConfiguracoes();
                         continue;
                     }
 
-                    if (jogo.painelConfiguracoesAberto()) {
+                    if (estadoDaCena.painelConfiguracoesAberto()) {
                         if (pontoDentroDoRetangulo(mouseX, mouseY, retBotaoSom)) {
-                            jogo.definirAudioMutado(!jogo.audioMutado());
+                            estadoDaCena.alternarAudioMutado();
                             if (sdl.audioInicializado) {
-                                Mix_Volume(-1, jogo.audioMutado() ? 0 : MIX_MAX_VOLUME);
-                                Mix_VolumeMusic(jogo.audioMutado() ? 0 : MIX_MAX_VOLUME);
+                                Mix_Volume(-1, estadoDaCena.audioMutado() ? 0 : MIX_MAX_VOLUME);
+                                Mix_VolumeMusic(estadoDaCena.audioMutado() ? 0 : MIX_MAX_VOLUME);
                             }
                             continue;
                         }
 
                         const SDL_Rect areaPainelConfiguracoes = calcularAreaDoPainelConfiguracoes();
                         if (!pontoDentroDoRetangulo(mouseX, mouseY, areaPainelConfiguracoes)) {
-                            jogo.alternarPainelConfiguracoes();
+                            estadoDaCena.fecharPainelConfiguracoes();
                         }
                         continue;
                     }
 
-                    if (lojaAberta) {
+                    if (estadoDaCena.painelDaLojaAberto()) {
                         const auto sementeClicada =
                             BarraFerramentas::sementeClicadaNoPainelDaLoja(mouseX, mouseY, painelDaLoja);
                         if (sementeClicada.has_value()) {
                             jogo.selecionarSemente(*sementeClicada);
                             jogo.selecionarFerramenta(MiniFazenda::Dominio::Ferramentas::TipoDeFerramenta::Semente);
-                            lojaAberta = false;
+                            estadoDaCena.fecharPainelDaLoja();
                             if (sdl.audioInicializado) {
                                 ativos.tocarSom(Assets::caminhoDoSomDeCliqueDaInterface(diretorioAssets));
                             }
@@ -206,7 +208,7 @@ int main(int, char**) {
                             mouseY,
                             botoes,
                             ferramentaSelecionada,
-                            lojaAberta
+                            estadoDaCena
                         )) {
                         jogo.selecionarFerramenta(ferramentaSelecionada);
                         if (sdl.audioInicializado) {
@@ -248,7 +250,7 @@ int main(int, char**) {
         Mundo::desenharLimiteDaGradeJogavel(renderizador.ponteiro, jogo, configuracoes, camera);
         Mundo::desenharPreviewDeCriacaoDeTerra(renderizador.ponteiro, jogo, configuracoes, camera, posicaoRealcada);
         UI::desenharInterface(renderizador.ponteiro, jogo.ferramentaSelecionada(), botoes.cursor, botoes.enxada, botoes.removerTerra, botoes.semente, botoes.loja, recursos.texturasDosBotoes);
-        if (lojaAberta) {
+        if (estadoDaCena.painelDaLojaAberto()) {
             UI::desenharPainelDaLoja(
                 renderizador.ponteiro,
                 painelDaLoja,
@@ -258,8 +260,8 @@ int main(int, char**) {
         }
         HudRenderer::desenharStatusDoJogador(renderizador.ponteiro, hud.fonte, jogo.jogador());
         HudRenderer::desenharBotaoConfiguracoes(renderizador.ponteiro, hud.iconeConfiguracoes, false);
-        if (jogo.painelConfiguracoesAberto()) {
-            retBotaoSom = HudRenderer::desenharPainelConfiguracoes(renderizador.ponteiro, hud.fonte, jogo.audioMutado());
+        if (estadoDaCena.painelConfiguracoesAberto()) {
+            retBotaoSom = HudRenderer::desenharPainelConfiguracoes(renderizador.ponteiro, hud.fonte, estadoDaCena);
         }
         Cursores::desenharCursorCustomizado(renderizador.ponteiro, mouseX, mouseY, jogo.ferramentaSelecionada());
         SDL_RenderPresent(renderizador.ponteiro);

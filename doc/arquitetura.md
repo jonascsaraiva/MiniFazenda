@@ -56,6 +56,8 @@ Contém o estado agregado e os casos de uso que orquestram o domínio.
 
 Esta camada coordena as ações do jogo, como inicializar a fazenda, aplicar ferramentas e avançar o tempo, mas não deve assumir responsabilidades visuais nem lidar diretamente com SDL.
 
+`Aplicacao/Estado/EstadoDoJogo.hpp` representa somente estado de gameplay: grade, jogador, personagem, ferramenta/seed selecionada, tamanho jogavel do grid e acumuladores usados pela logica da partida. Estados temporarios de interface ou preferencias da cena nao pertencem a esta camada.
+
 ### `Apresentacao/`
 
 Contém câmera, isometria, interface e renderização com SDL.
@@ -63,6 +65,8 @@ Contém câmera, isometria, interface e renderização com SDL.
 Esta camada lê o estado do jogo e transforma esse estado em saída visual. Ela pode lidar com câmera, layout, cursores, HUD, barra de ferramentas, renderização da fazenda e desenho de elementos visuais.
 
 A animacao visual do personagem tambem fica nesta camada: ela le o estado logico exposto pelo dominio e mantem o estado visual necessario para desenhar frames, piscadas e loops de spritesheet.
+
+Estados temporarios da cena, como painel de configuracoes aberto, painel da loja aberto e audio mutado na cena, ficam em `Apresentacao/Interface/EstadoDaCenaFazenda.hpp`. A apresentacao consome esse estado para desenhar HUD, painel de configuracoes e demais elementos visuais sem contaminar o estado de gameplay.
 
 ### `Infraestrutura/`
 
@@ -152,6 +156,12 @@ Os namespaces seguem a organização das pastas:
 `switch/case` é aceitável em bordas visuais ou mapeamentos de infraestrutura, como escolher ícone, cor ou som.
 
 Ele não deve decidir regra de domínio.
+
+### 3.9. Estado de gameplay separado do estado da cena
+
+`EstadoDoJogo` deve conter apenas informacoes necessarias para regras e progresso da partida.
+
+Flags de interface, preferencia visual/sonora da cena, paineis abertos e estados temporarios de HUD pertencem a estruturas da apresentacao, como `EstadoDaCenaFazenda`.
 
 ---
 
@@ -259,8 +269,13 @@ Agrega:
 
 - grade;
 - jogador;
+- personagem;
 - ferramenta selecionada;
+- semente selecionada;
+- tamanho atual do grid jogavel;
 - tempo acumulado.
+
+Nao agrega painel de configuracoes, audio mutado, painel da loja ou outros estados temporarios de interface.
 
 #### `Servicos/InicializadorDaFazenda.hpp`
 
@@ -286,15 +301,17 @@ Arquivos e módulos principais:
 - `Camera/CameraDoJogo.hpp`
 - `Isometria/Isometrico.hpp`
 - `Interface/AreaDeInteracao.hpp`
+- `Interface/EstadoDaCenaFazenda.hpp`
 - `Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
 - `Renderizacao/Primitivas/PrimitivasSDL.hpp`
 - `Renderizacao/Mundo/DesenhoDoMundo.hpp`
 - `Renderizacao/Mundo/RenderizadorDaFazenda.hpp`
 - `Renderizacao/UI/IconesDasFerramentas.hpp`
 - `Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
+- `Renderizacao/UI/HudRenderer.hpp`
 - `Renderizacao/Cursores/CursorCustomizado.hpp`
 
-Essa camada concentra câmera, isometria, interface e desenho visual do jogo.
+Essa camada concentra câmera, isometria, interface, estado temporario da cena e desenho visual do jogo.
 
 ### `src/Infraestrutura/`
 
@@ -344,6 +361,8 @@ Pode depender de `Aplicacao` para ler `EstadoDoJogo`.
 
 Também pode depender de `Dominio` para ler estados, grade e ferramenta selecionada.
 
+Tambem e dona de estados temporarios da cena/interface, como `EstadoDaCenaFazenda`, consumidos por HUD e renderizadores.
+
 ### `Aplicacao`
 
 Pode depender de:
@@ -376,6 +395,7 @@ Infraestrutura
 Apresentacao
   -> Aplicacao para ler EstadoDoJogo
   -> Dominio para ler estados, grade e ferramenta selecionada
+  -> EstadoDaCenaFazenda para estado temporario de interface da cena
 
 Aplicacao
   -> Dominio

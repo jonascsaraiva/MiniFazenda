@@ -5,6 +5,7 @@
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
+#include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
 #include "Apresentacao/Isometria/Isometrico.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
@@ -33,6 +34,7 @@ namespace Especies = MiniFazenda::Dominio::Plantas::Especies;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace Grade = MiniFazenda::Dominio::Grade;
+namespace Interface = MiniFazenda::Apresentacao::Interface;
 namespace Isometria = MiniFazenda::Apresentacao::Isometria;
 namespace Personagem = MiniFazenda::Dominio::Personagem;
 namespace Plantas = MiniFazenda::Dominio::Plantas;
@@ -80,14 +82,14 @@ void validarFluxoDeCliqueDaLoja() {
     const BarraFerramentas::PainelDaLoja painel = BarraFerramentas::criarPainelDaLoja(botoes, especiesDaLoja);
 
     Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Cursor;
-    bool lojaAberta = false;
+    Interface::EstadoDaCenaFazenda estadoDaCena;
     const int xDaLoja = botoes.loja.posicaoBotaoHorizontal + botoes.loja.tamanhoBotaoLargura / 2;
     const int yDaLoja = botoes.loja.posicaoBotaoVertical + botoes.loja.tamanhoBotaoAltura / 2;
     const bool clicouNaLoja =
-        BarraFerramentas::processarCliqueNaInterface(xDaLoja, yDaLoja, botoes, ferramentaSelecionada, lojaAberta);
+        BarraFerramentas::processarCliqueNaInterface(xDaLoja, yDaLoja, botoes, ferramentaSelecionada, estadoDaCena);
 
     assert(clicouNaLoja);
-    assert(lojaAberta);
+    assert(estadoDaCena.painelDaLojaAberto());
     assert(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Loja);
     assert(!painel.opcoes.empty());
 
@@ -98,6 +100,28 @@ void validarFluxoDeCliqueDaLoja() {
 
     assert(sementeClicada.has_value());
     assert(*sementeClicada == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+}
+
+void validarEstadoDaCenaFazenda() {
+    Interface::EstadoDaCenaFazenda estadoDaCena;
+
+    assert(!estadoDaCena.painelConfiguracoesAberto());
+    estadoDaCena.alternarPainelConfiguracoes();
+    assert(estadoDaCena.painelConfiguracoesAberto());
+    estadoDaCena.fecharPainelConfiguracoes();
+    assert(!estadoDaCena.painelConfiguracoesAberto());
+
+    assert(!estadoDaCena.audioMutado());
+    estadoDaCena.alternarAudioMutado();
+    assert(estadoDaCena.audioMutado());
+    estadoDaCena.definirAudioMutado(false);
+    assert(!estadoDaCena.audioMutado());
+
+    assert(!estadoDaCena.painelDaLojaAberto());
+    estadoDaCena.alternarPainelDaLoja();
+    assert(estadoDaCena.painelDaLojaAberto());
+    estadoDaCena.fecharPainelDaLoja();
+    assert(!estadoDaCena.painelDaLojaAberto());
 }
 
 void validarAnimacaoIdleDoPersonagem() {
@@ -364,6 +388,7 @@ int main() {
     validarAnimacaoIdleDoPersonagem();
     validarSequenciasDaAnimacaoIdleDoPersonagem();
     validarMovimentoIsometricoDoPersonagem();
+    validarEstadoDaCenaFazenda();
     validarFluxoDeCliqueDaLoja();
     validarHitTestIsometricoDoCanteiro();
     validarHitTestIsometricoGlobalComCamera();

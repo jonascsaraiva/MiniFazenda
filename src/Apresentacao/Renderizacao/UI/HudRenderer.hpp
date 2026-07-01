@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
 #include "Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
@@ -86,7 +87,11 @@ inline void desenharBotaoConfiguracoes(SDL_Renderer* renderizador, SDL_Texture* 
     }
 }
 
-inline SDL_Rect desenharPainelConfiguracoes(SDL_Renderer* renderizador, TTF_Font* fonte, bool audioMutado) {
+inline SDL_Rect desenharPainelConfiguracoes(
+    SDL_Renderer* renderizador,
+    TTF_Font* fonte,
+    const MiniFazenda::Apresentacao::Interface::EstadoDaCenaFazenda& estadoDaCena
+) {
     constexpr int larguraDoPainel = 480;
     constexpr int alturaDoPainel = 320;
     constexpr int larguraDoBotao = 160;
@@ -109,7 +114,7 @@ inline SDL_Rect desenharPainelConfiguracoes(SDL_Renderer* renderizador, TTF_Font
     Primitivas::definirCor(renderizador, SDL_Color{180, 180, 180, 255});
     SDL_RenderDrawRect(renderizador, &painel);
 
-    const bool somAtivo = !audioMutado;
+    const bool somAtivo = !estadoDaCena.audioMutado();
     Primitivas::preencherRetangulo(
         renderizador,
         botaoSom,

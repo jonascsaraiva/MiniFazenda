@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Apresentacao/Interface/AreaDeInteracao.hpp"
+#include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Plantas/Planta.hpp"
@@ -132,35 +133,35 @@ inline bool processarCliqueNaInterface(
     int mouseY,
     const BotoesDaInterface& botoes,
     Dominio::Ferramentas::TipoDeFerramenta& ferramentaSelecionada,
-    bool& lojaAberta
+    EstadoDaCenaFazenda& estadoDaCena
 ) {
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.cursor)) {
         ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Cursor;
-        lojaAberta = false;
+        estadoDaCena.fecharPainelDaLoja();
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.enxada)) {
         ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Enxada;
-        lojaAberta = false;
+        estadoDaCena.fecharPainelDaLoja();
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.removerTerra)) {
         ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::RemoverTerra;
-        lojaAberta = false;
+        estadoDaCena.fecharPainelDaLoja();
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.semente)) {
         ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Semente;
-        lojaAberta = false;
+        estadoDaCena.fecharPainelDaLoja();
         return true;
     }
 
     if (verificarCliqueNoBotao(mouseX, mouseY, botoes.loja)) {
         ferramentaSelecionada = Dominio::Ferramentas::TipoDeFerramenta::Loja;
-        lojaAberta = !lojaAberta;
+        estadoDaCena.alternarPainelDaLoja();
         return true;
     }
 

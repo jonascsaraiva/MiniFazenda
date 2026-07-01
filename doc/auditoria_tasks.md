@@ -994,7 +994,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
    **onde:** `src/Dominio/Personagem/Personagem.hpp`, `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`, `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`, `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
    **prioridade:** Alta
 
-3. **Separar estado de UI/audio do estado de gameplay**
+3. **Separar estado de UI/audio do estado de gameplay** (CONCLUIDO)
    **corrigir:** Remover `painelConfiguracoesAberto_` e `audioMutado_` de `EstadoDoJogo`. Criar algo como `EstadoDaCenaFazenda` ou `EstadoDaInterface`.
    **onde:** `src/Aplicacao/Estado/EstadoDoJogo.hpp`, `src/Principal.cpp`, `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
    **prioridade:** Alta
@@ -1039,7 +1039,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
     **onde:** `assets/config.ini`, `src/Infraestrutura/Assets/LocalizadorDeAssets.hpp`, `assets/background/`
     **prioridade:** Baixa
 
-12. **Corrigir comentário errado da recompensa do mirtilo**(CORRIGIDO)
+12. **Corrigir comentário errado da recompensa do mirtilo**(CONCLUIDO)
     **corrigir:** O código retorna `{35, 3}`, mas o comentário fala em `40 moedas e 10 experiência`. Corrigir comentário ou ajustar o balanceamento real.
     **onde:** `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`
     **prioridade:** Baixa

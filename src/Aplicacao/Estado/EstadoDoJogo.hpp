@@ -72,22 +72,6 @@ public:
         acumuladorDeSegundos_ -= 1.0f;
     }
 
-    bool painelConfiguracoesAberto() const {
-        return painelConfiguracoesAberto_;
-    }
-
-    void alternarPainelConfiguracoes() {
-        painelConfiguracoesAberto_ = !painelConfiguracoesAberto_;
-    }
-
-    bool audioMutado() const {
-        return audioMutado_;
-    }
-
-    void definirAudioMutado(bool audioMutado) {
-        audioMutado_ = audioMutado;
-    }
-
 private:
     Dominio::Grade::GradeGlobalDeCanteiros grade_;
     Dominio::Jogador::Jogador jogador_;
@@ -96,8 +80,6 @@ private:
     std::optional<int> identificadorDaSementeSelecionada_;
     int tamanhoAtualDoGrid_ = Compartilhado::Constantes::TAMANHO_INICIAL_GRID;
     float acumuladorDeSegundos_ = 0.0f;
-    bool painelConfiguracoesAberto_ = false;
-    bool audioMutado_ = false;
 };
 
 } // namespace MiniFazenda::Aplicacao::Estado
