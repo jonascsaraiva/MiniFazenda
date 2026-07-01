@@ -2,6 +2,10 @@
 
 Data da auditoria: 2026-07-01
 
+Em caso de nova auditoria, registra data e trocar a zona de exlusão pela nova auditoria.
+
+-------------------------ZONA-DE-EXCLUSÃO-------------------------
+
 ## 1. Visao geral do estado atual
 
 O MiniFazenda2 esta em um estado funcional e compilavel, com uma separacao de camadas ja bem aplicada na maior parte do codigo. O projeto tem um unico ponto de entrada em `src/Principal.cpp`, usa C++17 com SDL2, SDL2_image, SDL2_ttf e SDL2_mixer, e organiza a logica nas pastas `Compartilhado`, `Dominio`, `Aplicacao`, `Apresentacao` e `Infraestrutura`.
@@ -975,6 +979,9 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 - Nao criei novos testes, conforme solicitado.
 - Nao refatorei nem corrigi codigo funcional.
 - A analise visual foi feita por leitura de codigo, verificacao de dimensoes dos PNGs e comparacao com documentacao.
+
+
+----------------------------------------------------
 
 ## 12. Tasks:
 
