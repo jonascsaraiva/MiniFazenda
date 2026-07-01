@@ -1004,7 +1004,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
    **onde:** `src/Principal.cpp`, possível novo `src/Apresentacao/Cenas/CenaFazenda.hpp`
    **prioridade:** Média
 
-5. **Trocar testes baseados em `assert` por checagens sempre ativas**
+5. **Trocar testes baseados em `assert` por checagens sempre ativas**(CONCLUIDO)
    **corrigir:** `assert` pode sumir em build Release com `NDEBUG`. Criar macro própria de teste ou usar framework leve.
    **onde:** `tests/TestesLogica.cpp`, `CMakeLists.txt`
    **prioridade:** Alta
