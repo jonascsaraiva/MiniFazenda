@@ -1053,12 +1053,12 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
     **onde:** `remover_fundo.py`
     **prioridade:** Baixa
 
-17. **Atualizar README com caminho e comandos atuais**(em andamento)
+17. **Atualizar README com caminho e comandos atuais**(CONCLUIDO)
     **corrigir:** README ainda usa caminho genérico/antigo. Ajustar para `MiniFazenda2` e documentar comandos de configurar, buildar, testar e rodar.
     **onde:** `README.md`
     **prioridade:** Baixa
 
-18. **Reavaliar `C_Cpp.errorSquiggles` desativado**
+18. **Reavaliar `C_Cpp.errorSquiggles` desativado** (CONCLUIDO) (ligado)
     **corrigir:** Squiggles desligados podem esconder erro local no VSCode. Ativar se o IntelliSense já estiver estável; se não, documentar que build/testes são a fonte da verdade.
     **onde:** `.vscode/settings.json`
     **prioridade:** Baixa
