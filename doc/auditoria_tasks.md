@@ -1,445 +1,437 @@
-# Auditoria tecnica do MiniFazenda2
+# Segunda auditoria tecnica do MiniFazenda2
 
-Data da auditoria: 2026-07-01
+Data da auditoria: 2026-07-02
 
-Em caso de nova auditoria, registra data e trocar a zona de exlusão pela nova auditoria.
+Esta auditoria substitui a auditoria anterior deste arquivo. A analise abaixo foi feita a partir do codigo atual do projeto, nao da documentacao antiga. Quando documento e codigo discordam, a divergencia esta registrada explicitamente.
 
--------------------------ZONA-DE-EXCLUSÃO-------------------------
+## 1. Escopo e validacoes
 
-## 1. Visao geral do estado atual
+Foram revisados:
 
-O MiniFazenda2 esta em um estado funcional e compilavel, com uma separacao de camadas ja bem aplicada na maior parte do codigo. O projeto tem um unico ponto de entrada em `src/Principal.cpp`, usa C++17 com SDL2, SDL2_image, SDL2_ttf e SDL2_mixer, e organiza a logica nas pastas `Compartilhado`, `Dominio`, `Aplicacao`, `Apresentacao` e `Infraestrutura`.
+- `src/Principal.cpp`
+- `src/Compartilhado`
+- `src/Dominio`
+- `src/Aplicacao`
+- `src/Apresentacao`
+- `src/Infraestrutura`
+- `tests/TestesLogica.cpp`
+- `CMakeLists.txt`
+- `README.md`
+- documentos em `doc/`
+- `assets/config.ini`
+- assets principais de personagem, tiles, plantas, HUD, toolbar, fundo e sons
+- configuracoes em `.vscode/`
 
-Foram analisados:
+Contagem da base no momento da auditoria:
 
-- 45 arquivos em `src/`.
-- 1 arquivo de teste em `tests/`.
-- 3 documentos existentes em `doc/`.
-- `README.md`, `CMakeLists.txt`, `.vscode`, `.gitignore`, `assets/config.ini`, assets principais e `remover_fundo.py`.
+- 50 arquivos em `src/`
+- 1 arquivo em `tests/`
+- 6 documentos em `doc/`
+- 59 arquivos em `assets/`
+- 3 arquivos em `.vscode/`
 
 Validacoes executadas:
 
+```powershell
+rg "SDL|SDL_|IMG_|TTF_|Mix_" src/Dominio
+rg "switch" src/Dominio
+rg "frame|sprite|animacao|spritesheet|pisc" src/Dominio/Personagem src/Dominio/Animacao
+rg "switch" src
+C:\msys64\ucrt64\bin\cmake.exe -S . -B build-codex -G Ninja -DCMAKE_PREFIX_PATH=C:/msys64/ucrt64 -DCMAKE_C_COMPILER=C:/msys64/ucrt64/bin/gcc.exe -DCMAKE_CXX_COMPILER=C:/msys64/ucrt64/bin/g++.exe
+C:\msys64\ucrt64\bin\cmake.exe --build build-codex
+C:\msys64\ucrt64\bin\ctest.exe --test-dir build-codex --output-on-failure
+C:\msys64\ucrt64\bin\cmake.exe --build build-codex --target validar-arquitetura
+```
+
+Resultados:
+
 - `rg "SDL|SDL_|IMG_|TTF_|Mix_" src/Dominio`: sem ocorrencias.
 - `rg "switch" src/Dominio`: sem ocorrencias.
-- Configuracao CMake em `build-codex`: sucesso.
+- `rg "frame|sprite|animacao|spritesheet|pisc" src/Dominio/Personagem src/Dominio/Animacao`: sem ocorrencias. `src/Dominio/Animacao` existe apenas com `.gitkeep`.
+- `rg "switch" src`: ocorrencias somente em `Apresentacao` e `Infraestrutura`, usadas para evento SDL, animacao visual, icones, cores e mapeamentos de assets/sons.
+- CMake configurou em `build-codex` com sucesso. Houve aviso de `CMAKE_C_COMPILER` nao usado porque o projeto declara apenas linguagem C++.
 - Build de `MiniFazenda2` e `MiniFazenda2Tests`: sucesso.
-- `ctest --test-dir build-codex --output-on-failure`: 1/1 teste passou.
-- `cmake --build build-codex --target validar-arquitetura`: sucesso.
-- Leitura de dimensoes dos PNGs principais: personagem `1250x250`, tiles/plantas `1774x887`, background fallback `3344x1882`.
+- CTest: `1/1` teste passou.
+- Alvo `validar-arquitetura`: sucesso.
 
-Nao foram encontrados problemas criticos de compilacao, inicializacao basica do dominio ou quebra direta da regra "Dominio sem SDL". O principal risco tecnico atual e arquitetural: o dominio ainda carrega conceitos visuais e de assets em alguns pontos, mesmo sem depender fisicamente de SDL.
+Dimensoes conferidas em PNGs principais:
 
-## 2. Mapa das funcionalidades por fluxo
+- `assets/sprites/personagem/Boneco_piscando_olhos.png`: `1250 x 250`, coerente com 5 frames de `250 x 250`.
+- `assets/sprites/tiles/tile_terra_seca.png`: `1774 x 887`.
+- `assets/sprites/tiles/tile_terra_arada.png`: `1774 x 887`.
+- `assets/sprites/tiles/tile_terra_restos.png`: `1774 x 887`.
+- `assets/background/fundo_gramado.png`: `3344 x 1882`.
+- sprites de mirtilo auditados: `1774 x 887`.
 
-### 2.1. Inicializacao
+## 2. Visao geral do estado atual
+
+O MiniFazenda2 esta compilavel, testavel e com a arquitetura em camadas aplicada de forma consistente na parte mais sensivel: o dominio permanece puro, sem SDL, sem renderer, sem textura, sem audio e sem logica visual de personagem.
+
+O ponto de entrada `src/Principal.cpp` hoje faz bootstrap SDL, carrega assets/configuracoes, cria `CenaFazenda` e executa o loop principal. A antiga concentracao de input e cena no `Principal.cpp` foi reduzida: `src/Apresentacao/Cenas/CenaFazenda.hpp` agora concentra a cena principal.
+
+O projeto atual esta funcionalmente centrado em:
+
+- fazenda isometrica com area jogavel inicial `12 x 12`;
+- nucleo inicial de `2 x 2` canteiros;
+- criacao de novos canteiros pela enxada;
+- arar, plantar, crescer, colher, morrer, limpar restos e remover terra;
+- personagem com posicao logica pelos pes e movimento em segmentos;
+- UI com toolbar, loja simples de sementes, HUD e painel de configuracoes;
+- camera com zoom, pan e inercia;
+- assets SDL com fallback parcial;
+- testes de logica e apresentacao pura.
+
+Nao foram encontrados achados criticos. Os principais riscos atuais sao de manutencao e evolucao: `CenaFazenda` tende a crescer, alguns contratos de UX/ferramenta ainda estao implicitos, a ordem visual ainda nao usa uma lista unica por profundidade e a apresentacao conhece estruturas concretas da infraestrutura de assets.
+
+## 3. Mapa das funcionalidades por fluxo
+
+### 3.1. Inicializacao
 
 Inicio: `src/Principal.cpp::main`.
 
 Arquivos envolvidos:
 
-- `Infraestrutura/SDL/ContextoSDL.hpp`
-- `Compartilhado/Constantes.hpp`
-- `Infraestrutura/Assets/LocalizadorDeAssets.hpp`
-- `Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp`
-- `Aplicacao/Servicos/InicializadorDaFazenda.hpp`
+- `src/Infraestrutura/SDL/ContextoSDL.hpp`
+- `src/Infraestrutura/Assets/LocalizadorDeAssets.hpp`
+- `src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp`
+- `src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp`
+- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp`
+- `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
-1. `InicializacaoSDL::inicializar()` chama `SDL_Init`, `IMG_Init`, `TTF_Init` e tenta `Mix_OpenAudio`.
+1. `InicializacaoSDL::inicializar()` inicializa SDL video/audio, SDL_image, SDL_ttf e tenta abrir SDL_mixer.
 2. `Principal.cpp` cria janela e renderer.
-3. Cursor do sistema e ocultado por `CursorOculto`.
-4. Diretorio de assets e localizado.
+3. O cursor do sistema e ocultado.
+4. O diretorio de assets e localizado.
 5. `assets/config.ini` e carregado em `ConfiguracoesDoLayout`.
-6. Estado inicial do jogo e criado.
-7. Recursos visuais, fonte, icone de HUD e musica sao carregados.
+6. O gerenciador de ativos SDL e criado.
+7. A fabrica de plantas fornece especies para loja e catalogo visual.
+8. Recursos da fazenda e HUD sao carregados.
+9. A musica ambiente toca se audio inicializou.
+10. `CenaFazenda` e criada e passa a receber eventos, atualizacao e renderizacao.
 
 Responsabilidades:
 
-- Infraestrutura inicializa bibliotecas externas e localiza arquivos.
-- Aplicacao cria o agregado inicial do jogo.
-- `Principal.cpp` coordena tudo.
+- Infraestrutura inicializa SDL e carrega recursos.
+- Aplicacao cria o estado inicial.
+- Apresentacao conduz a cena.
+- `Principal.cpp` ficou como compositor de alto nivel.
 
-Acoplamento observado:
+### 3.2. Carregamento de assets
 
-- `Principal.cpp` ainda concentra toda a inicializacao e todo o loop.
-- Nao existe `CenaFazenda`, embora a documentacao cite essa extracao como etapa futura.
-
-### 2.2. Carregamento de assets
-
-Inicio: `Principal.cpp`, ao chamar `Assets::carregarRecursosDaFazenda()` e `Assets::carregarRecursosDeHud()`.
+Inicio: `Assets::carregarRecursosDaFazenda()` e `Assets::carregarRecursosDeHud()`.
 
 Arquivos envolvidos:
 
-- `Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp`
-- `Infraestrutura/Assets/LocalizadorDeAssets.hpp`
-- `Infraestrutura/Assets/RecursosDaFazenda.hpp`
-- `Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
-- `Dominio/Plantas/FabricaDePlantas.hpp`
-- `Dominio/Plantas/Planta.hpp`
+- `src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp`
+- `src/Infraestrutura/Assets/LocalizadorDeAssets.hpp`
+- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
+- `src/Infraestrutura/Assets/CatalogoVisualDePlantas.hpp`
+- `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
-- O background vem de `arquivoBackgroundPrincipal`; se nao existir, tenta `background/fundo_gramado.png`.
-- Texturas de terra sao carregadas por estado.
-- Sprites de plantas sao carregados pelo catalogo visual de `Infraestrutura/Assets`, indexado por `identificadorDaSemente`.
-- Ancora de planta e calculada por varredura de pixels opacos.
-- Texturas do personagem sao carregadas por configuracao visual centralizada.
-- Icones de toolbar, sementes, fonte e icone de configuracoes tem fallback parcial.
+- Background tenta o arquivo configurado e depois `background/fundo_gramado.png`.
+- Texturas de terra sao mapeadas por `EstadoVisualDoCanteiro`.
+- Sprites de planta sao resolvidos por catalogo visual externo ao dominio, indexado por `identificadorDaSemente`.
+- Ancora da base da planta e calculada por varredura de pixels opacos.
+- Personagem usa configuracao centralizada de frames, destino e ponto dos pes.
+- Toolbar, sementes, fonte e HUD tem fallback parcial.
+- Sons sao carregados sob demanda.
 
-Acoplamento observado:
+Estado dos fallbacks:
 
-- `Dominio::Plantas::Planta` fornece `identificadorDaSemente`; a resolucao de pasta e arquivos visuais fica no catalogo de assets.
-- `Infraestrutura::Assets::RecursosDaFazenda` depende de `Dominio::Plantas::FabricaDePlantas` para descobrir especies carregaveis.
-- `Apresentacao::Renderizacao` recebe estruturas concretas de `Infraestrutura::Assets`, entao a apresentacao nao esta totalmente isolada de detalhes de infraestrutura.
+- Fundo: fallback verde se nenhuma textura carregar.
+- Terra/planta: fallback vetorial para canteiro/planta.
+- Toolbar/semente/configuracoes: fallback vetorial parcial.
+- Personagem: sem fallback visual; se a textura faltar, o personagem nao e desenhado.
 
-### 2.3. Criacao do estado inicial
+### 3.3. Criacao do estado inicial
 
-Inicio: `Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarEstadoInicialDoJogo`.
-
-Arquivos envolvidos:
-
-- `Aplicacao/Estado/EstadoDoJogo.hpp`
-- `Aplicacao/Servicos/InicializadorDaFazenda.hpp`
-- `Dominio/Grade/GradeGlobalDeCanteiros.hpp`
-- `Dominio/Grade/TileDeTerra.hpp`
-
-Fluxo atual:
-
-- Cria uma `GradeGlobalDeCanteiros`.
-- Ativa um nucleo inicial `2x2`.
-- Define `tamanhoAtualDoGrid` como `TAMANHO_INICIAL_GRID` normalizado.
-- O personagem ja nasce no centro global `(128,128)`, dentro do nucleo inicial ativado.
-
-Estado inicial confirmado pelos testes:
-
-- Sem semente selecionada.
-- Grid atual `12x12`.
-- 4 tiles existentes.
-- 0 canteiros em crescimento.
-
-### 2.4. Renderizacao da fazenda
-
-Inicio: loop de render em `Principal.cpp`.
+Inicio: `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarEstadoInicialDoJogo`.
 
 Arquivos envolvidos:
 
-- `Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`
-- `Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`
-- `Apresentacao/Isometria/Isometrico.hpp`
-- `Apresentacao/Camera/CameraDoJogo.hpp`
-- `Infraestrutura/Assets/RecursosDaFazenda.hpp`
+- `src/Aplicacao/Estado/EstadoDoJogo.hpp`
+- `src/Dominio/Mapa/MapaDaFazenda.hpp`
+- `src/Dominio/Ocupacao/GridDeOcupacao.hpp`
+- `src/Dominio/Jogador/Jogador.hpp`
+- `src/Dominio/Personagem/Personagem.hpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
-1. Desenha fundo.
-2. Itera `grade.posicoesDeTilesExistentes()`.
-3. Filtra tiles fora da grade jogavel atual e fora da tela.
-4. Resolve textura de terra e sprite de planta.
-5. Desenha canteiro, planta, highlight e preview de criacao de terra.
-6. Desenha limite da grade jogavel.
+- Cria `EstadoDoJogo`.
+- Cria `MapaDaFazenda` com nucleo inicial de `2 x 2` canteiros.
+- O nucleo inicial fica em `(127,127)`, `(128,127)`, `(127,128)` e `(128,128)`.
+- O grid jogavel atual inicia em `12`.
+- O jogador inicia com `200` moedas, `0` XP e nivel `1`.
+- O personagem inicia com os pes no centro global `(128,128)`.
 
-Observacoes:
+### 3.4. Renderizacao da fazenda
 
-- O renderizador so itera tiles existentes, o que evita varrer a grade global `256x256`.
-- Existe fallback vetorial para fundo, canteiro, planta e icones.
-- Ha duplicacao entre `estadoVisualTemPlanta()` em apresentacao e `estadoEhFaseVisualDaPlanta()` em infraestrutura.
+Inicio: `CenaFazenda::renderizar()`.
 
-### 2.5. Camera, zoom e pan
+Arquivos envolvidos:
 
-Inicio:
+- `src/Apresentacao/Cenas/CenaFazenda.hpp`
+- `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`
+- `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`
+- `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
+- `src/Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
+- `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
+- `src/Apresentacao/Renderizacao/Cursores/CursorCustomizado.hpp`
 
-- Mouse wheel em `Principal.cpp` chama `Camera::aplicarZoomNoPonto`.
+Fluxo confirmado:
+
+1. Calcula a posicao realcada pelo mouse.
+2. Desenha fundo.
+3. Desenha canteiros existentes dentro da area jogavel.
+4. Desenha personagem.
+5. Desenha limite da grade jogavel.
+6. Desenha preview de criacao de terra.
+7. Desenha toolbar.
+8. Desenha painel da loja se aberto.
+9. Desenha HUD e botao de configuracoes.
+10. Desenha painel de configuracoes se aberto.
+11. Desenha cursor customizado.
+
+Observacao importante:
+
+- Canteiros sao iterados na ordem de `jogo.mapa().entidades()`, nao por profundidade visual.
+- O personagem e desenhado depois da grade inteira, nao em uma lista unica ordenada por base.
+
+### 3.5. Camera, zoom e pan
+
+Arquivos envolvidos:
+
+- `src/Apresentacao/Camera/CameraDoJogo.hpp`
+- `src/Apresentacao/Isometria/Isometrico.hpp`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp`
+
+Fluxo confirmado:
+
+- Mouse wheel aplica zoom no ponto do cursor.
+- Zoom e limitado entre `0.5x` e `2.0x`.
 - Botao direito ou meio inicia pan.
-- Movimento do mouse durante pan chama `Camera::moverPanDaCamera`.
-- Loop chama `Camera::atualizarInerciaDaCamera`.
-
-Arquivos envolvidos:
-
-- `Apresentacao/Camera/CameraDoJogo.hpp`
-- `Apresentacao/Isometria/Isometrico.hpp`
-- `Compartilhado/Constantes.hpp`
-
-Fluxo atual:
-
-- Zoom limitado entre `0.5x` e `2.0x`.
-- Pan limitado por margem minima visivel de 25% da janela.
+- Soltar o botao correspondente finaliza pan.
+- Pan tem velocidade e desaceleracao.
 - HOME recentraliza camera e zoom.
-- F5 recarrega configuracao e recentraliza grade.
+- F5 recarrega configuracoes visuais e fundo.
 
-Riscos visuais:
+Risco visual confirmado por leitura:
 
-- Dimensoes de tile usam `round`, mas varios calculos usam `largura / 2` e `altura / 2` inteiros. A propria documentacao ja registra assimetrias de 1 px em zooms com dimensoes impares.
-- Inercia de pan acumula deslocamento com `static_cast<int>(velocidade * deltaTime)`, podendo perder movimento subpixel e gerar sensacao de travamento ou tremor em velocidades baixas.
+- Dimensoes de tile usam `round`, mas conversoes usam `largura / 2` e `altura / 2` inteiros.
+- A inercia soma `static_cast<int>(velocidade * deltaTime)`, perdendo subpixel em velocidades baixas.
 
-### 2.6. Interface, toolbar e loja
-
-Inicio: eventos de mouse em `Principal.cpp`.
+### 3.6. Interface, toolbar e loja
 
 Arquivos envolvidos:
 
-- `Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
-- `Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
-- `Apresentacao/Renderizacao/UI/IconesDasFerramentas.hpp`
-- `Aplicacao/Estado/EstadoDoJogo.hpp`
+- `src/Apresentacao/Interface/AreaDeInteracao.hpp`
+- `src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp`
+- `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
+- `src/Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
+- `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
-- Toolbar tem 5 botoes: cursor, enxada, remover terra, semente e loja.
-- `processarCliqueNaInterface` altera a ferramenta selecionada via parametro de saida e abre/fecha a loja.
-- Painel da loja lista especies vindas de `FabricaDePlantas::todasAsEspecies()`.
-- Clique em semente seleciona identificador da semente e troca a ferramenta para `Semente`.
+- Toolbar tem cursor, enxada, remover terra, semente e loja.
+- Clique em botao da UI retorna antes de processar mundo.
+- Clique em painel de configuracoes retorna antes de processar mundo.
+- Clique em semente dentro da loja seleciona a semente, troca ferramenta para `Semente` e fecha a loja.
+- Clique dentro do fundo da loja consome o clique.
+- Clique fora do painel da loja, com a loja aberta, cai no fluxo normal de toolbar/mundo.
 
-Comportamento confirmado:
+Contrato confirmado:
 
-- Clique em botao de toolbar interrompe o fluxo e nao move personagem.
-- Clique dentro do painel da loja interrompe o fluxo e nao move personagem.
-- Clique em semente seleciona semente e nao planta diretamente.
+- Clique em UI nao move personagem.
 
-Ponto a observar:
+Contrato implicito:
 
-- Clique fora do painel enquanto a loja esta aberta cai no fluxo normal do mundo; a loja permanece aberta e o personagem pode se mover. Isso pode ser comportamento aceitavel, mas o contrato nao esta documentado nem testado.
+- Com a loja aberta, clique fora do painel pode mover o personagem e manter a loja aberta, dependendo da posicao.
 
-### 2.7. Ferramentas
+### 3.7. Ferramentas
 
-Inicio: `Aplicacao/Servicos/ServicoDeFerramentas.hpp::aplicarFerramentaNoJogo`.
+Inicio: `src/Aplicacao/Servicos/ServicoDeFerramentas.hpp::aplicarFerramentaNoJogo`.
 
 Arquivos envolvidos:
 
-- `Dominio/Ferramentas/Ferramenta.hpp`
-- `Dominio/Ferramentas/RegistroDeFerramentas.hpp`
-- `Dominio/Ferramentas/Enxada.hpp`
-- `Dominio/Ferramentas/FerramentaDeSemente.hpp`
-- `Dominio/Ferramentas/CursorDeColheita.hpp`
-- `Dominio/Ferramentas/RemovedorDeTerra.hpp`
-- `Dominio/Ferramentas/FerramentaDaLoja.hpp`
+- `src/Dominio/Ferramentas/Ferramenta.hpp`
+- `src/Dominio/Ferramentas/RegistroDeFerramentas.hpp`
+- `src/Dominio/Ferramentas/Enxada.hpp`
+- `src/Dominio/Ferramentas/FerramentaDeSemente.hpp`
+- `src/Dominio/Ferramentas/CursorDeColheita.hpp`
+- `src/Dominio/Ferramentas/RemovedorDeTerra.hpp`
+- `src/Dominio/Ferramentas/FerramentaDaLoja.hpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
-- `RegistroDeFerramentas` registra instancias polimorficas.
+- Ferramentas sao polimorficas.
+- `RegistroDeFerramentas` guarda instancias por `TipoDeFerramenta`.
 - Aplicacao monta `ContextoDaFerramenta`.
-- Ferramenta selecionada aplica sua regra.
+- A ferramenta selecionada aplica sua propria regra.
 
 Contratos atuais:
 
-- `Enxada`: cria tile inexistente dentro da area jogavel, limpa `PlantaMorta`/`Restos` ou ara `TerraVazia`.
-- `Semente`: exige canteiro arado, semente selecionada e moedas suficientes.
-- `Cursor`: colhe apenas canteiro maduro.
-- `RemoverTerra`: remove qualquer tile existente dentro da area jogavel.
-- `Loja`: nao altera o dominio.
+- `Cursor`: colhe apenas planta madura e aplica recompensa.
+- `Enxada`: cria canteiro inexistente, limpa planta morta/restos ou ara terra vazia.
+- `Semente`: exige canteiro arado, semente selecionada, planta conhecida e moedas suficientes.
+- `Loja`: nao altera dominio.
+- `RemoverTerra`: remove qualquer canteiro existente dentro da area jogavel, independentemente do estado agricola.
 
-Risco:
-
-- `RemovedorDeTerra` nao diferencia tile vazio, arado, plantado, maduro ou morto. Se isso for intencional, falta explicitar o contrato; se nao for, ele permite perda silenciosa de planta.
-
-### 2.8. Plantio, crescimento e colheita
-
-Inicio:
-
-- Plantio: `FerramentaDeSemente::aplicar`.
-- Crescimento: `ServicoDeTempo::avancarTempoDoJogo`.
-- Colheita: `CursorDeColheita::aplicar`.
+### 3.8. Plantio, crescimento e colheita
 
 Arquivos envolvidos:
 
-- `Dominio/Canteiros/Canteiro.hpp`
-- `Dominio/Plantas/Planta.hpp`
-- `Dominio/Plantas/Especies/PlantaMirtilo.hpp`
-- `Dominio/Grade/GradeGlobalDeCanteiros.hpp`
-- `Dominio/Jogador/Jogador.hpp`
+- `src/Dominio/Canteiros/Canteiro.hpp`
+- `src/Dominio/Canteiros/EstadoDoCanteiro.hpp`
+- `src/Dominio/Plantas/Planta.hpp`
+- `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`
+- `src/Aplicacao/Servicos/ServicoDeTempo.hpp`
+- `src/Dominio/Jogador/Jogador.hpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
-- `Canteiro` e dono das transicoes internas.
-- Planta e polimorfica e define tempos/recompensa.
-- Grade mantem lista de canteiros em crescimento.
-- Servico de tempo consome acumulador em passos de 1 segundo.
-- Ao colher, `Jogador` recebe recompensa e o canteiro passa para `Restos`.
+```text
+TerraVazia -> arar -> TerraArada
+TerraArada -> plantar -> SementePlantada
+SementePlantada -> PlantaCrescendo -> PlantaJovem -> PlantaMadura -> PlantaMorta
+PlantaMadura -> colher -> Restos
+PlantaMorta -> limparPlantaMorta -> Restos
+Restos -> limparRestos -> TerraVazia
+```
 
-Comportamento confirmado por teste:
+Pontos positivos:
 
-- Plantio reduz moedas pelo custo.
-- Crescimento passa por semente, crescendo, jovem, madura e morta.
-- Colheita da planta madura soma moedas e experiencia.
-- Planta morta sai da lista de crescimento.
+- `Canteiro` centraliza transicoes.
+- `Planta` e polimorfica.
+- `PlantaMirtilo` nao conhece sprite, pasta ou textura.
+- Recompensa e aplicada pelo jogador no fluxo de colheita.
+- Lista de canteiros em crescimento evita varrer o mapa inteiro.
 
-### 2.9. Personagem, movimento e animacoes
-
-Inicio:
-
-- Clique em area jogavel chama `jogo.personagem().caminharAte(posicaoNaGrade)`.
-- Loop chama `ServicoDeTempo::avancarTempoDoJogo`.
+### 3.9. Personagem, movimento e animacoes
 
 Arquivos envolvidos:
 
-- `Dominio/Personagem/Personagem.hpp`
-- `Apresentacao/Animacao/AnimadorDoPersonagem.hpp`
-- `Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`
-- `Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
-- `Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
+- `src/Dominio/Personagem/Personagem.hpp`
+- `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`
+- `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`
+- `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
+- `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
-- Posicao logica do personagem representa os pes em coordenadas de grade decimal.
-- Movimento e feito por waypoints em L isometrico.
-- Renderizacao converte a posicao dos pes para tela e ancora o sprite por esse ponto.
-- Idle tem animacao aleatoria na apresentacao.
-- Caminhadas usam configuracao visual de idle como fallback.
+- O dominio guarda estado logico: parado/andando, direcao, posicao decimal dos pes e caminho.
+- Movimento usa caminho em segmentos, em formato de L isometrico.
+- A aplicacao avanca movimento em `ServicoDeTempo`.
+- A apresentacao escolhe animacao visual a partir do estado logico.
+- Idle com piscadas aleatorias fica em apresentacao.
+- Configuracao de sprite, recorte, destino e ponto dos pes fica em infraestrutura de assets.
 
 Contrato preservado:
 
-- A ancora logica pelos pes esta preservada.
+- A ancora logica do personagem continua sendo os pes.
 
-Acoplamento corrigido:
-
-- O dominio do personagem nao possui `AnimacaoVisualDoPersonagem`, indice de frame, piscada ou maquina de spritesheet.
-- A apresentacao escolhe a animacao visual a partir de `estadoAtual()` e `direcaoAtual()`.
-
-### 2.10. HUD, audio e configuracoes
-
-Inicio:
-
-- HUD e desenhada no final do loop de render.
-- Botao de configuracoes e tratado no fluxo de mouse de `Principal.cpp`.
+### 3.10. HUD, audio, configuracoes e encerramento
 
 Arquivos envolvidos:
 
-- `Apresentacao/Renderizacao/UI/HudRenderer.hpp`
-- `Aplicacao/Estado/EstadoDoJogo.hpp`
-- `Infraestrutura/Assets/RecursosDaFazenda.hpp`
-- `Principal.cpp`
+- `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
+- `src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp`
+- `src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp`
+- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
+- `src/Infraestrutura/SDL/ContextoSDL.hpp`
+- `src/Principal.cpp`
 
-Fluxo atual:
+Fluxo confirmado:
 
 - HUD mostra moedas, XP e nivel.
-- Botao de configuracoes abre painel.
-- Painel tem botao de som.
-- Mute altera `EstadoDoJogo::audioMutado` e chama `Mix_Volume`/`Mix_VolumeMusic`.
-- Musica ambiente toca se audio inicializou.
+- Botao de configuracoes abre/fecha painel.
+- Painel de configuracoes controla audio mutado.
+- Mute altera volume de canais e musica.
 - Sons de acao sao mapeados por `AcaoDaFerramenta`.
+- `SDL_QUIT` e ESC encerram a cena.
+- RAII libera musica, sons, fontes, texturas, renderer, janela e subsistemas SDL.
 
-Acoplamento observado:
+## 4. Avaliacao por camada
 
-- Estado de painel de configuracoes e audio mutado ficam em `Aplicacao::EstadoDoJogo`, embora sejam estados de UI/infraestrutura.
-- Hitboxes de configuracoes sao duplicadas entre `Principal.cpp` e `HudRenderer.hpp`.
-
-### 2.11. Encerramento
-
-Inicio:
-
-- `SDL_QUIT` ou tecla `ESC` no loop principal.
-
-Arquivos envolvidos:
-
-- `Principal.cpp`
-- `Infraestrutura/SDL/ContextoSDL.hpp`
-- `Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp`
-
-Fluxo atual:
-
-- Loop define `executando = false`.
-- Objetos RAII liberam texturas, fontes, sons, musicas, renderer, janela, audio, TTF, IMG e SDL.
+### 4.1. Compartilhado
 
 Estado:
 
-- Encerramento esta bem encapsulado por RAII.
+- Puro e sem SDL.
+- Contem posicoes, retangulo logico e constantes.
 
-## 3. Avaliacao por camada
+Ponto fragil:
 
-### 3.1. Compartilhado
+- `Constantes.hpp` mistura janela, background, grade, ocupacao, zoom, pan, personagem e UI. Ainda e administravel, mas tende a virar um ponto global de alteracoes desconectadas.
 
-Arquivos:
-
-- `Compartilhado/Constantes.hpp`
-- `Compartilhado/Geometria/Posicoes.hpp`
+### 4.2. Dominio
 
 Estado:
 
-- Camada simples, pura e sem SDL.
-- Concentra constantes globais e tipos de posicao.
-
-Risco:
-
-- `Constantes.hpp` mistura constantes de janela, grade, camera, personagem e UI. Ainda aceitavel pelo tamanho atual, mas pode virar arquivo de configuracao global dificil de governar.
-
-### 3.2. Dominio
-
-Arquivos principais:
-
-- `Canteiros`, `Ferramentas`, `Grade`, `Jogador`, `Personagem`, `Plantas`.
-
-Estado:
-
-- Nao ha inclusoes de SDL, SDL_image, SDL_ttf ou SDL_mixer.
-- Nao ha `switch` no dominio.
+- Sem SDL, SDL_image, SDL_ttf, SDL_mixer, renderer, textura ou audio.
+- Sem `switch`.
 - Ferramentas e plantas usam polimorfismo.
-- Canteiro centraliza transicoes.
-- Grade protege vetores internos com referencias constantes.
+- `Canteiro` controla transicoes agricolas.
+- `MapaDaFazenda` e a fonte da verdade de entidades.
+- `GridDeOcupacao` e indice espacial interno.
+- Personagem nao contem animacao visual.
 
-Violacoes ou desvios:
+Violacoes confirmadas:
 
-- A dependencia visual do dominio de plantas foi removida; especies expoem apenas dados de gameplay e `identificadorDaSemente`.
-- A dependencia visual do dominio do personagem foi removida; personagem expoe apenas estado logico de movimento.
+- Nenhuma violacao direta da regra "dominio puro" foi encontrada.
 
-Conclusao:
+Pontos de atencao:
 
-- O dominio esta puro em termos de SDL, infraestrutura e semantica visual do personagem.
+- `EstadoDoCanteiro` e `TipoDeFerramenta` sao usados como indices de arrays em bordas externas. O dominio fornece conversores simples, mas as bordas nao validam enum invalido.
 
-### 3.3. Aplicacao
-
-Arquivos:
-
-- `Aplicacao/Estado/EstadoDoJogo.hpp`
-- `Aplicacao/Servicos/InicializadorDaFazenda.hpp`
-- `Aplicacao/Servicos/ServicoDeFerramentas.hpp`
-- `Aplicacao/Servicos/ServicoDeTempo.hpp`
+### 4.3. Aplicacao
 
 Estado:
 
-- Orquestra bem o dominio.
-- Nao depende de SDL.
-- Casos de uso sao pequenos e legiveis.
+- Nao depende de SDL, apresentacao ou infraestrutura.
+- Orquestra estado, ferramentas e tempo.
+- `EstadoDoJogo` separa gameplay de estado de cena; loja, painel e audio mutado ficam em `EstadoDaCenaFazenda`.
 
-Desvios:
+Ponto fragil:
 
-- `EstadoDoJogo` guarda `painelConfiguracoesAberto_` e `audioMutado_`, que sao estados de UI/audio, nao de gameplay.
-- `EstadoDoJogo` expoe acesso mutavel a `grade`, `jogador` e `personagem`; isso facilita integracao, mas amplia a superficie para mutacoes fora dos casos de uso.
+- `EstadoDoJogo` expoe referencias mutaveis para mapa, jogador e personagem. Isso facilita os servicos atuais, mas amplia a superficie de mutacao fora de casos de uso especificos.
 
-### 3.4. Apresentacao
-
-Arquivos:
-
-- Camera, isometria, interface, renderizacao do mundo, UI, HUD e cursor.
+### 4.4. Apresentacao
 
 Estado:
 
-- Desenha a fazenda lendo estado de aplicacao/dominio.
-- Implementa hit-test visual e layout de toolbar.
-- Contem `switch` visuais aceitaveis para cores, icones e mapeamentos.
+- Contem cena, input SDL, camera, isometria, UI, renderizacao, cursor e animacao visual.
+- Pode usar SDL.
+- Le estado de aplicacao/dominio e chama servicos.
 
-Desvios:
+Pontos frageis:
 
-- `RenderizadorDaFazenda.hpp`, `RenderizadorDoPersonagem.hpp` e `BarraDeFerramentasRenderer.hpp` dependem de tipos concretos de `Infraestrutura::Assets`.
-- Existem muitos numeros visuais locais, especialmente em HUD, toolbar, icones vetoriais e fallback de plantas.
+- `CenaFazenda` concentra muitos fluxos da cena.
+- Renderizadores conhecem tipos concretos de `Infraestrutura::Assets`.
+- `AnimadorDoPersonagem` depende de `ConfigVisualDoPersonagem`, que esta em infraestrutura.
+- A ordem de desenho ainda nao e uma lista unica por profundidade.
 
-### 3.5. Infraestrutura
-
-Arquivos:
-
-- SDL, assets, configuracao.
+### 4.5. Infraestrutura
 
 Estado:
 
-- Isola inicializacao SDL e ciclo de vida de recursos.
-- Tem fallback para audio indisponivel, assets ausentes e icones vetoriais.
-- Faz cache de texturas/fontes/sons/musicas.
+- Inicializa SDL e gerencia recursos externos.
+- Carrega textura, fonte, som, musica e config.
+- Usa cache de assets.
+- Resolve catalogo visual de plantas e personagem.
 
-Desvios:
+Pontos frageis:
 
-- `LeitorDeConfiguracao.hpp` depende de `Apresentacao::Camera`.
-- `RecursosDaFazenda.hpp` depende de dominio para mapear estados e especies para assets.
-- Falhas de asset configurado podem ficar silenciosas quando ha fallback existente.
+- `LeitorDeConfiguracao.hpp` depende de `Apresentacao::Camera` para centralizar grade durante leitura.
+- `LocalizadorDeAssets.hpp` e `RecursosDaFazenda.hpp` dependem de tipos de apresentacao.
+- `RecursosDaFazenda.hpp` depende de dominio para mapear especies, estados, ferramentas e sons. Isso e aceitavel como borda de infraestrutura, mas deve permanecer restrito a mapeamento.
 
-## 4. Achados classificados por severidade
+## 5. Achados classificados por severidade
 
 ### Critico
 
@@ -447,638 +439,902 @@ Nenhum achado critico confirmado.
 
 ### Alto
 
-#### A1. Dependencia visual do dominio de plantas corrigida
-
-Arquivo/fluxo:
-
-- `src/Dominio/Plantas/Planta.hpp`
-- `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`
-- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
-- `src/Infraestrutura/Assets/CatalogoVisualDePlantas.hpp`
-
-Estado atual:
-
-- A interface `Planta` expoe somente dados de gameplay e `identificadorDaSemente`.
-- `PlantaMirtilo` nao guarda pasta, sprite, caminho de asset ou convencao visual.
-- A infraestrutura usa `CatalogoVisualDePlantas.hpp` para resolver pasta, arquivos de sprite e icone da semente a partir do identificador.
-
-Por que importa:
-
-- O dominio modela apenas regra de gameplay.
-- A documentacao diz que o dominio deve permanecer sem dependencia visual, e o contrato de plantas agora cumpre esse ponto.
-
-Impacto provavel:
-
-- Adicionar nova planta ainda exige criar a especie no dominio por regra de jogo e cadastrar sua configuracao visual na infraestrutura.
-- Mudancas de pipeline visual ficam concentradas no catalogo visual e no carregamento de assets.
-
-Recomendacao:
-
-- Manter no dominio apenas identificador, nome de gameplay, custo, tempos e recompensa.
-- Manter metadados visuais de planta no catalogo de infraestrutura, indexado por `identificadorDaSemente`.
-
-#### A2. Acoplamento visual do personagem no dominio corrigido
-
-Arquivo/fluxo:
-
-- `src/Dominio/Personagem/Personagem.hpp`
-- `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`
-- `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`
-- `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
-- `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
-
-Status:
-
-- Corrigido. O dominio do personagem expoe apenas estado logico: parado, andando, direcao e posicao dos pes.
-- `AnimacaoVisualDoPersonagem`, indice de frame, piscada e temporizacao visual ficam fora do dominio.
-- A maquina de idle visual vive em `Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`.
-
-Por que importa:
-
-- Trocar spritesheet, numero de frames ou modelo de animacao nao exige mudanca no dominio.
-- Movimento e animacao visual podem ser testados separadamente.
-
-Impacto provavel:
-
-- Novas animacoes de caminhada podem ser adicionadas alterando configuracao visual e apresentacao.
-
-Regra preservada:
-
-- Manter no dominio apenas estado fisico/logico: parado, andando, direcao e posicao dos pes.
+Nenhum achado alto confirmado como erro atual. Existem riscos medios que podem virar altos quando o jogo ganhar mais entidades, salvamento, pathfinding ou economia persistente.
 
 ### Medio
 
-#### M1. `Principal.cpp` concentra cena, eventos, UI, camera, audio e aplicacao
+#### M1. `CenaFazenda` concentra muitos fluxos de runtime
 
 Arquivo/fluxo:
 
-- `src/Principal.cpp`
-- Documentacao em `doc/arquitetura.md`, secao de pontos legados.
+- `src/Apresentacao/Cenas/CenaFazenda.hpp`
 
 Problema:
 
-- O arquivo ainda contem loop SDL completo, roteamento de eventos, regras de bloqueio de UI, camera, loja, configuracoes, audio e chamada de casos de uso.
+- A cena processa eventos SDL, pan/zoom, teclas, loja, painel de configuracoes, audio, clique no mundo, aplicacao de ferramentas, movimento do personagem, atualizacao e renderizacao.
 
 Por que importa:
 
-- A ordem dos `continue` define comportamento funcional importante.
-- Fluxos como "clique em UI nao move personagem" ficam dificeis de testar sem rodar o loop SDL.
+- A ordem dos retornos em `processarCliqueEsquerdo()` define contratos importantes, como "UI nao move personagem".
+- Novas telas, modais, ferramentas e interacoes podem aumentar a chance de regressao.
 
 Impacto provavel:
 
-- Regressao em interacoes ao adicionar menus, novas ferramentas ou novas cenas.
-- Crescimento natural para arquivo central dificil de revisar.
+- Crescimento do arquivo e dificuldade para testar input sem janela SDL.
 
 Recomendacao:
 
-- Extrair uma `CenaFazenda` ou controlador de cena em tarefa separada.
-- Separar roteamento de input, estado de UI transiente e chamada de casos de uso.
+- Extrair em tarefas futuras controladores pequenos de input da cena, painel de configuracoes e loja, mantendo `CenaFazenda` como orquestradora.
 
-#### M2. Estado de UI/audio vive dentro de `EstadoDoJogo`
+#### M2. `RemovedorDeTerra` remove qualquer canteiro sem considerar estado agricola
 
 Arquivo/fluxo:
 
-- `src/Aplicacao/Estado/EstadoDoJogo.hpp`
-- `src/Principal.cpp`
-- `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
+- `src/Dominio/Ferramentas/RemovedorDeTerra.hpp:25`
+- `src/Dominio/Canteiros/Canteiro.hpp`
 
 Problema:
 
-- `painelConfiguracoesAberto_` e `audioMutado_` ficam no estado agregado do jogo.
+- A ferramenta remove o canteiro se ele existir, sem checar se esta vazio, arado, plantado, maduro, morto ou com restos.
 
 Por que importa:
 
-- Esses dados nao sao regra de fazenda, grade, personagem ou economia.
-- Misturam estado de aplicacao/gameplay com estado de apresentacao/infraestrutura.
+- Se isso nao for uma decisao de design, o jogador pode perder uma planta viva ou madura sem confirmacao, custo ou regra explicita.
 
 Impacto provavel:
 
-- Salvamento de jogo, testes de dominio/aplicacao e novas telas podem herdar estado de UI sem querer.
+- Perda silenciosa de progresso e testes insuficientes para contrato destrutivo.
 
 Recomendacao:
 
-- Criar um estado de UI/cena separado para loja, painel de configuracoes e audio.
-- Deixar `EstadoDoJogo` focado em gameplay.
+- Decidir o contrato: remover tudo intencionalmente, remover apenas terra vazia/arada, ou exigir estado seguro/confirmacao. Depois documentar e testar.
 
-#### M3. Hitboxes de configuracoes sao duplicadas entre render e input
+#### M3. Loja aberta permite clique fora cair no mundo
 
 Arquivo/fluxo:
 
-- `src/Principal.cpp::calcularAreaDoBotaoConfiguracoes`
-- `src/Principal.cpp::calcularAreaDoPainelConfiguracoes`
-- `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp:253`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp:278`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp:309`
 
 Problema:
 
-- O mesmo layout do botao/painel de configuracoes existe no renderizador e em funcoes locais do `Principal.cpp`.
+- Se a loja esta aberta e o clique nao acerta uma semente nem o fundo do painel, o fluxo continua para toolbar/mundo.
 
 Por que importa:
 
-- Uma alteracao visual no HUD pode deixar a area clicavel divergente da area desenhada.
+- Hoje isso pode mover o personagem enquanto a ferramenta selecionada e `Loja`, que nao aplica acao. Pode ser aceitavel, mas e um contrato implicito e sem teste especifico.
 
 Impacto provavel:
 
-- Clique aparentemente correto pode falhar, ou clique fora do painel pode ser tratado como dentro.
+- UX inconsistente quando a loja tiver mais opcoes, precos, detalhes ou bloqueio de mundo.
 
 Recomendacao:
 
-- Centralizar layout de configuracoes em uma estrutura compartilhada pela renderizacao e pelo input.
+- Definir se clique fora fecha a loja, bloqueia o mundo ou permite interagir com o mundo. Registrar e cobrir com teste de fluxo de input.
 
-#### M4. `deslocamentoGradeHorizontal/Vertical` do `config.ini` sao lidos e depois sobrescritos
-
-Arquivo/fluxo:
-
-- `assets/config.ini`
-- `src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp`
-- `src/Principal.cpp`
-
-Problema:
-
-- O leitor aplica `deslocamentoGradeHorizontal` e `deslocamentoGradeVertical`, mas logo depois chama `Camera::aplicarOrigemCentradaDaGrade`, sobrescrevendo os valores.
-- O `config.ini` atual usa exatamente essas chaves.
-
-Por que importa:
-
-- Quem editar o `config.ini` pode esperar que esses campos reposicionem a grade, mas eles nao produzem efeito final.
-
-Impacto provavel:
-
-- F5 parece recarregar configuracao, mas parte da configuracao visual e ignorada.
-
-Recomendacao:
-
-- Remover essas chaves se a centralizacao for o contrato atual, ou trocar para `origemGradeHorizontal/Vertical` e documentar a precedencia.
-
-#### M5. Testes usam `assert`, que pode ser desabilitado por `NDEBUG`
+#### M4. Apresentacao conhece estruturas concretas da infraestrutura de assets
 
 Arquivo/fluxo:
 
-- `tests/TestesLogica.cpp`
-- `CMakeLists.txt`
-
-Problema:
-
-- Todas as verificacoes de teste usam `assert`.
-- Em build Release com `NDEBUG`, as assercoes podem ser removidas.
-
-Por que importa:
-
-- O binario de teste pode passar sem validar comportamento.
-
-Impacto provavel:
-
-- Falsa confianca em CI ou build local Release.
-
-Recomendacao:
-
-- Migrar testes para uma macro propria que nao dependa de `assert` ou adotar um framework leve de teste.
-
-#### M6. Apresentacao depende de tipos concretos de infraestrutura de assets
-
-Arquivo/fluxo:
-
+- `src/Apresentacao/Cenas/CenaFazenda.hpp`
 - `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`
 - `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`
 - `src/Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
+- `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`
+
+Problema:
+
+- Renderizadores e animacao visual dependem de tipos como `RecursosDaFazenda`, `SpriteDaPlanta`, `TexturasDoPersonagem` e `ConfigVisualDoPersonagem`.
+
+Por que importa:
+
+- A camada de apresentacao fica acoplada ao formato interno do carregamento de assets.
+
+Impacto provavel:
+
+- Trocar backend de assets, carregar pacotes, skins ou mocks de renderizacao fica mais caro.
+
+Recomendacao:
+
+- Em uma evolucao futura, criar DTOs de apresentacao para recursos renderizaveis ou uma interface estreita de consulta visual.
+
+#### M5. Infraestrutura depende de apresentacao para carregar configuracao
+
+Arquivo/fluxo:
+
+- `src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp`
+- `src/Infraestrutura/Assets/LocalizadorDeAssets.hpp`
 - `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
 
 Problema:
 
-- Renderizadores recebem e manipulam tipos definidos em `Infraestrutura::Assets`.
+- O leitor de configuracao chama `Apresentacao::Camera::aplicarOrigemCentradaDaGrade()` durante a leitura.
 
 Por que importa:
 
-- A apresentacao fica acoplada ao formato de cache/carregamento dos assets.
+- Carregar arquivo e decidir layout/camera sao responsabilidades diferentes. A dependencia e permitida pela documentacao atual, mas torna o fluxo menos previsivel.
 
 Impacto provavel:
 
-- Alterar gerenciamento de assets pode exigir alteracao em renderizadores.
+- Dificuldade para testar config isoladamente e risco de precedencia confusa entre valores do `config.ini` e centralizacao automatica.
 
 Recomendacao:
 
-- Em uma etapa futura, considerar um catalogo visual/DTO de apresentacao ou interfaces mais estreitas para texturas e metadados.
+- Separar leitura crua do arquivo de uma etapa de normalizacao/aplicacao de layout feita pela apresentacao ou pela cena.
 
-#### M7. Contrato do `RemovedorDeTerra` e amplo demais ou pouco documentado
+#### M6. Ordem de desenho ainda nao usa profundidade unica
 
 Arquivo/fluxo:
 
-- `src/Dominio/Ferramentas/RemovedorDeTerra.hpp`
-- `src/Dominio/Grade/GradeGlobalDeCanteiros.hpp`
+- `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp:148`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp:115`
+- `src/Apresentacao/Cenas/CenaFazenda.hpp:123`
 
 Problema:
 
-- A ferramenta remove qualquer tile existente dentro da area jogavel, independentemente do estado do canteiro.
+- Canteiros sao desenhados na ordem de entidades do mapa; personagem e desenhado depois da grade inteira.
 
 Por que importa:
 
-- Pode apagar planta em crescimento ou madura sem regra explicita de confirmacao/custo/penalidade.
+- Em isometria, sobreposicao correta deve considerar a base/profundidade. O dominio ja calcula `profundidadeDaBase()`, mas a apresentacao ainda nao monta uma lista unica de renderizaveis.
 
 Impacto provavel:
 
-- Caso o design espere restricao, ha perda silenciosa de progresso do jogador.
+- Arvores, casas, animais, decoracoes e personagem podem ficar na frente/atras em ordem errada quando forem adicionados.
 
 Recomendacao:
 
-- Decidir o contrato de design: remover tudo e intencional, ou apenas terra vazia/arada/morta.
-- Se for intencional, documentar e testar.
+- Criar uma fila de renderizaveis na apresentacao, com base logica e profundidade, incluindo canteiro, planta, personagem e futuros objetos.
 
-#### M8. Fluxo de input da loja tem comportamento nao documentado fora do painel
+#### M7. Configuracao de origem da grade tem precedencia confusa
 
 Arquivo/fluxo:
 
-- `src/Principal.cpp`
-- `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
+- `assets/config.ini:2`
+- `src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp:93`
+- `src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp:95`
 
 Problema:
 
-- Com a loja aberta, clique fora do painel continua para o fluxo do mundo; o personagem pode andar e a loja continua aberta.
+- `deslocamentoGradeHorizontal` e `deslocamentoGradeVertical` sao lidos, mas logo depois a origem e sobrescrita por `aplicarOrigemCentradaDaGrade()`. Somente `origemGradeHorizontal` e `origemGradeVertical`, se existirem, vencem depois disso.
 
 Por que importa:
 
-- Pode ser intencional, mas nao esta documentado nem testado.
+- O `config.ini` parece aceitar um ajuste que, na pratica atual, nao tem efeito final.
 
 Impacto provavel:
 
-- Regressao de UX quando a loja ganhar mais opcoes ou bloquear interacao do mundo.
+- Ajustes visuais feitos no arquivo podem parecer quebrados.
 
 Recomendacao:
 
-- Definir o contrato: clique fora fecha loja, bloqueia mundo, ou permite jogar com loja aberta.
-- Adicionar teste ou extrair roteamento de input para validar.
+- Remover chaves obsoletas, renomear para as chaves efetivas ou documentar explicitamente que a centralizacao vence.
+
+#### M8. Arredondamento inteiro em zoom/pan pode gerar tremor ou perda de movimento
+
+Arquivo/fluxo:
+
+- `src/Apresentacao/Camera/CameraDoJogo.hpp:44`
+- `src/Apresentacao/Camera/CameraDoJogo.hpp:165`
+- `src/Apresentacao/Camera/CameraDoJogo.hpp:222`
+- `src/Apresentacao/Isometria/Isometrico.hpp:23`
+- `src/Apresentacao/Isometria/Isometrico.hpp:38`
+
+Problema:
+
+- Zoom usa dimensoes arredondadas e conversoes inteiras. Inercia de pan converte deslocamento por frame para `int`.
+
+Por que importa:
+
+- Em velocidades baixas, movimento subpixel pode ser descartado. Em alguns zooms, metades impares podem ficar truncadas.
+
+Impacto provavel:
+
+- Sensacao de pan travado/tremido ou pequenas assimetrias visuais.
+
+Recomendacao:
+
+- Se o problema aparecer visualmente, manter offset acumulado em `float` e converter para inteiro apenas no desenho.
+
+#### M9. Falhas de asset sao cacheadas como `nullptr`
+
+Arquivo/fluxo:
+
+- `src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp:38`
+- `src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp:61`
+- `src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp:79`
+- `src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp:97`
+
+Problema:
+
+- Quando textura, fonte, som ou musica falham, a chave e salva no cache com `nullptr`.
+
+Por que importa:
+
+- Durante hot reload visual, se o arquivo aparecer ou for corrigido depois da primeira falha, a mesma execucao nao tenta recarregar aquele caminho.
+
+Impacto provavel:
+
+- F5 pode nao recuperar assets corrigidos sem reiniciar o jogo.
+
+Recomendacao:
+
+- Nao cachear falhas permanentes, ou fornecer uma funcao de invalidacao/reload para desenvolvimento.
 
 ### Baixo
 
-#### B1. `assets/config.ini` aponta para background inexistente
+#### B1. Background configurado nao existe como arquivo principal
 
 Arquivo/fluxo:
 
-- `assets/config.ini`
-- `src/Infraestrutura/Assets/LocalizadorDeAssets.hpp`
-- `assets/background/fundo_gramado.png`
+- `assets/config.ini:8`
+- `src/Apresentacao/ConfiguracoesDoLayout.hpp:15`
+- `src/Infraestrutura/Assets/LocalizadorDeAssets.hpp:74`
 
 Problema:
 
-- `arquivoBackgroundPrincipal = background.png`, mas nao existe `assets/background/background.png`.
-- O jogo usa `background/fundo_gramado.png` como fallback.
+- `arquivoBackgroundPrincipal = background.png`, que vira `assets/background/background.png`, mas o asset real usado e o fallback `assets/background/fundo_gramado.png`.
 
 Por que importa:
 
-- A configuracao ativa nao representa o asset realmente usado.
+- A configuracao ativa nao descreve o asset efetivamente usado.
 
 Impacto provavel:
 
-- Confusao ao trocar arte de fundo; fallback mascara erro de configuracao.
+- Confusao ao trocar o fundo.
 
 Recomendacao:
 
-- Atualizar `config.ini` para o arquivo real ou adicionar log quando o configurado nao existir e fallback for usado.
+- Atualizar o `config.ini` para `fundo_gramado.png` ou tornar o log de fallback mais explicito.
 
-#### B2. Comentario de recompensa do mirtilo contradiz o codigo
+#### B2. Personagem nao tem fallback visual
 
 Arquivo/fluxo:
 
-- `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`
+- `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp:120`
 
 Problema:
 
-- O codigo retorna `RecompensaDaColheita{35,3}`, mas o comentario diz "40 moedas e 10 de experiencia".
+- Se a textura do personagem faltar, `desenharPersonagem()` apenas retorna.
 
 Por que importa:
 
-- Comentarios incorretos confundem balanceamento e testes.
+- Outros elementos principais tem fallback visual; o personagem pode sumir sem representacao substituta.
 
 Impacto provavel:
 
-- Ajustes de economia podem partir de premissa errada.
+- Dificuldade de diagnostico visual em ambiente sem asset.
 
 Recomendacao:
 
-- Corrigir comentario ou revisar valor real desejado em tarefa pequena separada.
+- Adicionar fallback simples de debug ou log mais destacado ao carregar textura ausente.
 
-#### B3. Contrato de `PlantaMorta` e `Restos` corrigido
-
-Arquivo/fluxo:
-
-- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
-- `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`
-- `assets/sprites/tiles/tile_terra_restos.png`
-
-Estado corrigido:
-
-- `PlantaMorta` continua sendo fase visual de planta: base `tile_terra_arada.png` mais sprite de planta morta.
-- `Restos` virou estado proprio do canteiro e usa exclusivamente `tile_terra_restos.png`.
-- Colher planta madura e limpar planta morta levam o canteiro para `Restos`.
-- O novo plantio exige limpar `Restos`, arar novamente e so entao plantar.
-
-#### B4. Duplicacao de mapeamento de fase visual de planta
+#### B3. Arrays indexados por enum nao validam valores invalidos
 
 Arquivo/fluxo:
 
-- `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`
-- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
+- `src/Dominio/Ferramentas/RegistroDeFerramentas.hpp:24`
+- `src/Dominio/Ferramentas/TipoDeFerramenta.hpp:17`
+- `src/Dominio/Canteiros/EstadoDoCanteiro.hpp:20`
+- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp:49`
 
 Problema:
 
-- Ha funcoes separadas para responder se um estado visual possui planta.
+- Conversores fazem `static_cast<std::size_t>` e os arrays usam o indice diretamente.
 
 Por que importa:
 
-- Novos estados de canteiro podem ser atualizados em um lugar e esquecidos em outro.
+- Hoje os valores sao controlados, mas casts futuros ou dados carregados de arquivo podem gerar indice invalido.
 
 Impacto provavel:
 
-- Divergencia entre fallback visual e carregamento de sprite.
+- Acesso fora de faixa se enum invalido entrar em bordas.
 
 Recomendacao:
 
-- Centralizar esse mapeamento em uma funcao de borda visual unica.
+- Manter enums internos controlados ou criar validadores antes de usar valores vindos de fora.
 
-#### B5. `verificarCliqueNoBotao` usava limite direito/inferior inclusivo
-
-Arquivo/fluxo:
-
-- `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
-
-Situacao atual:
-
-- Corrigido: o hit-test usa retangulos semiabertos, com `x <= ponto < x + largura` e `y <= ponto < y + altura`.
-
-Por que importa:
-
-- Em retangulos adjacentes, isso pode criar sobreposicao de 1 px.
-
-Impacto provavel:
-
-- Baixo hoje, porque a toolbar tem espacamento.
-
-Resolucao:
-
-- O contrato foi centralizado em `AreaDeInteracao.hpp::pontoEstaNoRetanguloSemiaberto`.
-- `verificarCliqueNoBotao` delega para esse contrato compartilhado.
-
-#### B6. `remover_fundo.py` usa caminho absoluto antigo
+#### B4. Acumulador de tempo avanca crescimento segundo a segundo
 
 Arquivo/fluxo:
 
-- `remover_fundo.py`
+- `src/Aplicacao/Servicos/ServicoDeTempo.hpp:63`
 
 Problema:
 
-- O script aponta para `C:\dev\MiniFazenda\assets\...`, nao para o workspace atual.
+- `avancarTempoDoJogo()` consome o acumulador em passos de 1 segundo.
 
 Por que importa:
 
-- Executar o script como esta pode nao processar o asset esperado.
+- Funciona no jogo atual e passou nos testes, mas deltas grandes ou muitos canteiros podem custar caro.
 
 Impacto provavel:
 
-- Baixo no jogo, medio para pipeline manual de arte.
+- Performance ruim se houver fast-forward, pausa longa, offline progress ou muitos cultivos.
 
 Recomendacao:
 
-- Parametrizar caminho ou resolver a partir da raiz do projeto.
+- Manter por simplicidade agora; revisar quando houver simulacao acelerada ou persistencia de tempo.
 
-#### B7. Configuracao do VS Code desativa squiggles de C/C++
+#### B5. `Constantes.hpp` concentra dominios diferentes
 
 Arquivo/fluxo:
 
-- `.vscode/settings.json`
+- `src/Compartilhado/Constantes.hpp`
 
 Problema:
 
-- `C_Cpp.errorSquiggles` esta desabilitado.
+- O arquivo mistura constantes de janela, fundo, grade, ocupacao, camera, personagem e UI.
 
 Por que importa:
 
-- O editor pode deixar de mostrar erros locais de include/tipos.
+- Mudancas de areas diferentes passam pelo mesmo arquivo global.
 
 Impacto provavel:
 
-- Baixo se build/testes forem usados com disciplina.
+- Conflitos e dificuldade de governanca se o projeto crescer.
 
 Recomendacao:
 
-- Manter build e testes como fonte de verdade; reavaliar a configuracao se a equipe depender de IntelliSense.
+- Separar gradualmente por assunto quando a quantidade de constantes aumentar.
 
 ### Observacoes
 
-#### O1. Assets existentes nao significam funcionalidades implementadas
+#### O1. `AcelerarCrescimento` existe sem fluxo de UI/ferramenta
 
-Ha assets de animais, varios sons e sprites de UI que nao sao referenciados pelo codigo atual. Exemplos: animais, `plant.mp3`, `water.wav`, `levelup.wav`, `mission_complete.wav`, `pesticide.wav`, `sell.wav`, `cow.wav`, `chicken.wav`, `sheep.wav`, `dog_bark.wav`.
+Arquivos:
 
-Isso nao e erro, mas deve ser tratado como backlog de asset, nao como feature ativa.
+- `src/Dominio/Ferramentas/ResultadoDaFerramenta.hpp`
+- `src/Dominio/Canteiros/Canteiro.hpp`
+- `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
 
-#### O2. `AcelerarCrescimento` existe sem fluxo atual
+`AcaoDaFerramenta::AcelerarCrescimento`, `Canteiro::acelerarParaMadura()` e som associado existem, mas nao ha ferramenta ou UI chamando esse fluxo.
 
-`AcaoDaFerramenta::AcelerarCrescimento`, som `gift_open.wav` e `Canteiro::acelerarParaMadura()` existem, mas nao ha ferramenta ou UI chamando esse fluxo.
+#### O2. Assets existentes nao significam funcionalidades implementadas
 
-#### O3. README usa caminho generico antigo
+Ha sprites e sons de animais, venda, agua, pesticida, missoes e outros eventos que nao aparecem como feature ativa no codigo atual. Isso deve ser tratado como backlog de asset.
 
-O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazenda 2`. Isso e comum em docs locais, mas pode confundir novos ambientes.
+#### O3. `.vscode/tasks.json` e util, mas usa comandos diretos
 
-## 5. Divergencias entre documentacao e codigo
+As tasks chamam `ninja.exe` diretamente e uma task limpa `build` via `cmd.exe`. Isso e aceitavel como ferramenta local, mas a fonte de verdade de build continua sendo CMake/CTest.
 
-1. Corrigido: `doc/arquitetura.md` afirma que o dominio deve ficar sem dependencia visual, e o dominio do personagem agora cumpre esse contrato.
+## 6. Divergencias entre documentacao e codigo
 
-2. `doc/arquitetura.md` lista uma futura extracao de `CenaFazenda`. O codigo atual ainda nao possui `CenaFazenda`; `Principal.cpp` concentra a cena.
+1. `doc/auditoria_tasks.md` anterior estava desatualizado e foi substituido por esta segunda auditoria.
 
-3. `doc/Tamanhos.md` registra `background.png` como arquivo configurado e `fundo_gramado.png` como fallback. O `config.ini` realmente aponta para `background.png`, mas esse arquivo nao existe nos assets; portanto o fallback e o background real atual.
+2. A auditoria anterior dizia que `Principal.cpp` concentrava a cena e que `CenaFazenda` nao existia. Codigo atual tem `src/Apresentacao/Cenas/CenaFazenda.hpp`; `Principal.cpp` agora faz bootstrap e loop de alto nivel.
 
-4. `assets/config.ini` usa `deslocamentoGradeHorizontal/Vertical`, mas o leitor sobrescreve esses campos com centralizacao automatica antes do uso final.
+3. A auditoria anterior citava `Dominio/Grade/GradeGlobalDeCanteiros.hpp` e `TileDeTerra`. Codigo atual usa `Dominio/Mapa/MapaDaFazenda.hpp` e `Dominio/Ocupacao/GridDeOcupacao.hpp`.
 
-5. A recompensa de `PlantaMirtilo.hpp` esta documentada no proprio retorno como `{35,3}`.
+4. `doc/arquitetura.md` esta majoritariamente alinhado ao codigo atual: dominio puro, personagem sem animacao visual no dominio, `EstadoDaCenaFazenda` separado e `CenaFazenda` como cena de borda.
 
-6. Corrigido: a animacao idle real sorteia tempos em `Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`, fora do dominio.
+5. `doc/Tamanhos.md` registra `background.png` como arquivo configurado e `fundo_gramado.png` como fallback. Isso bate com o codigo, mas o arquivo configurado nao existe nos assets atuais; logo, o fundo real e o fallback.
 
-## 6. Pontos fortes
+6. `assets/config.ini` usa `deslocamentoGradeHorizontal/Vertical`, mas o leitor sobrescreve esses valores com centralizacao automatica antes do uso final, salvo se `origemGradeHorizontal/Vertical` tambem forem informados.
 
-- Dominio nao inclui SDL, SDL_image, SDL_ttf ou SDL_mixer.
-- Nao ha `switch` no dominio.
-- Ferramentas estao bem separadas por polimorfismo.
-- Plantas usam classe base polimorfica.
-- Canteiro centraliza transicoes importantes.
-- Grade evita varrer `256x256` na renderizacao ao manter listas de tiles ativos/crescimento.
-- RAII de SDL, renderer, janela, cursor e assets esta simples e efetivo.
-- Teste atual cobre fluxo de plantio, crescimento, colheita, remocao, movimento, hit-test isometrico, camera e loja.
-- Assets principais de personagem e tiles batem com configuracoes documentadas.
-- CMake inclui headers automaticamente e possui alvo de validacao arquitetural.
+7. `README.md` esta coerente com o CMake atual e os comandos UCRT64. O unico detalhe observado foi o aviso de `CMAKE_C_COMPILER` nao usado porque o projeto declara apenas C++.
 
-## 7. Pontos frageis
+## 7. Pontos fortes
 
-- `Principal.cpp` e o centro de quase todos os fluxos de runtime.
-- Estado de animacao visual do personagem ainda fica no loop principal, ate uma futura extracao de cena.
-- Estado de UI/audio esta junto do estado de gameplay.
-- Renderizadores conhecem estruturas concretas de infraestrutura de assets.
-- Testes dependem de `assert`.
-- Fluxo de input real do `Principal.cpp` nao tem teste automatizado.
-- Fallbacks de asset podem esconder configuracao errada.
-- Algumas convencoes visuais estao espalhadas em switches e numeros locais.
-- Zoom/pan usam arredondamentos inteiros em varios pontos.
+- Dominio sem SDL, renderer, textura e audio.
+- Dominio sem `switch`.
+- Ferramentas polimorficas.
+- Plantas polimorficas e sem metadados visuais no dominio.
+- `Canteiro` centraliza transicoes agricolas.
+- `MapaDaFazenda` e `GridDeOcupacao` separam entidade real e indice espacial.
+- Personagem mantem ancora logica pelos pes.
+- Animacao visual do personagem esta fora do dominio.
+- Estado de cena/UI esta separado de `EstadoDoJogo`.
+- `Principal.cpp` esta mais enxuto que a auditoria anterior descrevia.
+- RAII de SDL/assets esta simples e efetivo.
+- Build, testes e validacao arquitetural passam.
+- Testes cobrem plantio, crescimento, colheita, restos, morte, remocao, camera, hit-test, loja, personagem e animacao idle.
+- Assets principais conferidos batem com os contratos de recorte/escala mais importantes.
 
-## 8. Riscos futuros
+## 8. Pontos frageis
 
-1. Ao adicionar novas plantas, o risco principal e esquecer o cadastro correspondente no catalogo visual de infraestrutura.
-2. Ao adicionar novas animacoes, o risco principal e esquecer de ajustar a configuracao visual ou o modo de reproducao da apresentacao.
-3. Ao adicionar novas telas, `Principal.cpp` pode se tornar o gargalo de manutencao.
-4. Ao adicionar salvamento, `EstadoDoJogo` pode persistir indevidamente estado de UI/audio.
-5. Ao adicionar CI Release, testes com `assert` podem virar falsos positivos.
-6. Ao trocar assets, `background.png` ausente e fallbacks silenciosos podem mascarar erros.
-7. Ao adicionar estados de canteiro, mapeamentos duplicados podem divergir.
-8. Ao refinar camera, arredondamento inteiro pode causar drift visual ou pan irregular.
+- `CenaFazenda` tende a acumular muitas responsabilidades de cena.
+- Contrato de `RemovedorDeTerra` e destrutivo e ainda pouco explicito.
+- Contrato da loja aberta ao clicar fora do painel nao esta documentado/testado.
+- Renderizacao ainda nao ordena tudo por profundidade.
+- Apresentacao depende de tipos concretos de infraestrutura de assets.
+- Infraestrutura aplica centralizacao de camera durante leitura de configuracao.
+- Fallback de personagem e mais fraco que fallback de canteiros/plantas.
+- Hot reload visual pode nao se recuperar de falha de asset cacheada como `nullptr`.
+- Arredondamentos inteiros de camera/isometria podem gerar pequenos artefatos.
+- `Constantes.hpp` mistura assuntos de varias partes do jogo.
 
-## 9. Recomendacoes priorizadas
+## 9. Riscos futuros
+
+1. Novas entidades altas podem quebrar sobreposicao visual sem fila de profundidade.
+2. Novas ferramentas podem aumentar ambiguidade de clique se o roteamento de input continuar concentrado.
+3. Loja mais complexa pode ter comportamento confuso se clique fora continuar caindo no mundo.
+4. Salvamento ou replay pode sofrer com mutacoes diretas demais em `EstadoDoJogo`.
+5. Skins, pacotes de asset ou mocks visuais serao mais dificeis com apresentacao acoplada a `Infraestrutura::Assets`.
+6. Hot reload de asset pode exigir reinicio se uma falha ja foi cacheada.
+7. Tempo acelerado/offline pode tornar o crescimento segundo a segundo caro.
+8. Novos valores de enum vindos de configuracao podem expor acessos fora de faixa.
+
+## 10. Recomendacoes priorizadas
 
 ### Prioridade 1
 
-1. Manter o contrato novo de plantas: dominio fornece `identificadorDaSemente`, catalogo visual externo resolve assets.
-2. Separar estado de UI/audio de `EstadoDoJogo`.
-3. Extrair o roteamento de input ou iniciar a `CenaFazenda`, mantendo comportamento atual.
-4. Trocar testes baseados em `assert` por verificacoes sempre ativas.
+1. Definir e documentar o contrato do `RemovedorDeTerra`.
+2. Definir o comportamento da loja aberta quando o jogador clica fora do painel.
+3. Adicionar testes focados nesses dois contratos de input/ferramenta, preferencialmente sem abrir janela SDL.
 
 ### Prioridade 2
 
-5. Definir contrato de loja aberta e clique fora do painel.
-6. Centralizar layout/hitbox do painel de configuracoes.
-7. Corrigir precedencia das chaves de layout do `config.ini`.
-8. Decidir se `RemovedorDeTerra` pode apagar plantas vivas.
+4. Extrair partes de `CenaFazenda`: roteamento de input, painel de configuracoes e loja.
+5. Criar fila de renderizaveis por profundidade, incluindo personagem.
+6. Separar leitura de configuracao da aplicacao de centralizacao/layout.
+7. Corrigir `config.ini` para apontar para o fundo real ou explicitar o fallback.
 
 ### Prioridade 3
 
-9. Corrigir comentario da recompensa do mirtilo.
-10. Atualizar `arquivoBackgroundPrincipal` para asset real ou logar fallback.
-11. Manter o contrato corrigido de `PlantaMorta` e `Restos`.
-12. Parametrizar `remover_fundo.py`.
-13. Reduzir duplicacao de mapeamentos visuais de fase de planta.
+8. Criar DTO/interface estreita de recursos visuais para reduzir acoplamento entre apresentacao e infraestrutura.
+9. Revisar cache de falhas de assets para melhorar hot reload.
+10. Adicionar fallback visual simples para personagem ausente.
+11. Revisar camera/isometria com acumuladores subpixel se houver tremor visual real.
+12. Separar constantes por assunto quando o arquivo voltar a crescer.
 
-## 10. Proximos passos sugeridos
+## 11. Proximas tasks sugeridas
 
-1. Task pequena: corrigir divergencias documentais e de configuracao sem mudar gameplay (background configurado, README/caminho, script auxiliar).
-2. Task de arquitetura de plantas concluida: catalogo visual em infraestrutura, dominio fornece apenas `identificadorDaSemente`.
-3. Task de estado: separar `EstadoDaInterface` ou `EstadoDaCenaFazenda` de `EstadoDoJogo`.
-4. Task de input: extrair `CenaFazenda` ou controlador de input, cobrindo toolbar, loja, painel e mundo.
-5. Task de testes: substituir `assert` por checagens sempre ativas e adicionar cobertura do fluxo de input sem SDL real quando possivel.
-6. Task visual: revisar arredondamento de zoom/pan e centralizar contratos de layout/hitbox.
+Ordem sugerida:
 
-## 11. Limitacoes da auditoria
+1. Task de contrato de gameplay: `RemovedorDeTerra` e loja aberta.
+2. Task de testes de input puro: cobrir toolbar, loja, painel, mundo e movimento.
+3. Task de organizacao de cena: quebrar `CenaFazenda` em controladores menores.
+4. Task visual: fila unica de profundidade para mundo/personagem/objetos futuros.
+5. Task de configuracao/assets: ajustar background, precedencia de config e cache de falhas.
+6. Task de desacoplamento: DTOs de recursos visuais para renderizadores.
+7. Task de polimento de camera: revisar arredondamentos apenas se houver sintoma visual.
 
-- Nao executei o jogo interativamente em janela.
-- Nao capturei screenshot nem validei visual final por pixel.
-- Nao testei audio em dispositivo real; apenas build e caminhos/mapeamentos.
-- Nao criei novos testes, conforme solicitado.
-- Nao refatorei nem corrigi codigo funcional.
-- A analise visual foi feita por leitura de codigo, verificacao de dimensoes dos PNGs e comparacao com documentacao.
+## 12. Limitacoes da auditoria
+
+- O jogo nao foi executado interativamente em janela.
+- Nao houve captura de screenshot nem validacao por pixel.
+- Audio nao foi validado em dispositivo real.
+- Nao foram criados testes novos, conforme foco solicitado para diagnostico/documentacao.
+- Nao foram usados sanitizers, analisadores estaticos externos ou profiling.
+- A avaliacao visual foi feita por leitura de codigo, dimensoes dos PNGs principais e comparacao com os contratos documentados.
+
+Tasks:
 
 
-----------------------------------------------------
+1. Definir contrato do RemovedorDeTerra
 
-## 12. Tasks:
+corrigir:
+Hoje o removedor apaga qualquer canteiro existente, inclusive plantado, maduro, morto ou com restos. Definir uma regra oficial para a ferramenta.
 
-1. **Remover dependência visual do domínio de plantas** (CONCLUIDO)
-   **corrigido:** Planta nao sabe nome de pasta, sprite ou convencao visual. O dominio fornece `identificadorDaSemente`; o catalogo visual externo resolve pasta, sprites e icone.
-   **onde:** `src/Dominio/Plantas/Planta.hpp`, `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`, `src/Infraestrutura/Assets/CatalogoVisualDePlantas.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
-   **prioridade:** Alta
+Regra recomendada:
+- Remover apenas canteiro vazio, arado ou com restos.
+- Bloquear remoção de planta viva, planta crescendo e planta madura.
+- Para planta morta, decidir se a enxada limpa ou se o removedor também pode remover.
 
-2. **Remover lógica visual da animação do personagem no domínio** (CONCLUIDO)
-   **corrigido:** O domínio guarda apenas estado lógico: parado, andando, direção, caminho e posição dos pés. Índice de frame, piscada, tempo visual e spritesheet foram movidos para apresentação/infraestrutura.
-   **onde:** `src/Dominio/Personagem/Personagem.hpp`, `src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp`, `src/Apresentacao/Animacao/AnimacaoIdleDoPersonagem.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`, `src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp`
-   **prioridade:** Alta
+onde:
+src/Dominio/Ferramentas/RemovedorDeTerra.hpp
+src/Dominio/Canteiros/Canteiro.hpp
+src/Dominio/Mapa/MapaDaFazenda.hpp
 
-3. **Separar estado de UI/audio do estado de gameplay** (CONCLUIDO)
-   **corrigir:** Remover `painelConfiguracoesAberto_` e `audioMutado_` de `EstadoDoJogo`. Criar algo como `EstadoDaCenaFazenda` ou `EstadoDaInterface`.
-   **onde:** `src/Aplicacao/Estado/EstadoDoJogo.hpp`, `src/Principal.cpp`, `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
-   **prioridade:** Alta
+prioridade:
+Alta
 
-4. **Extrair o fluxo principal de cena/input do `Principal.cpp`** (CONCLUIDO)
-   **corrigir:** Tirar do `Principal.cpp` o roteamento de evento, UI, loja, painel, câmera, áudio e interação com mundo. Criar `CenaFazenda` ou controladores menores mantendo o comportamento atual.
-   **onde:** `src/Principal.cpp`, possível novo `src/Apresentacao/Cenas/CenaFazenda.hpp`
-   **prioridade:** Média
 
-5. **Trocar testes baseados em `assert` por checagens sempre ativas**(CONCLUIDO)
-   **corrigir:** `assert` pode sumir em build Release com `NDEBUG`. Criar macro própria de teste ou usar framework leve.
-   **onde:** `tests/TestesLogica.cpp`, `CMakeLists.txt`
-   **prioridade:** Alta
+2. Testar contrato do RemovedorDeTerra
 
-6. **Definir contrato do `RemovedorDeTerra`**
-   **corrigir:** Decidir se a ferramenta pode remover tile com planta viva, madura ou morta. Se puder, documentar e testar. Se não puder, bloquear por estado do canteiro.
-   **onde:** `src/Dominio/Ferramentas/RemovedorDeTerra.hpp`, `src/Dominio/Grade/GradeGlobalDeCanteiros.hpp`
-   **prioridade:** Média
+corrigir:
+Criar testes cobrindo todos os estados relevantes do canteiro para travar o comportamento definido na task anterior.
 
-7. **Definir comportamento da loja aberta ao clicar fora do painel**
-   **corrigir:** Hoje o clique fora do painel pode mover o personagem e a loja continua aberta. Decidir se clique fora fecha loja, bloqueia mundo ou permite jogar com loja aberta. Depois documentar/testar.
-   **onde:** `src/Principal.cpp`, `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
-   **prioridade:** Média
+Estados que devem ser testados:
+- terra vazia
+- terra arada
+- semente plantada
+- planta crescendo
+- planta madura
+- planta morta
+- restos
 
-8. **Centralizar layout e hitbox do painel de configurações**
-   **corrigir:** O botão e o painel de configurações são desenhados em um lugar e clicados em outro. Criar uma estrutura única de layout usada pelo render e pelo input.
-   **onde:** `src/Principal.cpp`, `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
-   **prioridade:** Média
+onde:
+tests/TestesLogica.cpp
+src/Dominio/Ferramentas/RemovedorDeTerra.hpp
 
-9. **Corrigir precedência do `config.ini` na origem da grade**
-   **corrigir:** `deslocamentoGradeHorizontal/Vertical` são lidos, mas depois sobrescritos pela centralização automática da câmera. Remover essas chaves ou documentar que a centralização vence.
-   **onde:** `assets/config.ini`, `src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp`, `src/Principal.cpp`, `src/Apresentacao/Camera/CameraDoJogo.hpp`
-   **prioridade:** Média
+prioridade:
+Alta
 
-10. **Desacoplar renderizadores dos tipos concretos de infraestrutura**
-    **corrigir:** Renderizadores conhecem estruturas de `Infraestrutura::Assets`. Criar DTO/catálogo visual de apresentação ou interface mais estreita para texturas e metadados.
-    **onde:** `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp`, `src/Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
-    **prioridade:** Média
 
-11. **Corrigir background configurado inexistente**
-    **corrigir:** `config.ini` aponta para `background.png`, mas o jogo usa fallback `background/fundo_gramado.png`. Atualizar o caminho real ou logar claramente quando cair em fallback.
-    **onde:** `assets/config.ini`, `src/Infraestrutura/Assets/LocalizadorDeAssets.hpp`, `assets/background/`
-    **prioridade:** Baixa
+3. Definir comportamento da loja aberta ao clicar fora do painel
 
-12. **Corrigir comentário errado da recompensa do mirtilo**(CONCLUIDO)
-    **corrigir:** O código retorna `{35, 3}`, mas o comentário fala em `40 moedas e 10 experiência`. Corrigir comentário ou ajustar o balanceamento real.
-    **onde:** `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`
-    **prioridade:** Baixa
+corrigir:
+Hoje, com a loja aberta, um clique fora do painel pode cair no mundo. Definir o contrato oficial.
 
-13. **Resolver representação visual de planta morta** (CONCLUIDO)
-    **corrigido:** `PlantaMorta` e `Restos` agora sao estados diferentes. Planta morta usa `tile_terra_arada.png` com sprite de planta morta por cima; restos usa exclusivamente `tile_terra_restos.png`, sem sprite de planta.
-    **onde:** `src/Dominio/Canteiros/EstadoDoCanteiro.hpp`, `src/Dominio/Canteiros/Canteiro.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`, `assets/sprites/tiles/tile_terra_restos.png`
-    **prioridade:** Baixa
+Regra recomendada:
+- Clique fora da loja fecha a loja.
+- Esse mesmo clique não deve mover o personagem.
+- Esse mesmo clique não deve aplicar ferramenta no mundo.
 
-14. **Unificar mapeamento de estado visual de planta** (CONCLUIDO)
-    **corrigir:** Há lógica duplicada para dizer se um estado visual possui planta. Centralizar em uma função de borda visual única.
-    **onde:** `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
-    **prioridade:** Baixa
+onde:
+src/Apresentacao/Cenas/CenaFazenda.hpp
+src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp
+src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp
 
-15. **Corrigir hit-test de botão com limite inclusivo** (CONCLUIDO)
-    **corrigido:** `verificarCliqueNoBotao` delega para o contrato centralizado de retangulo semiaberto: `x <= ponto < x + largura`.
-    **onde:** `src/Apresentacao/Interface/AreaDeInteracao.hpp`, `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
-    **prioridade:** Baixa
+prioridade:
+Alta
 
-16. **Parametrizar o script de remover fundo** (Remover fundo não é do projeto, removido o aquivo)
-    **corrigir:** O script usa caminho absoluto antigo. Fazer aceitar argumento de entrada/saída ou resolver caminhos pela raiz do projeto.
-    **onde:** `remover_fundo.py`
-    **prioridade:** Baixa
 
-17. **Atualizar README com caminho e comandos atuais**(CONCLUIDO)
-    **corrigir:** README ainda usa caminho genérico/antigo. Ajustar para `MiniFazenda2` e documentar comandos de configurar, buildar, testar e rodar.
-    **onde:** `README.md`
-    **prioridade:** Baixa
+4. Testar fluxo de clique da loja, UI e mundo
 
-18. **Reavaliar `C_Cpp.errorSquiggles` desativado** (CONCLUIDO) (ligado)
-    **corrigir:** Squiggles desligados podem esconder erro local no VSCode. Ativar se o IntelliSense já estiver estável; se não, documentar que build/testes são a fonte da verdade.
-    **onde:** `.vscode/settings.json`
-    **prioridade:** Baixa
+corrigir:
+Criar testes puros para garantir que o input respeita a ordem correta de consumo.
 
-19. **Separar constantes globais por domínio de responsabilidade**
-    **corrigir:** `Constantes.hpp` mistura janela, grade, câmera, personagem e UI. Separar gradualmente em arquivos menores quando começar a crescer mais.
-    **onde:** `src/Compartilhado/Constantes.hpp`
-    **prioridade:** Baixa
+Casos que devem ser testados:
+- Clique em UI não move personagem.
+- Clique em botão de ferramenta consome evento.
+- Clique em painel aberto consome evento.
+- Clique em semente seleciona a ferramenta correta.
+- Clique fora da loja segue o contrato definido.
+- Clique no mundo só acontece quando nenhuma camada de UI consumiu o evento.
 
-20. **Revisar arredondamento de zoom/pan**
-    **corrigir:** Zoom usa dimensões arredondadas e divisões inteiras; pan com inércia usa conversão para `int`, podendo perder movimento subpixel. Revisar se houver tremor, drift ou sensação travada.
-    **onde:** `src/Apresentacao/Camera/CameraDoJogo.hpp`, `src/Apresentacao/Isometria/Isometrico.hpp`, `src/Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp`
-    **prioridade:** Baixa
+onde:
+tests/TestesLogica.cpp
+src/Apresentacao/Interface/
+src/Apresentacao/Cenas/CenaFazenda.hpp
 
-21. **Documentar assets existentes mas ainda não usados**
-    **corrigir:** Animais, sons e alguns sprites existem, mas não são funcionalidades ativas. Registrar como backlog para não parecer bug.
-    **onde:** `assets/`, documentação de backlog ou README
-    **prioridade:** Baixa
+prioridade:
+Alta
 
-22. **Decidir destino do fluxo de acelerar crescimento**
-    **corrigir:** Existem `AcaoDaFerramenta::AcelerarCrescimento`, som relacionado e `Canteiro::acelerarParaMadura()`, mas não há ferramenta/UI usando isso. Decidir se vira feature ou se remove por enquanto.
-    **onde:** `src/Dominio/Canteiros/Canteiro.hpp`, arquivos de ferramenta/ação, assets de som relacionados
-    **prioridade:** Baixa
+
+5. Extrair roteamento de input da CenaFazenda
+
+corrigir:
+CenaFazenda ainda concentra evento SDL, teclado, mouse, pan, zoom, loja, painel, ferramentas e clique no mundo. Criar um componente específico para rotear input.
+
+Objetivo:
+A cena deve perguntar quem consome o evento e depois executar apenas a ação resultante.
+
+onde:
+src/Apresentacao/Cenas/CenaFazenda.hpp
+
+novo possível:
+src/Apresentacao/Cenas/InputDaCenaFazenda.hpp
+src/Apresentacao/Cenas/RoteadorDeInputDaFazenda.hpp
+
+prioridade:
+Média
+
+
+6. Extrair controlador da loja
+
+corrigir:
+Separar regra de abrir loja, fechar loja, selecionar semente, consumir clique no painel e tratar clique fora.
+
+Objetivo:
+CenaFazenda não deve conter detalhes internos do fluxo da loja.
+
+onde:
+src/Apresentacao/Cenas/CenaFazenda.hpp
+src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp
+src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp
+
+novo possível:
+src/Apresentacao/Interface/Loja/ControladorDaLoja.hpp
+
+prioridade:
+Média
+
+
+7. Extrair controlador do painel de configurações
+
+corrigir:
+Separar abertura, fechamento, botão de som, mute/unmute e consumo de eventos do painel de configurações.
+
+Objetivo:
+CenaFazenda não deve saber os detalhes internos do painel.
+
+onde:
+src/Apresentacao/Cenas/CenaFazenda.hpp
+src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp
+src/Apresentacao/Renderizacao/UI/HudRenderer.hpp
+
+novo possível:
+src/Apresentacao/Interface/Configuracoes/ControladorDoPainelDeConfiguracoes.hpp
+
+prioridade:
+Média
+
+
+8. Criar fila única de renderização por profundidade
+
+corrigir:
+Hoje os canteiros são desenhados pela ordem das entidades e o personagem é desenhado depois da grade inteira. Isso pode quebrar sobreposição quando existirem árvores, casas, animais e decorações.
+
+Objetivo:
+Criar uma lista de renderizáveis ordenada por profundidade/base isométrica.
+
+A fila deve incluir:
+- canteiros
+- plantas
+- personagem
+- objetos altos futuros
+- animais futuros
+- construções futuras
+
+onde:
+src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp
+src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp
+src/Apresentacao/Cenas/CenaFazenda.hpp
+src/Dominio/Mapa/MapaDaFazenda.hpp
+
+prioridade:
+Média
+
+
+9. Preparar renderização para entidades altas futuras
+
+corrigir:
+Definir contrato visual para profundidade de árvores, casas, animais, decoração e personagem.
+
+Regra:
+A base no chão determina a ordem de desenho, não o topo do sprite e nem a ordem de criação da entidade.
+
+onde:
+src/Apresentacao/Renderizacao/Mundo/
+src/Dominio/Mapa/
+doc/
+
+prioridade:
+Média
+
+
+10. Separar leitura de config.ini da aplicação de layout/câmera
+
+corrigir:
+LeitorDeConfiguracao lê o arquivo e também aplica centralização da grade. Separar em duas responsabilidades.
+
+Nova divisão recomendada:
+- Infraestrutura lê os dados crus do config.ini.
+- Apresentação normaliza e aplica esses dados no layout/câmera.
+
+onde:
+src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp
+src/Apresentacao/Camera/CameraDoJogo.hpp
+src/Apresentacao/Cenas/CenaFazenda.hpp
+src/Apresentacao/ConfiguracoesDoLayout.hpp
+
+prioridade:
+Média
+
+
+11. Corrigir precedência da origem da grade no config.ini
+
+corrigir:
+deslocamentoGradeHorizontal e deslocamentoGradeVertical são lidos, mas a centralização automática sobrescreve o efeito.
+
+Escolher uma solução:
+- Remover as chaves mortas.
+- Renomear para chaves realmente efetivas.
+- Documentar claramente que a centralização automática vence.
+
+onde:
+assets/config.ini
+src/Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp
+src/Apresentacao/ConfiguracoesDoLayout.hpp
+doc/Tamanhos.md
+
+prioridade:
+Média
+
+
+12. Corrigir background configurado inexistente
+
+corrigir:
+O config aponta para background.png, mas o jogo usa fallback background/fundo_gramado.png.
+
+Solução recomendada:
+Atualizar o config para apontar diretamente para o fundo real.
+
+Alternativa:
+Melhorar o log para deixar claro quando o jogo caiu em fallback.
+
+onde:
+assets/config.ini
+assets/background/
+src/Infraestrutura/Assets/LocalizadorDeAssets.hpp
+src/Apresentacao/ConfiguracoesDoLayout.hpp
+
+prioridade:
+Baixa
+
+
+13. Revisar cache de falha de assets
+
+corrigir:
+Quando textura, fonte, som ou música falham, o cache guarda nullptr. Isso atrapalha hot reload, porque se o arquivo for corrigido durante a execução, F5 pode não recuperar.
+
+Soluções possíveis:
+- Não cachear falhas.
+- Criar invalidação explícita no reload.
+- Criar método para limpar cache de assets inválidos.
+
+onde:
+src/Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp
+src/Infraestrutura/Assets/RecursosDaFazenda.hpp
+src/Apresentacao/Cenas/CenaFazenda.hpp
+
+prioridade:
+Média
+
+
+14. Adicionar fallback visual para personagem ausente
+
+corrigir:
+Se a textura do personagem faltar, ele simplesmente não é desenhado.
+
+Solução recomendada:
+Criar fallback simples de debug no ponto dos pés, como um marcador, círculo, losango ou retângulo pequeno.
+
+onde:
+src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp
+src/Infraestrutura/Assets/RecursosDaFazenda.hpp
+src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp
+
+prioridade:
+Baixa
+
+
+15. Reduzir acoplamento entre apresentação e infraestrutura de assets
+
+corrigir:
+Renderizadores conhecem tipos concretos de Infraestrutura::Assets. Isso mistura apresentação com detalhes de carregamento.
+
+Objetivo:
+Criar DTOs de apresentação ou interfaces estreitas para recursos renderizáveis.
+
+A infraestrutura deve carregar os assets e entregar dados prontos, mas a apresentação não deve depender demais dos tipos internos dela.
+
+onde:
+src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp
+src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp
+src/Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp
+src/Apresentacao/Animacao/AnimadorDoPersonagem.hpp
+src/Infraestrutura/Assets/RecursosDaFazenda.hpp
+src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp
+
+prioridade:
+Média
+
+
+16. Validar enums antes de usar como índice
+
+corrigir:
+Alguns arrays usam enum convertido com static_cast<std::size_t>. Hoje é controlado, mas dados externos futuros podem quebrar.
+
+Solução recomendada:
+Criar helpers seguros para validar enum antes de usar como índice.
+
+onde:
+src/Dominio/Ferramentas/RegistroDeFerramentas.hpp
+src/Dominio/Ferramentas/TipoDeFerramenta.hpp
+src/Dominio/Canteiros/EstadoDoCanteiro.hpp
+src/Infraestrutura/Assets/RecursosDaFazenda.hpp
+
+prioridade:
+Baixa
+
+
+17. Revisar arredondamento de zoom e pan somente se houver sintoma visual
+
+corrigir:
+Zoom usa dimensões arredondadas e pan descarta subpixel ao converter deslocamento para int. Isso pode gerar tremor, sensação travada ou assimetria em zooms quebrados.
+
+Regra:
+Não mexer sem sintoma visual claro.
+
+Solução futura:
+Manter acumuladores em float e converter para inteiro só no desenho.
+
+onde:
+src/Apresentacao/Camera/CameraDoJogo.hpp
+src/Apresentacao/Isometria/Isometrico.hpp
+src/Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp
+
+prioridade:
+Baixa
+
+
+18. Revisar avanço de crescimento segundo a segundo
+
+corrigir:
+O tempo agrícola consome o acumulador em passos de 1 segundo. Está bom agora, mas pode ficar caro com fast-forward, progresso offline, pausa longa ou muitos canteiros.
+
+Solução futura:
+Permitir avanço de tempo acumulado em bloco.
+
+onde:
+src/Aplicacao/Servicos/ServicoDeTempo.hpp
+src/Dominio/Canteiros/Canteiro.hpp
+src/Dominio/Mapa/MapaDaFazenda.hpp
+
+prioridade:
+Baixa
+
+
+19. Separar Constantes.hpp por assunto
+
+corrigir:
+Constantes.hpp mistura janela, background, grade, ocupação, câmera, personagem e UI.
+
+Solução recomendada:
+Separar gradualmente por responsabilidade.
+
+Possíveis divisões:
+- ConstantesDaJanela.hpp
+- ConstantesDaGrade.hpp
+- ConstantesDaCamera.hpp
+- ConstantesDaInterface.hpp
+- ConstantesDoPersonagem.hpp
+
+onde:
+src/Compartilhado/Constantes.hpp
+
+novo possível:
+src/Compartilhado/Constantes/
+
+prioridade:
+Baixa
+
+
+20. Decidir destino do fluxo AcelerarCrescimento
+
+corrigir:
+Existe ação, método no canteiro e som associado, mas não existe ferramenta ou UI chamando isso.
+
+Decidir se:
+- vira feature real
+- vira ferramenta de debug/dev
+- vira bônus futuro
+- ou deve ser removido por enquanto
+
+onde:
+src/Dominio/Ferramentas/ResultadoDaFerramenta.hpp
+src/Dominio/Canteiros/Canteiro.hpp
+src/Infraestrutura/Assets/RecursosDaFazenda.hpp
+
+prioridade:
+Baixa
+
+
+21. Catalogar assets existentes ainda não usados
+
+corrigir:
+Existem sprites e sons de animais, venda, água, pesticida, missões e outros eventos que ainda não são funcionalidades.
+
+Objetivo:
+Criar lista de backlog de assets para não confundir asset parado com bug.
+
+onde:
+assets/
+doc/
+
+novo possível:
+doc/backlog_de_assets.md
+
+prioridade:
+Baixa
+
+
+22. Reduzir mutação direta em EstadoDoJogo no futuro
+
+corrigir:
+EstadoDoJogo expõe referências mutáveis para mapa, jogador e personagem. Hoje isso ajuda os serviços, mas pode atrapalhar salvamento, replay, undo ou validação de regras.
+
+Solução futura:
+Concentrar mutações em casos de uso mais específicos.
+
+onde:
+src/Aplicacao/Estado/EstadoDoJogo.hpp
+src/Aplicacao/Servicos/
+
+prioridade:
+Baixa
