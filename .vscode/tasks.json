@@ -21,7 +21,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Configurar CMake MiniFazenda",
+            "label": "Configurar CMake MiniFazenda2",
             "type": "shell",
             "command": "C:/msys64/ucrt64/bin/cmake.exe",
             "args": [
@@ -51,7 +51,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Build MiniFazenda",
+            "label": "Build MiniFazenda2",
             "type": "shell",
             "command": "C:/msys64/ucrt64/bin/ninja.exe",
             "options": {
@@ -70,7 +70,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Rodar MiniFazenda",
+            "label": "Rodar MiniFazenda2",
             "type": "shell",
             "command": ".\\bin\\MiniFazenda2.exe",
             "options": {
@@ -89,15 +89,15 @@
             "problemMatcher": []
         },
         {
-            "label": "Clean Rebuild & Run MiniFazenda",
+            "label": "Clean Rebuild & Run MiniFazenda2",
             "type": "shell",
-            "command": "echo MiniFazenda finalizado.",
+            "command": "echo MiniFazenda2 finalizado.",
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Limpar build",
-                "Configurar CMake MiniFazenda",
-                "Build MiniFazenda",
-                "Rodar MiniFazenda"
+                "Configurar CMake MiniFazenda2",
+                "Build MiniFazenda2",
+                "Rodar MiniFazenda2"
             ],
             "group": {
                 "kind": "build",
@@ -119,7 +119,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Build & Run MiniFazenda sem limpar",
+            "label": "Build & Run MiniFazenda2 sem limpar",
             "type": "shell",
             "command": "C:/msys64/ucrt64/bin/ninja.exe && .\\bin\\MiniFazenda2.exe",
             "options": {
@@ -130,7 +130,7 @@
                 }
             },
             "dependsOn": [
-                "Configurar CMake MiniFazenda"
+                "Configurar CMake MiniFazenda2"
             ],
             "presentation": {
                 "reveal": "always",

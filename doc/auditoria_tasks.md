@@ -1053,7 +1053,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
     **onde:** `remover_fundo.py`
     **prioridade:** Baixa
 
-17. **Atualizar README com caminho e comandos atuais**
+17. **Atualizar README com caminho e comandos atuais**(em andamento)
     **corrigir:** README ainda usa caminho genérico/antigo. Ajustar para `MiniFazenda2` e documentar comandos de configurar, buildar, testar e rodar.
     **onde:** `README.md`
     **prioridade:** Baixa
