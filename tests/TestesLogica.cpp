@@ -17,6 +17,7 @@
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Dominio/Plantas/Especies/PlantaMirtilo.hpp"
 #include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
+#include "Infraestrutura/Assets/EstadoVisualDaPlanta.hpp"
 
 #include <cstddef>
 #include <cstdlib>
@@ -26,6 +27,7 @@ namespace {
 
 namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
 namespace Animacao = MiniFazenda::Apresentacao::Animacao;
+namespace Assets = MiniFazenda::Infraestrutura::Assets;
 namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
 namespace Canteiros = MiniFazenda::Dominio::Canteiros;
@@ -124,6 +126,17 @@ void validarEstadoDaCenaFazenda() {
     VERIFICAR(estadoDaCena.painelDaLojaAberto());
     estadoDaCena.fecharPainelDaLoja();
     VERIFICAR(!estadoDaCena.painelDaLojaAberto());
+}
+
+void validarEstadosVisuaisDePlantaParaDesenho() {
+    VERIFICAR(!Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::TerraVazia));
+    VERIFICAR(!Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::TerraArada));
+    VERIFICAR(Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::SementePlantada));
+    VERIFICAR(Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo));
+    VERIFICAR(Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::PlantaJovem));
+    VERIFICAR(Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::PlantaMadura));
+    VERIFICAR(Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::PlantaMorta));
+    VERIFICAR(!Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::Restos));
 }
 
 void validarAnimacaoIdleDoPersonagem() {
@@ -391,6 +404,7 @@ int main() {
     validarSequenciasDaAnimacaoIdleDoPersonagem();
     validarMovimentoIsometricoDoPersonagem();
     validarEstadoDaCenaFazenda();
+    validarEstadosVisuaisDePlantaParaDesenho();
     validarFluxoDeCliqueDaLoja();
     validarHitTestIsometricoDoCanteiro();
     validarHitTestIsometricoGlobalComCamera();

@@ -143,7 +143,7 @@ inline void desenharGradeAtiva(
         SDL_Texture* texturaDaTerra = nullptr;
         SDL_Texture* texturaDaPlanta = nullptr;
         SDL_Rect destinoDaPlanta = destino;
-        if (Infraestrutura::Assets::estadoEhFaseVisualDaPlanta(estadoVisual)) {
+        if (Infraestrutura::Assets::estadoVisualTemPlantaParaDesenho(estadoVisual)) {
             texturaDaTerra = texturasCanteiro.texturaDeTerraParaEstado(
                 Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada
             );

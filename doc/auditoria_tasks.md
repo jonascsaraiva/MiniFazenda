@@ -1037,7 +1037,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
     **onde:** `src/Dominio/Canteiros/EstadoDoCanteiro.hpp`, `src/Dominio/Canteiros/Canteiro.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`, `assets/sprites/tiles/tile_terra_restos.png`
     **prioridade:** Baixa
 
-14. **Unificar mapeamento de estado visual de planta**
+14. **Unificar mapeamento de estado visual de planta** (CONCLUIDO)
     **corrigir:** Há lógica duplicada para dizer se um estado visual possui planta. Centralizar em uma função de borda visual única.
     **onde:** `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
     **prioridade:** Baixa

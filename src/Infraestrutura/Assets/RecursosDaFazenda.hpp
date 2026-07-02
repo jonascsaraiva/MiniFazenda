@@ -8,6 +8,7 @@
 #include "Dominio/Plantas/Planta.hpp"
 #include "Infraestrutura/Assets/CatalogoVisualDePlantas.hpp"
 #include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
+#include "Infraestrutura/Assets/EstadoVisualDaPlanta.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
 
@@ -40,42 +41,6 @@ using TexturasDasSementesPorSemente = std::unordered_map<int, SDL_Texture*>;
 using TexturasDosBotoes = std::array<SDL_Texture*, Dominio::Ferramentas::QUANTIDADE_DE_FERRAMENTAS>;
 using TexturasDoPersonagem = std::array<SDL_Texture*, ConfigVisualDoPersonagem::QUANTIDADE_DE_ANIMACOES>;
 
-inline bool estadoEhFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
-    switch (estado) {
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
-            return true;
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::Restos:
-        default:
-            return false;
-    }
-}
-
-inline std::size_t indiceDaFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
-    switch (estado) {
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada:
-            return 0;
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo:
-            return 1;
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem:
-            return 2;
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura:
-            return 3;
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
-            return 4;
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::Restos:
-        default:
-            return 0;
-    }
-}
-
 struct TexturasDosCanteiros {
     std::array<SDL_Texture*, Dominio::Canteiros::QUANTIDADE_DE_ESTADOS_DO_CANTEIRO> terraPorEstado{};
     TexturasDasPlantasPorSemente plantasPorSemente;
@@ -88,7 +53,7 @@ struct TexturasDosCanteiros {
         int identificadorDaSemente,
         Dominio::Canteiros::EstadoVisualDoCanteiro estado
     ) const {
-        if (!estadoEhFaseVisualDaPlanta(estado)) {
+        if (!estadoVisualTemPlantaParaDesenho(estado)) {
             return nullptr;
         }
 

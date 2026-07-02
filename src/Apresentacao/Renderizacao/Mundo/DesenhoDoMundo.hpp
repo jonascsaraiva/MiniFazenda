@@ -3,6 +3,7 @@
 #include "Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Dominio/Canteiros/Canteiro.hpp"
+#include "Infraestrutura/Assets/EstadoVisualDaPlanta.hpp"
 
 #include <SDL.h>
 
@@ -37,22 +38,6 @@ inline void desenharFundo(SDL_Renderer* renderizador, SDL_Texture* texturaFundo)
 
     if (texturaFundo != nullptr) {
         SDL_RenderCopy(renderizador, texturaFundo, nullptr, &tela);
-    }
-}
-
-inline bool estadoVisualTemPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro estado) {
-    switch (estado) {
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::SementePlantada:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaJovem:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMadura:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
-            return true;
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
-        case Dominio::Canteiros::EstadoVisualDoCanteiro::Restos:
-        default:
-            return false;
     }
 }
 
@@ -112,7 +97,7 @@ inline void desenharCanteiro(
     SDL_Rect destino,
     bool destacado
 ) {
-    const bool temPlanta = estadoVisualTemPlanta(canteiro.estadoVisualAtual());
+    const bool temPlanta = Infraestrutura::Assets::estadoVisualTemPlantaParaDesenho(canteiro.estadoVisualAtual());
     const Dominio::Canteiros::EstadoVisualDoCanteiro estadoDaBase = temPlanta
         ? Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada
         : canteiro.estadoVisualAtual();
