@@ -8,12 +8,12 @@ namespace MiniFazenda::Aplicacao::Servicos {
 
 inline Dominio::Ferramentas::ResultadoDaFerramenta aplicarFerramentaNoJogo(
     Estado::EstadoDoJogo& jogo,
-    Compartilhado::Geometria::PosicaoNaGrade posicao
+    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
 ) {
     static const Dominio::Ferramentas::RegistroDeFerramentas ferramentas;
 
     Dominio::Ferramentas::ContextoDaFerramenta contexto{
-        jogo.grade(),
+        jogo.mapa(),
         jogo.jogador(),
         jogo.identificadorDaSementeSelecionada(),
         jogo.tamanhoAtualDoGrid()

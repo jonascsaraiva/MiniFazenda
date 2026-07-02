@@ -12,18 +12,17 @@ public:
 
     ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoNaGrade posicao
+        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
     ) const override {
-        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.grade, posicao, contexto.tamanhoAtualDoGrid)) {
+        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.mapa, posicao, contexto.tamanhoAtualDoGrid)) {
             return ResultadoDaFerramenta{};
         }
 
-        const Grade::TileDeTerra* tile = contexto.grade.obterTile(posicao);
-        if (tile == nullptr || !tile->existeNoMapa()) {
+        if (!contexto.mapa.existeCanteiroEm(posicao)) {
             return ResultadoDaFerramenta{};
         }
 
-        contexto.grade.removerTile(posicao);
+        contexto.mapa.removerCanteiro(posicao);
         return ResultadoDaFerramenta{AcaoDaFerramenta::RemoverTerra};
     }
 };

@@ -12,7 +12,7 @@ public:
 
     ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoNaGrade posicao
+        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
     ) const override {
         (void)contexto;
         (void)posicao;

@@ -128,25 +128,25 @@ O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtua
 - **Incremento de tamanho da grade jogável** — `2 tiles`
   - Origem: `src/Compartilhado/Constantes.hpp::INCREMENTO_TAMANHO_GRID`
 - **Tamanhos validos pela normalizacao atual** — `12, 14, 16, 18, 20, 22, 24`
-  - Origem: Derivados de `TAMANHO_INICIAL_GRID`, `TAMANHO_MAXIMO_GRID`, `INCREMENTO_TAMANHO_GRID` e `src/Dominio/Grade/GradeGlobalDeCanteiros.hpp::normalizarTamanhoDaGradeAtual`
+  - Origem: Derivados de `TAMANHO_INICIAL_GRID`, `TAMANHO_MAXIMO_GRID`, `INCREMENTO_TAMANHO_GRID` e `src/Dominio/Mapa/MapaDaFazenda.hpp::normalizarTamanhoDaAreaJogavel`
 - **Inicio global da grade jogável inicial** — `(122, 122)`
-  - Origem: `src/Dominio/Grade/GradeGlobalDeCanteiros.hpp::calcularColunaInicialDaGradeAtual` e `calcularLinhaInicialDaGradeAtual`, com `TAMANHO_INICIAL_GRID`
+  - Origem: `src/Dominio/Mapa/MapaDaFazenda.hpp::calcularColunaInicialDaAreaJogavel` e `calcularLinhaInicialDaAreaJogavel`, com `TAMANHO_INICIAL_GRID`
 - **Fim global incluso da grade jogável inicial** — `(133, 133)`
-  - Origem: `(122 + 12 - 1)`, derivado de `posicaoEstaDentroDaGradeAtual`
+  - Origem: `(122 + 12 - 1)`, derivado de `posicaoEstaDentroDaAreaJogavel`
 - **Inicio global da grade jogável maxima** — `(116, 116)`
-  - Origem: `src/Dominio/Grade/GradeGlobalDeCanteiros.hpp::calcularColunaInicialDaGradeAtual` e `calcularLinhaInicialDaGradeAtual`, com `TAMANHO_MAXIMO_GRID`
+  - Origem: `src/Dominio/Mapa/MapaDaFazenda.hpp::calcularColunaInicialDaAreaJogavel` e `calcularLinhaInicialDaAreaJogavel`, com `TAMANHO_MAXIMO_GRID`
 - **Fim global incluso da grade jogável maxima** — `(139, 139)`
-  - Origem: `(116 + 24 - 1)`, derivado de `posicaoEstaDentroDaGradeAtual`
-- **Núcleo inicial ativado** — `2 x 2 tiles`
-  - Origem: `src/Compartilhado/Constantes.hpp::QUANTIDADE_DE_COLUNAS_DO_NUCLEO_INICIAL` e `QUANTIDADE_DE_LINHAS_DO_NUCLEO_INICIAL`; ativado em `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarGradeGlobalComNucleoInicial`
+  - Origem: `(116 + 24 - 1)`, derivado de `posicaoEstaDentroDaAreaJogavel`
+- **Nucleo inicial criado** — `2 x 2 canteiros`
+  - Origem: `src/Compartilhado/Constantes.hpp::QUANTIDADE_DE_COLUNAS_DO_NUCLEO_INICIAL` e `QUANTIDADE_DE_LINHAS_DO_NUCLEO_INICIAL`; criado em `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarMapaDaFazendaComNucleoInicial`
 - **Inicio global do núcleo inicial** — `(127, 127)`
   - Origem: `src/Compartilhado/Constantes.hpp::COLUNA_INICIAL_DO_NUCLEO_INICIAL` e `LINHA_INICIAL_DO_NUCLEO_INICIAL`
 - **Origem visual global da grade** — `(127, 127)`
   - Origem: `src/Compartilhado/Constantes.hpp::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL` e `LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL`
-- **Tiles iniciais realmente ativados** — `(127,127)`, `(128,127)`, `(127,128)`, `(128,128)`
-  - Origem: `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarGradeGlobalComNucleoInicial`
+- **Canteiros iniciais realmente criados** — `(127,127)`, `(128,127)`, `(127,128)`, `(128,128)`
+  - Origem: `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarMapaDaFazendaComNucleoInicial`
 
-A grade global alocada (`256 x 256 tiles`) e a grade jogável atual (`12 x 12` até `24 x 24 tiles`) não são a mesma coisa. A grade global é o espaço total de armazenamento e coordenadas; a grade jogável é uma janela quadrada centralizada dentro dessa grade, validada por `posicaoEstaDentroDaGradeAtual`.
+A grade global de coordenadas (`256 x 256 posicoes de canteiro`) e a area jogavel atual (`12 x 12` ate `24 x 24 canteiros`) nao sao a mesma coisa. A grade global e o espaco total de coordenadas; a area jogavel e uma janela quadrada centralizada dentro desse espaco, validada por `MapaDaFazenda::posicaoEstaDentroDaAreaJogavel`.
 
 ### Centralização no background
 

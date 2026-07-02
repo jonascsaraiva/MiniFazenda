@@ -6,26 +6,26 @@
 
 namespace MiniFazenda::Aplicacao::Servicos {
 
-inline Dominio::Grade::GradeGlobalDeCanteiros criarGradeGlobalComNucleoInicial() {
-    Dominio::Grade::GradeGlobalDeCanteiros grade;
+inline Dominio::Mapa::MapaDaFazenda criarMapaDaFazendaComNucleoInicial() {
+    Dominio::Mapa::MapaDaFazenda mapa;
 
     for (int linha = 0; linha < Compartilhado::Constantes::QUANTIDADE_DE_LINHAS_DO_NUCLEO_INICIAL; ++linha) {
         for (int coluna = 0; coluna < Compartilhado::Constantes::QUANTIDADE_DE_COLUNAS_DO_NUCLEO_INICIAL; ++coluna) {
-            const Compartilhado::Geometria::PosicaoNaGrade posicao{
+            const Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao{
                 Compartilhado::Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + coluna,
                 Compartilhado::Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL + linha
             };
 
-            grade.ativarTile(posicao);
+            mapa.criarCanteiro(posicao);
         }
     }
 
-    return grade;
+    return mapa;
 }
 
 inline Estado::EstadoDoJogo criarEstadoInicialDoJogo() {
     Estado::EstadoDoJogo jogo;
-    jogo.grade() = criarGradeGlobalComNucleoInicial();
+    jogo.mapa() = criarMapaDaFazendaComNucleoInicial();
     jogo.definirTamanhoAtualDoGrid(Compartilhado::Constantes::TAMANHO_INICIAL_GRID);
     return jogo;
 }

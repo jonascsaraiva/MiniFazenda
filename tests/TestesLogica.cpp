@@ -12,7 +12,8 @@
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
-#include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
+#include "Dominio/Mapa/MapaDaFazenda.hpp"
+#include "Dominio/Ocupacao/GridDeOcupacao.hpp"
 #include "Dominio/Personagem/Personagem.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Dominio/Plantas/Especies/PlantaMirtilo.hpp"
@@ -36,9 +37,10 @@ namespace Constantes = MiniFazenda::Compartilhado::Constantes;
 namespace Especies = MiniFazenda::Dominio::Plantas::Especies;
 namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
-namespace Grade = MiniFazenda::Dominio::Grade;
 namespace Interface = MiniFazenda::Apresentacao::Interface;
 namespace Isometria = MiniFazenda::Apresentacao::Isometria;
+namespace Mapa = MiniFazenda::Dominio::Mapa;
+namespace Ocupacao = MiniFazenda::Dominio::Ocupacao;
 namespace Personagem = MiniFazenda::Dominio::Personagem;
 namespace Plantas = MiniFazenda::Dominio::Plantas;
 
@@ -54,26 +56,118 @@ namespace Plantas = MiniFazenda::Dominio::Plantas;
         } \
     } while (false)
 
-void validarListasDaGrade(const Grade::GradeGlobalDeCanteiros& grade) {
-    VERIFICAR(grade.posicoesDeTilesExistentes().size() == grade.quantidadeDeTilesExistentes());
-    VERIFICAR(grade.posicoesDeCanteirosEmCrescimento().size() == grade.quantidadeDeCanteirosEmCrescimento());
+void validarListasDoMapa(const Mapa::MapaDaFazenda& mapa) {
+    VERIFICAR(mapa.entidades().size() == mapa.quantidadeDeEntidades());
+    VERIFICAR(mapa.indiceDeOcupacao().quantidadeDeOcupacoes() == mapa.quantidadeDeEntidades());
 
-    for (const Geometria::PosicaoNaGrade posicao : grade.posicoesDeTilesExistentes()) {
-        const Grade::TileDeTerra* tile = grade.obterTile(posicao);
-        VERIFICAR(tile != nullptr);
-        VERIFICAR(tile->existeNoMapa());
+    for (const Mapa::EntidadeDoMapa& entidade : mapa.entidades()) {
+        VERIFICAR(entidade.identificador() != Ocupacao::IDENTIFICADOR_INVALIDO_DE_ENTIDADE_DE_MAPA);
+        VERIFICAR(mapa.obterEntidade(entidade.identificador()) != nullptr);
+
+        if (entidade.ehCanteiroAgricola()) {
+            VERIFICAR(entidade.posicaoDoCanteiroNoMapa().has_value());
+            VERIFICAR(entidade.canteiroAgricola() != nullptr);
+            const Mapa::EntidadeDoMapa* entidadeNoMapa =
+                mapa.entidadeEmCanteiro(*entidade.posicaoDoCanteiroNoMapa());
+            VERIFICAR(entidadeNoMapa != nullptr);
+            VERIFICAR(entidadeNoMapa->identificador() == entidade.identificador());
+        }
     }
 
-    for (const Geometria::PosicaoNaGrade posicao : grade.posicoesDeCanteirosEmCrescimento()) {
-        const Grade::TileDeTerra* tile = grade.obterTile(posicao);
-        VERIFICAR(tile != nullptr);
-        VERIFICAR(tile->existeNoMapa());
-        VERIFICAR(tile->canteiro().precisaAvancarCrescimento());
+    VERIFICAR(
+        mapa.identificadoresDeCanteirosEmCrescimento().size() ==
+        mapa.quantidadeDeCanteirosEmCrescimento()
+    );
+
+    for (const Ocupacao::IdentificadorDeEntidadeDeMapa identificador :
+         mapa.identificadoresDeCanteirosEmCrescimento()) {
+        const Mapa::EntidadeDoMapa* entidade = mapa.obterEntidade(identificador);
+        VERIFICAR(entidade != nullptr);
+        VERIFICAR(entidade->ehCanteiroAgricola());
+        VERIFICAR(entidade->canteiroAgricola() != nullptr);
+        VERIFICAR(entidade->canteiroAgricola()->precisaAvancarCrescimento());
     }
 }
 
-Geometria::PosicaoNaGrade posicaoLivreProximaDoNucleo() {
-    return Geometria::PosicaoNaGrade{
+void validarGridDeOcupacaoBasico() {
+    Ocupacao::GridDeOcupacao grid{8, 8};
+    const Geometria::AreaNaGradeDeOcupacao areaDaArvore{2, 2, 1, 1};
+    constexpr Ocupacao::IdentificadorDeEntidadeDeMapa idDaArvore = 1;
+
+    VERIFICAR(grid.registrarOcupacao(idDaArvore, areaDaArvore));
+    VERIFICAR(grid.quantidadeDeOcupacoes() == 1);
+    VERIFICAR(!grid.areaEstaLivre(areaDaArvore));
+
+    const Ocupacao::RegistroDeOcupacao* arvore = grid.ocupacaoEm(Geometria::PosicaoNaGradeDeOcupacao{2, 2});
+    VERIFICAR(arvore != nullptr);
+    VERIFICAR(arvore->identificador == idDaArvore);
+    VERIFICAR(arvore->ocupa(Geometria::PosicaoNaGradeDeOcupacao{2, 2}));
+    VERIFICAR(!arvore->ocupa(Geometria::PosicaoNaGradeDeOcupacao{3, 2}));
+    VERIFICAR(!grid.registrarOcupacao(2, areaDaArvore));
+
+    const Geometria::AreaNaGradeDeOcupacao areaDaCasa{4, 4, 3, 2};
+    constexpr Ocupacao::IdentificadorDeEntidadeDeMapa idDaCasa = 3;
+    VERIFICAR(grid.registrarOcupacao(idDaCasa, areaDaCasa));
+    VERIFICAR(grid.quantidadeDeOcupacoes() == 2);
+
+    const Ocupacao::RegistroDeOcupacao* casa = grid.ocupacaoPorIdentificador(idDaCasa);
+    VERIFICAR(casa != nullptr);
+    VERIFICAR(casa->profundidadeDaBase() == 11);
+    VERIFICAR(grid.ocupacaoEm(Geometria::PosicaoNaGradeDeOcupacao{6, 5}) == casa);
+    VERIFICAR(!grid.areaEstaLivre(Geometria::AreaNaGradeDeOcupacao{7, 7, 2, 2}));
+
+    VERIFICAR(grid.removerOcupacao(idDaArvore));
+    VERIFICAR(grid.quantidadeDeOcupacoes() == 1);
+    VERIFICAR(grid.ocupacaoEm(Geometria::PosicaoNaGradeDeOcupacao{2, 2}) == nullptr);
+}
+
+void validarConversaoDeCanteiroParaOcupacao() {
+    const Geometria::PosicaoDeCanteiroNoMapa posicaoDoCanteiro{127, 128};
+    const Geometria::PosicaoNaGradeDeOcupacao origem =
+        Ocupacao::converterCanteiroParaOcupacao(posicaoDoCanteiro);
+    const Geometria::AreaNaGradeDeOcupacao area =
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(posicaoDoCanteiro);
+
+    VERIFICAR(Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO == 2);
+    VERIFICAR(Constantes::LARGURA_DA_UNIDADE_DE_OCUPACAO == 64);
+    VERIFICAR(Constantes::ALTURA_DA_UNIDADE_DE_OCUPACAO == 32);
+    VERIFICAR(origem.indiceColuna == posicaoDoCanteiro.indiceColuna * 2);
+    VERIFICAR(origem.indiceLinha == posicaoDoCanteiro.indiceLinha * 2);
+    VERIFICAR(area.indiceColuna == origem.indiceColuna);
+    VERIFICAR(area.indiceLinha == origem.indiceLinha);
+    VERIFICAR(area.largura == 2);
+    VERIFICAR(area.altura == 2);
+    VERIFICAR(Ocupacao::calcularProfundidadeDaBase(area) ==
+              area.indiceColuna + area.largura - 1 + area.indiceLinha + area.altura - 1);
+}
+
+void validarIndiceDeOcupacaoDoMapa(const Mapa::MapaDaFazenda& mapa) {
+    VERIFICAR(mapa.indiceDeOcupacao().quantidadeDeOcupacoes() == mapa.quantidadeDeEntidades());
+
+    for (const Mapa::EntidadeDoMapa& entidade : mapa.entidades()) {
+        if (!entidade.ehCanteiroAgricola()) {
+            continue;
+        }
+
+        VERIFICAR(entidade.posicaoDoCanteiroNoMapa().has_value());
+        const Geometria::AreaNaGradeDeOcupacao area =
+            Ocupacao::calcularAreaDeOcupacaoDoCanteiro(*entidade.posicaoDoCanteiroNoMapa());
+        VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(entidade.areaDeOcupacao(), area));
+
+        for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+            for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+                const Ocupacao::RegistroDeOcupacao* ocupacao =
+                    mapa.indiceDeOcupacao().ocupacaoEm(Geometria::PosicaoNaGradeDeOcupacao{coluna, linha});
+                VERIFICAR(ocupacao != nullptr);
+                VERIFICAR(ocupacao->identificador == entidade.identificador());
+                VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(ocupacao->area, area));
+            }
+        }
+    }
+}
+
+Geometria::PosicaoDeCanteiroNoMapa posicaoLivreProximaDoNucleo() {
+    return Geometria::PosicaoDeCanteiroNoMapa{
         Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + 3,
         Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL
     };
@@ -192,9 +286,9 @@ void validarAnimacaoIdleDoPersonagem() {
     );
     Animacao::EstadoVisualDoPersonagem estadoVisualDoPersonagem;
     const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
-    const Grade::TileDeTerra* tileDoPersonagem = jogo.grade().obterTile(posicaoInicial);
-    VERIFICAR(tileDoPersonagem != nullptr);
-    VERIFICAR(tileDoPersonagem->existeNoMapa());
+    const Geometria::PosicaoDeCanteiroNoMapa canteiroDoPersonagem =
+        Geometria::converterPosicaoNaGradeParaCanteiroNoMapa(posicaoInicial);
+    VERIFICAR(jogo.mapa().obterCanteiroAgricola(canteiroDoPersonagem) != nullptr);
 
     VERIFICAR(configuracaoIdle.quantidadeFrames == 5);
     VERIFICAR(configuracaoIdle.frameOrigemX == 0);
@@ -446,6 +540,8 @@ void validarHitTestIsometricoGlobalComCamera() {
 } // namespace
 
 int main() {
+    validarGridDeOcupacaoBasico();
+    validarConversaoDeCanteiroParaOcupacao();
     validarAnimacaoIdleDoPersonagem();
     validarSequenciasDaAnimacaoIdleDoPersonagem();
     validarMovimentoIsometricoDoPersonagem();
@@ -460,17 +556,19 @@ int main() {
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
     VERIFICAR(!jogo.identificadorDaSementeSelecionada().has_value());
     VERIFICAR(jogo.tamanhoAtualDoGrid() == Constantes::TAMANHO_INICIAL_GRID);
-    VERIFICAR(jogo.grade().quantidadeDeTilesExistentes() == 4);
-    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
-    validarListasDaGrade(jogo.grade());
+    VERIFICAR(jogo.mapa().quantidadeDeCanteiros() == 4);
+    VERIFICAR(jogo.mapa().quantidadeDeCanteirosEmCrescimento() == 0);
+    validarListasDoMapa(jogo.mapa());
+    validarIndiceDeOcupacaoDoMapa(jogo.mapa());
 
-    const Geometria::PosicaoNaGrade posicaoNova = posicaoLivreProximaDoNucleo();
+    const Geometria::PosicaoDeCanteiroNoMapa posicaoNova = posicaoLivreProximaDoNucleo();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
 
     Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::CriarTerra);
-    VERIFICAR(jogo.grade().quantidadeDeTilesExistentes() == 5);
-    validarListasDaGrade(jogo.grade());
+    VERIFICAR(jogo.mapa().quantidadeDeCanteiros() == 5);
+    validarListasDoMapa(jogo.mapa());
+    validarIndiceDeOcupacaoDoMapa(jogo.mapa());
 
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
@@ -479,7 +577,7 @@ int main() {
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(!resultado.houveMudanca());
     VERIFICAR(jogo.jogador().moedas() == 200);
-    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
+    VERIFICAR(jogo.mapa().quantidadeDeCanteirosEmCrescimento() == 0);
 
     const Especies::PlantaMirtilo mirtilo;
     const int moedasAntesDoPlantio = jogo.jogador().moedas();
@@ -488,27 +586,27 @@ int main() {
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
     VERIFICAR(jogo.jogador().moedas() == moedasAntesDoPlantio - mirtilo.custoEmMoedas());
-    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 1);
-    VERIFICAR(jogo.grade().obterTile(posicaoNova)->canteiro().identificadorDaSemente() ==
-           Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
-    validarListasDaGrade(jogo.grade());
+    VERIFICAR(jogo.mapa().quantidadeDeCanteirosEmCrescimento() == 1);
+    VERIFICAR(jogo.mapa().obterCanteiroAgricola(posicaoNova)->identificadorDaSemente() ==
+              Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+    validarListasDoMapa(jogo.mapa());
 
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaCrescer()));
-    const Grade::TileDeTerra* tile = jogo.grade().obterTile(posicaoNova);
-    VERIFICAR(tile != nullptr);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
+    const Canteiros::Canteiro* canteiro = jogo.mapa().obterCanteiroAgricola(posicaoNova);
+    VERIFICAR(canteiro != nullptr);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
 
     AppServicos::avancarTempoDoJogo(
         jogo,
         static_cast<float>(mirtilo.tempoParaFicarJovem() - mirtilo.tempoParaCrescer())
     );
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaJovem);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaJovem);
 
     AppServicos::avancarTempoDoJogo(
         jogo,
         static_cast<float>(mirtilo.tempoParaMaturar() - mirtilo.tempoParaFicarJovem())
     );
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMadura);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMadura);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Cursor);
     const int moedasAntesDaColheita = jogo.jogador().moedas();
@@ -517,37 +615,37 @@ int main() {
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Colher);
     VERIFICAR(jogo.jogador().moedas() == moedasAntesDaColheita + recompensaDaColheita.moedas);
     VERIFICAR(jogo.jogador().experiencia() == recompensaDaColheita.experiencia);
-    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
-    validarListasDaGrade(jogo.grade());
+    VERIFICAR(jogo.mapa().quantidadeDeCanteirosEmCrescimento() == 0);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
+    validarListasDoMapa(jogo.mapa());
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(!resultado.houveMudanca());
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::LimparCanteiro);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(!resultado.houveMudanca());
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraArada);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraArada);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaMorrer()));
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
-    VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
-    validarListasDaGrade(jogo.grade());
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
+    VERIFICAR(jogo.mapa().quantidadeDeCanteirosEmCrescimento() == 0);
+    validarListasDoMapa(jogo.mapa());
 
     const int moedasAntesDeLimparPlantaMorta = jogo.jogador().moedas();
     const int experienciaAntesDeLimparPlantaMorta = jogo.jogador().experiencia();
@@ -556,43 +654,45 @@ int main() {
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::LimparCanteiro);
     VERIFICAR(jogo.jogador().moedas() == moedasAntesDeLimparPlantaMorta);
     VERIFICAR(jogo.jogador().experiencia() == experienciaAntesDeLimparPlantaMorta);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
-    validarListasDaGrade(jogo.grade());
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
+    validarListasDoMapa(jogo.mapa());
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(!resultado.houveMudanca());
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::LimparCanteiro);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(!resultado.houveMudanca());
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
 
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraArada);
+    VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraArada);
 
-    const std::size_t quantidadeAntesDeRemover = jogo.grade().quantidadeDeTilesExistentes();
+    const std::size_t quantidadeAntesDeRemover = jogo.mapa().quantidadeDeCanteiros();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::RemoverTerra);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::RemoverTerra);
-    VERIFICAR(jogo.grade().quantidadeDeTilesExistentes() == quantidadeAntesDeRemover - 1);
-    VERIFICAR(tile->existeNoMapa() == false);
-    validarListasDaGrade(jogo.grade());
+    VERIFICAR(jogo.mapa().quantidadeDeCanteiros() == quantidadeAntesDeRemover - 1);
+    VERIFICAR(jogo.mapa().indiceDeOcupacao().quantidadeDeOcupacoes() == jogo.mapa().quantidadeDeEntidades());
+    VERIFICAR(!jogo.mapa().existeCanteiroEm(posicaoNova));
+    validarListasDoMapa(jogo.mapa());
+    validarIndiceDeOcupacaoDoMapa(jogo.mapa());
 
-    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoNaGrade{-1, -1});
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoDeCanteiroNoMapa{-1, -1});
     VERIFICAR(!resultado.houveMudanca());
 
-    const Geometria::PosicaoNaGrade foraDaGradeJogavel{
-        Grade::GradeGlobalDeCanteiros::calcularColunaInicialDaGradeAtual(jogo.tamanhoAtualDoGrid()) - 1,
-        Grade::GradeGlobalDeCanteiros::calcularLinhaInicialDaGradeAtual(jogo.tamanhoAtualDoGrid())
+    const Geometria::PosicaoDeCanteiroNoMapa foraDaGradeJogavel{
+        Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavel(jogo.tamanhoAtualDoGrid()) - 1,
+        Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavel(jogo.tamanhoAtualDoGrid())
     };
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, foraDaGradeJogavel);

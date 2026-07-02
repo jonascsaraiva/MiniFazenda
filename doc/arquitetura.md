@@ -14,8 +14,8 @@
 6. [Padrão de ferramentas](#6-padrão-de-ferramentas)
 7. [Padrão de plantas](#7-padrão-de-plantas)
 8. [Estado do canteiro](#8-estado-do-canteiro)
-9. [Grade encapsulada](#9-grade-encapsulada)
-10. [Progressão do grid](#10-progressão-do-grid)
+9. [Mapa da fazenda](#9-mapa-da-fazenda)
+10. [Progressao do mapa](#10-progressao-do-mapa)
 11. [Build](#11-build)
 12. [Validações recomendadas](#12-validações-recomendadas)
 13. [Pontos legados aceitos por enquanto](#13-pontos-legados-aceitos-por-enquanto)
@@ -231,15 +231,25 @@ Arquivos principais:
 
 Cada ferramenta implementa sua própria regra de aplicação.
 
-### `src/Dominio/Grade/`
+### `src/Dominio/Mapa/`
 
-#### `TileDeTerra.hpp`
+#### `MapaDaFazenda.hpp`
 
-Representa o tile de terra usado pela grade.
+Agregado principal do mundo da fazenda.
 
-#### `GradeGlobalDeCanteiros.hpp`
+Responsavel por entidades do mapa, criacao, remocao, consultas espaciais, lista de canteiros em crescimento e acesso controlado ao componente agricola `Canteiro`.
 
-Responsável pelo armazenamento da grade global, índices internos e validações de posição.
+Os canteiros sao entidades agricolas do mapa e ocupam `2 x 2` unidades logicas de ocupacao.
+
+### `src/Dominio/Ocupacao/`
+
+#### `GridDeOcupacao.hpp`
+
+Representa a ocupacao logica do mapa em unidades menores que o canteiro visual.
+
+O dominio de ocupacao guarda somente registros espaciais por identificador e area, sem regra agricola, SDL, textura, renderer, caminho de asset ou sprite.
+
+As entidades reais vivem no `MapaDaFazenda`. O grid responde se uma area esta livre, qual identificador ocupa uma celula e qual e a profundidade logica da base.
 
 ### `src/Dominio/Jogador/Jogador.hpp`
 
@@ -267,7 +277,7 @@ Nao expoe animacao visual, spritesheet, indice de frame, piscada ou tempo de des
 
 Agrega:
 
-- grade;
+- mapa da fazenda;
 - jogador;
 - personagem;
 - ferramenta selecionada;
@@ -362,7 +372,7 @@ Também pode depender de `Dominio` apenas para mapear resultados de ações para
 
 Pode depender de `Aplicacao` para ler `EstadoDoJogo`.
 
-Também pode depender de `Dominio` para ler estados, grade e ferramenta selecionada.
+Tambem pode depender de `Dominio` para ler estados, mapa e ferramenta selecionada.
 
 Tambem e dona de estados temporarios da cena/interface, como `EstadoDaCenaFazenda`, consumidos por HUD e renderizadores.
 
@@ -399,7 +409,7 @@ Infraestrutura
 
 Apresentacao
   -> Aplicacao para ler EstadoDoJogo
-  -> Dominio para ler estados, grade e ferramenta selecionada
+  -> Dominio para ler estados, mapa e ferramenta selecionada
   -> EstadoDaCenaFazenda para estado temporario de interface da cena
 
 Aplicacao
@@ -421,7 +431,7 @@ Toda ferramenta deriva de:
 E implementa o método:
 
 ```cpp
-ResultadoDaFerramenta aplicar(ContextoDaFerramenta&, PosicaoNaGrade) const;
+ResultadoDaFerramenta aplicar(ContextoDaFerramenta&, PosicaoDeCanteiroNoMapa) const;
 ```
 
 `RegistroDeFerramentas` guarda as instâncias por `TipoDeFerramenta`.
@@ -515,44 +525,49 @@ Um novo plantio so e permitido em `TerraArada`. Portanto, depois de colheita ou 
 
 ---
 
-## 9. Grade encapsulada
+## 9. Mapa da fazenda
 
-`GradeGlobalDeCanteiros` guarda internamente:
+`MapaDaFazenda` guarda internamente:
 
 ```text
-tiles_
-posicoesDeTilesExistentes_
-posicoesDeCanteirosEmCrescimento_
+entidades_
+identificadoresDeCanteirosEmCrescimento_
+indiceDeOcupacao_
 ```
 
-Essas listas são expostas somente como referências constantes.
+As entidades sao expostas somente como referencias constantes.
 
-As mutações passam por métodos controlados:
+As mutacoes passam por metodos controlados:
 
 ```text
-ativarTile()
-removerTile()
+criarCanteiro()
+removerEntidade()
+removerCanteiro()
 sincronizarCrescimentoDoCanteiro()
 removerCanteiroDaListaDeCrescimento()
 ```
 
-Essa estrutura impede alteração direta da grade por código externo e preserva as validações internas.
+Essa estrutura impede alteracao direta do mapa por codigo externo e preserva as validacoes internas.
+
+O canteiro e uma entidade agricola do mapa e carrega o componente `Canteiro`, que continua dono das regras agricolas.
+
+`GridDeOcupacao` e o indice espacial interno do mapa. Ele nao e fonte da verdade de entidades e nao conhece regras de lavoura.
 
 ---
 
-## 10. Progressão do grid
+## 10. Progressao do mapa
 
-O grid visual de `12 x 12`, definido por `TAMANHO_INICIAL_GRID`, representa a área jogável potencial da fase atual.
+O grid visual de `12 x 12`, definido por `TAMANHO_INICIAL_GRID`, representa a area jogavel potencial da fase atual.
 
-Ele não representa a quantidade de tiles disponíveis no início.
+Ele nao representa a quantidade de canteiros disponiveis no inicio.
 
-Por design, `criarEstadoInicialDoJogo()` ativa apenas um núcleo central de `2 x 2` tiles, criando um espaço inicial pequeno e legível.
+Por design, `criarEstadoInicialDoJogo()` cria apenas um nucleo central de `2 x 2` canteiros, gerando um espaco inicial pequeno e legivel.
 
-O jogador usa a `Enxada` para ativar novos tiles dentro dessa área de `12 x 12`.
+O jogador usa a `Enxada` para criar novos canteiros dentro dessa area de `12 x 12`.
 
-Essa expansão progressiva é a mecânica central de crescimento da fazenda neste momento do jogo.
+Essa expansao progressiva e a mecanica central de crescimento da fazenda neste momento do jogo.
 
-Quando o sistema de progressão por nível for implementado, o tamanho máximo do grid jogável poderá crescer além dos `12 x 12` iniciais, respeitando o limite definido por `TAMANHO_MAXIMO_GRID`.
+Quando o sistema de progressao por nivel for implementado, o tamanho maximo do mapa jogavel podera crescer alem dos `12 x 12` iniciais, respeitando o limite definido por `TAMANHO_MAXIMO_GRID`.
 
 ---
 

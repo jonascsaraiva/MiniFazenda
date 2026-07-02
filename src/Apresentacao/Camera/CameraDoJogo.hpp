@@ -3,7 +3,7 @@
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
-#include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
+#include "Dominio/Mapa/MapaDaFazenda.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -53,9 +53,9 @@ inline Compartilhado::Geometria::PosicaoNaTela calcularDeslocamentoCentradoPara(
     int larguraDoCanteiro = Compartilhado::Constantes::LARGURA_DO_CANTEIRO,
     int alturaDoCanteiro = Compartilhado::Constantes::ALTURA_DO_CANTEIRO
 ) {
-    const int tamanhoNormalizado = Dominio::Grade::GradeGlobalDeCanteiros::normalizarTamanhoDaGradeAtual(tamanhoGrid);
-    const int colunaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularColunaInicialDaGradeAtual(tamanhoNormalizado);
-    const int linhaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularLinhaInicialDaGradeAtual(tamanhoNormalizado);
+    const int tamanhoNormalizado = Dominio::Mapa::MapaDaFazenda::normalizarTamanhoDaAreaJogavel(tamanhoGrid);
+    const int colunaInicial = Dominio::Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavel(tamanhoNormalizado);
+    const int linhaInicial = Dominio::Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavel(tamanhoNormalizado);
     const int colunaLocal = colunaInicial - Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
     const int linhaLocal = linhaInicial - Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
 
@@ -83,10 +83,10 @@ inline RetanguloDeGradeRenderizada calcularRetanguloDaGradeRenderizada(
     const EstadoDaCamera& camera,
     int tamanhoGrid
 ) {
-    const int tamanhoNormalizado = Dominio::Grade::GradeGlobalDeCanteiros::normalizarTamanhoDaGradeAtual(tamanhoGrid);
+    const int tamanhoNormalizado = Dominio::Mapa::MapaDaFazenda::normalizarTamanhoDaAreaJogavel(tamanhoGrid);
     const DimensoesDoCanteiroRenderizado dimensoes = calcularDimensoesDoCanteiroRenderizado(camera.zoomAtual);
-    const int colunaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularColunaInicialDaGradeAtual(tamanhoNormalizado);
-    const int linhaInicial = Dominio::Grade::GradeGlobalDeCanteiros::calcularLinhaInicialDaGradeAtual(tamanhoNormalizado);
+    const int colunaInicial = Dominio::Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavel(tamanhoNormalizado);
+    const int linhaInicial = Dominio::Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavel(tamanhoNormalizado);
     const int colunaLocal = colunaInicial - Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
     const int linhaLocal = linhaInicial - Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL;
 

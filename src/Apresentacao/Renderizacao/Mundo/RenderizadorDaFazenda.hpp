@@ -9,7 +9,7 @@
 #include "Compartilhado/Constantes.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
-#include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
+#include "Dominio/Mapa/MapaDaFazenda.hpp"
 #include "Infraestrutura/Assets/RecursosDaFazenda.hpp"
 
 #include <SDL.h>
@@ -40,6 +40,17 @@ inline Compartilhado::Geometria::PosicaoNaGrade converterMouseParaGradeGlobal(
     );
 }
 
+inline Compartilhado::Geometria::PosicaoDeCanteiroNoMapa converterMouseParaCanteiroNoMapa(
+    int mouseX,
+    int mouseY,
+    const ConfiguracoesDoLayout& configuracoes,
+    const Camera::EstadoDaCamera& camera
+) {
+    return Compartilhado::Geometria::converterPosicaoNaGradeParaCanteiroNoMapa(
+        converterMouseParaGradeGlobal(mouseX, mouseY, configuracoes, camera)
+    );
+}
+
 inline SDL_Rect calcularDestinoDoCanteiro(
     Compartilhado::Geometria::PosicaoNaGrade posicao,
     const ConfiguracoesDoLayout& configuracoes,
@@ -63,6 +74,18 @@ inline SDL_Rect calcularDestinoDoCanteiro(
         dimensoes.largura,
         dimensoes.altura
     };
+}
+
+inline SDL_Rect calcularDestinoDoCanteiro(
+    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao,
+    const ConfiguracoesDoLayout& configuracoes,
+    const Camera::EstadoDaCamera& camera
+) {
+    return calcularDestinoDoCanteiro(
+        Compartilhado::Geometria::converterCanteiroNoMapaParaPosicaoNaGrade(posicao),
+        configuracoes,
+        camera
+    );
 }
 
 inline bool retanguloApareceNaTela(SDL_Rect retangulo) {
@@ -120,26 +143,33 @@ inline void desenharGradeAtiva(
     const Infraestrutura::Assets::TexturasDosCanteiros& texturasCanteiro,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera,
-    Compartilhado::Geometria::PosicaoNaGrade posicaoRealcada
+    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicaoRealcada
 ) {
-    const Dominio::Grade::GradeGlobalDeCanteiros& grade = jogo.grade();
-
-    for (const Compartilhado::Geometria::PosicaoNaGrade& posicaoDoTile : grade.posicoesDeTilesExistentes()) {
-        if (!Dominio::Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeAtual(posicaoDoTile, jogo.tamanhoAtualDoGrid())) {
+    for (const Dominio::Mapa::EntidadeDoMapa& entidade : jogo.mapa().entidades()) {
+        if (!entidade.ehCanteiroAgricola() || !entidade.posicaoDoCanteiroNoMapa().has_value()) {
             continue;
         }
 
-        const Dominio::Grade::TileDeTerra* tile = grade.obterTile(posicaoDoTile);
-        if (tile == nullptr || !tile->existeNoMapa()) {
+        const Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicaoDoCanteiro =
+            *entidade.posicaoDoCanteiroNoMapa();
+        if (!Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(
+                posicaoDoCanteiro,
+                jogo.tamanhoAtualDoGrid()
+            )) {
             continue;
         }
 
-        const SDL_Rect destino = calcularDestinoDoCanteiro(posicaoDoTile, configuracoes, camera);
+        const Dominio::Canteiros::Canteiro* canteiro = entidade.canteiroAgricola();
+        if (canteiro == nullptr) {
+            continue;
+        }
+
+        const SDL_Rect destino = calcularDestinoDoCanteiro(posicaoDoCanteiro, configuracoes, camera);
         if (!retanguloApareceNaTela(destino)) {
             continue;
         }
 
-        const Dominio::Canteiros::EstadoVisualDoCanteiro estadoVisual = tile->canteiro().estadoVisualAtual();
+        const Dominio::Canteiros::EstadoVisualDoCanteiro estadoVisual = canteiro->estadoVisualAtual();
         SDL_Texture* texturaDaTerra = nullptr;
         SDL_Texture* texturaDaPlanta = nullptr;
         SDL_Rect destinoDaPlanta = destino;
@@ -148,7 +178,7 @@ inline void desenharGradeAtiva(
                 Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada
             );
             const Infraestrutura::Assets::SpriteDaPlanta* spriteDaPlanta = texturasCanteiro.spriteDePlantaParaEstado(
-                tile->canteiro().identificadorDaSemente(),
+                canteiro->identificadorDaSemente(),
                 estadoVisual
             );
             if (spriteDaPlanta != nullptr && spriteDaPlanta->textura != nullptr) {
@@ -164,9 +194,9 @@ inline void desenharGradeAtiva(
             texturaDaTerra,
             texturaDaPlanta,
             destinoDaPlanta,
-            tile->canteiro(),
+            *canteiro,
             destino,
-            Compartilhado::Geometria::posicoesDaGradeSaoIguais(posicaoRealcada, posicaoDoTile)
+            Compartilhado::Geometria::posicoesDeCanteiroNoMapaSaoIguais(posicaoRealcada, posicaoDoCanteiro)
         );
 
         if constexpr (Compartilhado::Constantes::DEBUG_HITBOX_TILES) {
@@ -180,13 +210,12 @@ inline void desenharPreviewDeCriacaoDeTerra(
     const Aplicacao::Estado::EstadoDoJogo& jogo,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera,
-    Compartilhado::Geometria::PosicaoNaGrade posicaoRealcada
+    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicaoRealcada
 ) {
-    const Dominio::Grade::TileDeTerra* tileRealcado = jogo.grade().obterTile(posicaoRealcada);
     if (jogo.ferramentaSelecionada() != Dominio::Ferramentas::TipoDeFerramenta::Enxada ||
-        !Dominio::Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeGlobal(posicaoRealcada) ||
-        !Dominio::Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeAtual(posicaoRealcada, jogo.tamanhoAtualDoGrid()) ||
-        (tileRealcado != nullptr && tileRealcado->existeNoMapa())) {
+        !Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDoMapaGlobal(posicaoRealcada) ||
+        !Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(posicaoRealcada, jogo.tamanhoAtualDoGrid()) ||
+        jogo.mapa().existeCanteiroEm(posicaoRealcada)) {
         return;
     }
 

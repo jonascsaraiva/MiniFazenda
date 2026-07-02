@@ -16,13 +16,13 @@ public:
 
     ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoNaGrade posicao
+        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
     ) const override {
-        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.grade, posicao, contexto.tamanhoAtualDoGrid)) {
+        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.mapa, posicao, contexto.tamanhoAtualDoGrid)) {
             return ResultadoDaFerramenta{};
         }
 
-        Canteiros::Canteiro* canteiro = contexto.grade.obterCanteiro(posicao);
+        Canteiros::Canteiro* canteiro = contexto.mapa.obterCanteiroAgricola(posicao);
         if (canteiro == nullptr || !canteiro->estaArado()) {
             return ResultadoDaFerramenta{};
         }
@@ -41,7 +41,7 @@ public:
             return ResultadoDaFerramenta{};
         }
 
-        contexto.grade.sincronizarCrescimentoDoCanteiro(posicao);
+        contexto.mapa.sincronizarCrescimentoDoCanteiro(posicao);
         return ResultadoDaFerramenta{AcaoDaFerramenta::Plantar};
     }
 

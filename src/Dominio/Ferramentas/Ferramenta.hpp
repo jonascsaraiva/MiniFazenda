@@ -3,15 +3,15 @@
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Ferramentas/ResultadoDaFerramenta.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
-#include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
+#include "Dominio/Mapa/MapaDaFazenda.hpp"
 
 #include <optional>
 
 namespace MiniFazenda::Dominio::Ferramentas {
 
 struct ContextoDaFerramenta {
-    Grade::GradeGlobalDeCanteiros& grade;
+    Mapa::MapaDaFazenda& mapa;
     Jogador::Jogador& jogador;
     std::optional<int> identificadorDaSementeSelecionada;
     int tamanhoAtualDoGrid = 0;
@@ -24,18 +24,18 @@ public:
     virtual TipoDeFerramenta tipo() const = 0;
     virtual ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoNaGrade posicao
+        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
     ) const = 0;
 };
 
 inline bool posicaoPodeReceberAcaoDaFerramenta(
-    const Grade::GradeGlobalDeCanteiros& grade,
-    Compartilhado::Geometria::PosicaoNaGrade posicao,
+    const Mapa::MapaDaFazenda& mapa,
+    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao,
     int tamanhoAtualDoGrid
 ) {
-    (void)grade;
-    return Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeGlobal(posicao) &&
-           Grade::GradeGlobalDeCanteiros::posicaoEstaDentroDaGradeAtual(posicao, tamanhoAtualDoGrid);
+    (void)mapa;
+    return Mapa::MapaDaFazenda::posicaoEstaDentroDoMapaGlobal(posicao) &&
+           Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(posicao, tamanhoAtualDoGrid);
 }
 
 } // namespace MiniFazenda::Dominio::Ferramentas

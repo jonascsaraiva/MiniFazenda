@@ -12,29 +12,26 @@ public:
 
     ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoNaGrade posicao
+        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
     ) const override {
-        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.grade, posicao, contexto.tamanhoAtualDoGrid)) {
+        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.mapa, posicao, contexto.tamanhoAtualDoGrid)) {
             return ResultadoDaFerramenta{};
         }
 
-        Grade::TileDeTerra* tile = contexto.grade.obterTile(posicao);
-        if (tile == nullptr) {
-            return ResultadoDaFerramenta{};
-        }
-
-        if (!tile->existeNoMapa()) {
-            contexto.grade.ativarTile(posicao);
+        if (!contexto.mapa.existeCanteiroEm(posicao)) {
+            if (!contexto.mapa.criarCanteiro(posicao).has_value()) {
+                return ResultadoDaFerramenta{};
+            }
             return ResultadoDaFerramenta{AcaoDaFerramenta::CriarTerra};
         }
 
-        Canteiros::Canteiro* canteiro = contexto.grade.obterCanteiro(posicao);
+        Canteiros::Canteiro* canteiro = contexto.mapa.obterCanteiroAgricola(posicao);
         if (canteiro == nullptr) {
             return ResultadoDaFerramenta{};
         }
 
         if (canteiro->limparPlantaMorta() || canteiro->limparRestos()) {
-            contexto.grade.sincronizarCrescimentoDoCanteiro(posicao);
+            contexto.mapa.sincronizarCrescimentoDoCanteiro(posicao);
             return ResultadoDaFerramenta{AcaoDaFerramenta::LimparCanteiro};
         }
 
@@ -42,7 +39,7 @@ public:
             return ResultadoDaFerramenta{};
         }
 
-        contexto.grade.sincronizarCrescimentoDoCanteiro(posicao);
+        contexto.mapa.sincronizarCrescimentoDoCanteiro(posicao);
         return ResultadoDaFerramenta{AcaoDaFerramenta::ArarTerra};
     }
 };

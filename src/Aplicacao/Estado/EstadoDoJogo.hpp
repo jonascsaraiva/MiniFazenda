@@ -2,8 +2,8 @@
 
 #include "Compartilhado/Constantes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
-#include "Dominio/Grade/GradeGlobalDeCanteiros.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
+#include "Dominio/Mapa/MapaDaFazenda.hpp"
 #include "Dominio/Personagem/Personagem.hpp"
 
 #include <optional>
@@ -12,12 +12,12 @@ namespace MiniFazenda::Aplicacao::Estado {
 
 class EstadoDoJogo {
 public:
-    const Dominio::Grade::GradeGlobalDeCanteiros& grade() const {
-        return grade_;
+    const Dominio::Mapa::MapaDaFazenda& mapa() const {
+        return mapa_;
     }
 
-    Dominio::Grade::GradeGlobalDeCanteiros& grade() {
-        return grade_;
+    Dominio::Mapa::MapaDaFazenda& mapa() {
+        return mapa_;
     }
 
     const Dominio::Jogador::Jogador& jogador() const {
@@ -57,7 +57,7 @@ public:
     }
 
     void definirTamanhoAtualDoGrid(int tamanhoAtualDoGrid) {
-        tamanhoAtualDoGrid_ = Dominio::Grade::GradeGlobalDeCanteiros::normalizarTamanhoDaGradeAtual(tamanhoAtualDoGrid);
+        tamanhoAtualDoGrid_ = Dominio::Mapa::MapaDaFazenda::normalizarTamanhoDaAreaJogavel(tamanhoAtualDoGrid);
     }
 
     float acumuladorDeSegundos() const {
@@ -73,7 +73,7 @@ public:
     }
 
 private:
-    Dominio::Grade::GradeGlobalDeCanteiros grade_;
+    Dominio::Mapa::MapaDaFazenda mapa_;
     Dominio::Jogador::Jogador jogador_;
     Dominio::Personagem::Personagem personagem_;
     Dominio::Ferramentas::TipoDeFerramenta ferramentaSelecionada_ = Dominio::Ferramentas::TipoDeFerramenta::Cursor;
