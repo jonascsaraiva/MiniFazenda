@@ -1048,7 +1048,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
     **onde:** `src/Apresentacao/Interface/AreaDeInteracao.hpp`, `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
     **prioridade:** Baixa
 
-16. **Parametrizar o script de remover fundo**
+16. **Parametrizar o script de remover fundo** (Remover fundo não é do projeto, removido o aquivo)
     **corrigir:** O script usa caminho absoluto antigo. Fazer aceitar argumento de entrada/saída ou resolver caminhos pela raiz do projeto.
     **onde:** `remover_fundo.py`
     **prioridade:** Baixa
