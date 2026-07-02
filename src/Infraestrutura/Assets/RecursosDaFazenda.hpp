@@ -50,6 +50,7 @@ inline bool estadoEhFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDoCanteir
             return true;
         case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
         case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::Restos:
         default:
             return false;
     }
@@ -69,6 +70,7 @@ inline std::size_t indiceDaFaseVisualDaPlanta(Dominio::Canteiros::EstadoVisualDo
             return 4;
         case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
         case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::Restos:
         default:
             return 0;
     }
@@ -155,12 +157,29 @@ inline TexturasDosCanteiros carregarTexturasDosCanteiros(
     using Dominio::Canteiros::EstadoVisualDoCanteiro;
 
     TexturasDosCanteiros texturas;
-    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraVazia)] =
+    SDL_Texture* texturaTerraVazia =
         carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraSeca(diretorioAssets));
-    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraArada)] =
+    SDL_Texture* texturaTerraArada =
         carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraArada(diretorioAssets));
-    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMorta)] =
+    SDL_Texture* texturaTerraRestos =
         carregarPrimeiraTexturaExistente(ativos, candidatosParaTexturaTerraRestos(diretorioAssets));
+
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraVazia)] =
+        texturaTerraVazia;
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::TerraArada)] =
+        texturaTerraArada;
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::SementePlantada)] =
+        texturaTerraArada;
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaCrescendo)] =
+        texturaTerraArada;
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaJovem)] =
+        texturaTerraArada;
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMadura)] =
+        texturaTerraArada;
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::PlantaMorta)] =
+        texturaTerraArada;
+    texturas.terraPorEstado[Dominio::Canteiros::indiceDoEstado(EstadoVisualDoCanteiro::Restos)] =
+        texturaTerraRestos;
 
     return texturas;
 }
@@ -499,6 +518,7 @@ inline std::filesystem::path caminhoDoSomDaAcao(
             return diretorioAssets / "sounds" / "gift_open.wav";
         case Dominio::Ferramentas::AcaoDaFerramenta::Colher:
             return diretorioAssets / "sounds" / "harvest.wav";
+        case Dominio::Ferramentas::AcaoDaFerramenta::LimparCanteiro:
         case Dominio::Ferramentas::AcaoDaFerramenta::RemoverTerra:
             return diretorioAssets / "sounds" / "weed.wav";
         case Dominio::Ferramentas::AcaoDaFerramenta::CriarTerra:

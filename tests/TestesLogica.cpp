@@ -77,17 +77,6 @@ Geometria::PosicaoNaGrade posicaoLivreProximaDoNucleo() {
     };
 }
 
-void ararEPlantar(MiniFazenda::Aplicacao::Estado::EstadoDoJogo& jogo, Geometria::PosicaoNaGrade posicao) {
-    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
-    Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
-    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
-
-    jogo.selecionarSemente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
-    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
-    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicao);
-    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
-}
-
 void validarFluxoDeCliqueDaLoja() {
     const Plantas::FabricaDePlantas fabrica;
     const auto especiesDaLoja = fabrica.todasAsEspecies();
@@ -467,14 +456,66 @@ int main() {
     VERIFICAR(jogo.jogador().moedas() == moedasAntesDaColheita + recompensaDaColheita.moedas);
     VERIFICAR(jogo.jogador().experiencia() == recompensaDaColheita.experiencia);
     VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
-    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
     validarListasDaGrade(jogo.grade());
 
-    ararEPlantar(jogo, posicaoNova);
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(!resultado.houveMudanca());
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::LimparCanteiro);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(!resultado.houveMudanca());
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraArada);
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaMorrer()));
     VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaMorta);
     VERIFICAR(jogo.grade().quantidadeDeCanteirosEmCrescimento() == 0);
     validarListasDaGrade(jogo.grade());
+
+    const int moedasAntesDeLimparPlantaMorta = jogo.jogador().moedas();
+    const int experienciaAntesDeLimparPlantaMorta = jogo.jogador().experiencia();
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::LimparCanteiro);
+    VERIFICAR(jogo.jogador().moedas() == moedasAntesDeLimparPlantaMorta);
+    VERIFICAR(jogo.jogador().experiencia() == experienciaAntesDeLimparPlantaMorta);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
+    validarListasDaGrade(jogo.grade());
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(!resultado.houveMudanca());
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::Restos);
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::LimparCanteiro);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(!resultado.houveMudanca());
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraVazia);
+
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::ArarTerra);
+    VERIFICAR(tile->canteiro().estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::TerraArada);
 
     const std::size_t quantidadeAntesDeRemover = jogo.grade().quantidadeDeTilesExistentes();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::RemoverTerra);

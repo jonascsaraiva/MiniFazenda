@@ -221,7 +221,7 @@ Fluxo atual:
 
 Contratos atuais:
 
-- `Enxada`: cria tile inexistente dentro da area jogavel ou ara tile existente vazio/morto.
+- `Enxada`: cria tile inexistente dentro da area jogavel, limpa `PlantaMorta`/`Restos` ou ara `TerraVazia`.
 - `Semente`: exige canteiro arado, semente selecionada e moedas suficientes.
 - `Cursor`: colhe apenas canteiro maduro.
 - `RemoverTerra`: remove qualquer tile existente dentro da area jogavel.
@@ -253,7 +253,7 @@ Fluxo atual:
 - Planta e polimorfica e define tempos/recompensa.
 - Grade mantem lista de canteiros em crescimento.
 - Servico de tempo consome acumulador em passos de 1 segundo.
-- Ao colher, `Jogador` recebe recompensa e o canteiro volta para `TerraVazia`.
+- Ao colher, `Jogador` recebe recompensa e o canteiro passa para `Restos`.
 
 Comportamento confirmado por teste:
 
@@ -755,7 +755,7 @@ Recomendacao:
 
 - Corrigir comentario ou revisar valor real desejado em tarefa pequena separada.
 
-#### B3. `tile_terra_restos.png` e carregado, mas a renderizacao de planta morta usa outro caminho
+#### B3. Contrato de `PlantaMorta` e `Restos` corrigido
 
 Arquivo/fluxo:
 
@@ -763,24 +763,12 @@ Arquivo/fluxo:
 - `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`
 - `assets/sprites/tiles/tile_terra_restos.png`
 
-Problema:
+Estado corrigido:
 
-- `PlantaMorta` e considerada fase visual de planta.
-- Nessa rota, o renderizador usa base `TerraArada` mais sprite da planta morta.
-- A textura de terra para `PlantaMorta` fica praticamente sem uso no fluxo atual.
-
-Por que importa:
-
-- Existem duas representacoes visuais concorrentes para morte/restos.
-
-Impacto provavel:
-
-- Artista ou dev pode editar `tile_terra_restos.png` esperando efeito que nao aparece.
-
-Recomendacao:
-
-- Decidir se morte e sprite de planta sobre terra arada ou textura de solo com restos.
-- Remover carregamento morto se nao for usado, ou alterar renderizacao para usa-lo.
+- `PlantaMorta` continua sendo fase visual de planta: base `tile_terra_arada.png` mais sprite de planta morta.
+- `Restos` virou estado proprio do canteiro e usa exclusivamente `tile_terra_restos.png`.
+- Colher planta madura e limpar planta morta levam o canteiro para `Restos`.
+- O novo plantio exige limpar `Restos`, arar novamente e so entao plantar.
 
 #### B4. Duplicacao de mapeamento de fase visual de planta
 
@@ -957,7 +945,7 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
 
 9. Corrigir comentario da recompensa do mirtilo.
 10. Atualizar `arquivoBackgroundPrincipal` para asset real ou logar fallback.
-11. Resolver representacao visual de `PlantaMorta` e uso de `tile_terra_restos.png`.
+11. Manter o contrato corrigido de `PlantaMorta` e `Restos`.
 12. Parametrizar `remover_fundo.py`.
 13. Reduzir duplicacao de mapeamentos visuais de fase de planta.
 
@@ -1044,9 +1032,9 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
     **onde:** `src/Dominio/Plantas/Especies/PlantaMirtilo.hpp`
     **prioridade:** Baixa
 
-13. **Resolver representação visual de planta morta**
-    **corrigir:** Existe `tile_terra_restos.png`, mas a renderização atual usa terra arada + sprite de planta morta. Decidir um único contrato visual: tile de restos ou sprite sobre terra.
-    **onde:** `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`, `assets/sprites/tiles/tile_terra_restos.png`
+13. **Resolver representação visual de planta morta** (CONCLUIDO)
+    **corrigido:** `PlantaMorta` e `Restos` agora sao estados diferentes. Planta morta usa `tile_terra_arada.png` com sprite de planta morta por cima; restos usa exclusivamente `tile_terra_restos.png`, sem sprite de planta.
+    **onde:** `src/Dominio/Canteiros/EstadoDoCanteiro.hpp`, `src/Dominio/Canteiros/Canteiro.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp`, `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`, `assets/sprites/tiles/tile_terra_restos.png`
     **prioridade:** Baixa
 
 14. **Unificar mapeamento de estado visual de planta**

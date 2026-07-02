@@ -483,6 +483,8 @@ arar()
 plantar(planta)
 acelerarParaMadura()
 colher()
+limparPlantaMorta()
+limparRestos()
 avancarUmSegundo()
 ```
 
@@ -491,6 +493,25 @@ Essa abordagem centraliza o State Pattern de forma simples.
 No momento, não há classes separadas por estado porque o comportamento atual ainda é pequeno.
 
 Se as transições ganharem efeitos específicos por estado, elas devem ser extraídas para objetos de estado sem expor mutação direta.
+
+### Contrato de planta morta e restos
+
+`PlantaMorta` e `Restos` sao estados diferentes.
+
+- `PlantaMorta`: ainda existe uma planta no canteiro. Visualmente, a base e `tile_terra_arada.png` e a fase morta da planta e desenhada por cima.
+- `Restos`: nao existe planta no canteiro. Visualmente, somente `tile_terra_restos.png` representa o solo sujo com residuos.
+
+Fluxo de colheita e limpeza:
+
+```text
+TerraVazia -> arar() -> TerraArada
+TerraArada -> plantar(planta) -> SementePlantada -> PlantaCrescendo -> PlantaJovem -> PlantaMadura
+PlantaMadura -> colher() com recompensa -> Restos
+PlantaMorta -> limparPlantaMorta() sem recompensa -> Restos
+Restos -> limparRestos() -> TerraVazia -> arar() -> TerraArada
+```
+
+Um novo plantio so e permitido em `TerraArada`. Portanto, depois de colheita ou limpeza de planta morta, o jogador precisa limpar os restos e preparar novamente o canteiro antes de plantar.
 
 ---
 

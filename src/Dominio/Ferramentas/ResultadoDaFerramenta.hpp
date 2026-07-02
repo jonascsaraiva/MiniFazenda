@@ -6,6 +6,7 @@ enum class AcaoDaFerramenta {
     Nenhuma,
     CriarTerra,
     ArarTerra,
+    LimparCanteiro,
     RemoverTerra,
     Plantar,
     AcelerarCrescimento,

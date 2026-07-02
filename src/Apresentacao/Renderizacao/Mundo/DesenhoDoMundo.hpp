@@ -22,6 +22,8 @@ inline SDL_Color corParaEstado(Dominio::Canteiros::EstadoVisualDoCanteiro estado
             return SDL_Color{230, 187, 65, 255};
         case Dominio::Canteiros::EstadoVisualDoCanteiro::PlantaMorta:
             return SDL_Color{92, 84, 78, 255};
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::Restos:
+            return SDL_Color{103, 76, 49, 255};
         case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
         default:
             return SDL_Color{147, 98, 56, 255};
@@ -48,6 +50,7 @@ inline bool estadoVisualTemPlanta(Dominio::Canteiros::EstadoVisualDoCanteiro est
             return true;
         case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraVazia:
         case Dominio::Canteiros::EstadoVisualDoCanteiro::TerraArada:
+        case Dominio::Canteiros::EstadoVisualDoCanteiro::Restos:
         default:
             return false;
     }

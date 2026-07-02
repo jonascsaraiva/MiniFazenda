@@ -29,7 +29,16 @@ public:
         }
 
         Canteiros::Canteiro* canteiro = contexto.grade.obterCanteiro(posicao);
-        if (canteiro == nullptr || !canteiro->arar()) {
+        if (canteiro == nullptr) {
+            return ResultadoDaFerramenta{};
+        }
+
+        if (canteiro->limparPlantaMorta() || canteiro->limparRestos()) {
+            contexto.grade.sincronizarCrescimentoDoCanteiro(posicao);
+            return ResultadoDaFerramenta{AcaoDaFerramenta::LimparCanteiro};
+        }
+
+        if (!canteiro->arar()) {
             return ResultadoDaFerramenta{};
         }
 

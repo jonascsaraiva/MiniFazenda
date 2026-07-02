@@ -11,10 +11,11 @@ enum class EstadoVisualDoCanteiro {
     PlantaCrescendo = 3,
     PlantaJovem = 4,
     PlantaMadura = 5,
-    PlantaMorta = 6
+    PlantaMorta = 6,
+    Restos = 7
 };
 
-constexpr std::size_t QUANTIDADE_DE_ESTADOS_DO_CANTEIRO = 7;
+constexpr std::size_t QUANTIDADE_DE_ESTADOS_DO_CANTEIRO = 8;
 
 inline std::size_t indiceDoEstado(EstadoVisualDoCanteiro estado) {
     return static_cast<std::size_t>(estado);

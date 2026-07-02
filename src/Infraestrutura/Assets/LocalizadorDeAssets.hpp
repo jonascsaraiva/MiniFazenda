@@ -101,8 +101,7 @@ inline std::vector<std::filesystem::path> candidatosParaTexturaTerraArada(const 
 
 inline std::vector<std::filesystem::path> candidatosParaTexturaTerraRestos(const std::filesystem::path& diretorioAssets) {
     return {
-        diretorioAssets / "sprites" / "tiles" / "tile_terra_restos.png",
-        diretorioAssets / "sprites" / "planta_morta.png"
+        diretorioAssets / "sprites" / "tiles" / "tile_terra_restos.png"
     };
 }
 

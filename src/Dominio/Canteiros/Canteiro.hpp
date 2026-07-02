@@ -52,6 +52,14 @@ public:
         return estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaMadura;
     }
 
+    bool estaComPlantaMorta() const {
+        return estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaMorta;
+    }
+
+    bool estaComRestos() const {
+        return estadoVisualAtual_ == EstadoVisualDoCanteiro::Restos;
+    }
+
     bool precisaAvancarCrescimento() const {
         return estadoVisualAtual_ == EstadoVisualDoCanteiro::SementePlantada ||
                estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaCrescendo ||
@@ -60,14 +68,31 @@ public:
     }
 
     bool arar() {
-        if (estadoVisualAtual_ != EstadoVisualDoCanteiro::TerraVazia &&
-            estadoVisualAtual_ != EstadoVisualDoCanteiro::PlantaMorta) {
+        if (estadoVisualAtual_ != EstadoVisualDoCanteiro::TerraVazia) {
             return false;
         }
 
         estadoVisualAtual_ = EstadoVisualDoCanteiro::TerraArada;
         tempoDePlantioEmSegundos_ = 0;
         planta_.reset();
+        return true;
+    }
+
+    bool limparPlantaMorta() {
+        if (!estaComPlantaMorta()) {
+            return false;
+        }
+
+        transformarEmRestos();
+        return true;
+    }
+
+    bool limparRestos() {
+        if (!estaComRestos()) {
+            return false;
+        }
+
+        transformarEmTerraVazia();
         return true;
     }
 
@@ -101,7 +126,7 @@ public:
         }
 
         const Plantas::RecompensaDaColheita recompensa = planta_->recompensaDaColheita();
-        transformarEmTerraVazia();
+        transformarEmRestos();
         return recompensa;
     }
 
@@ -118,6 +143,12 @@ public:
 private:
     void transformarEmTerraVazia() {
         estadoVisualAtual_ = EstadoVisualDoCanteiro::TerraVazia;
+        tempoDePlantioEmSegundos_ = 0;
+        planta_.reset();
+    }
+
+    void transformarEmRestos() {
+        estadoVisualAtual_ = EstadoVisualDoCanteiro::Restos;
         tempoDePlantioEmSegundos_ = 0;
         planta_.reset();
     }
