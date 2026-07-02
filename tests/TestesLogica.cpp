@@ -79,6 +79,52 @@ Geometria::PosicaoNaGrade posicaoLivreProximaDoNucleo() {
     };
 }
 
+void validarContratoSemiabertoDasAreasDeInteracao() {
+    const Interface::AreaDeInteracao esquerda{10, 20, 30, 40};
+    const Interface::AreaDeInteracao direita{40, 20, 30, 40};
+
+    VERIFICAR(Interface::pontoEstaNaAreaDeInteracao(10, 20, esquerda));
+    VERIFICAR(Interface::pontoEstaNaAreaDeInteracao(39, 59, esquerda));
+    VERIFICAR(!Interface::pontoEstaNaAreaDeInteracao(40, 20, esquerda));
+    VERIFICAR(!Interface::pontoEstaNaAreaDeInteracao(10, 60, esquerda));
+    VERIFICAR(!Interface::pontoEstaNaAreaDeInteracao(9, 20, esquerda));
+    VERIFICAR(!Interface::pontoEstaNaAreaDeInteracao(10, 19, esquerda));
+
+    VERIFICAR(!BarraFerramentas::verificarCliqueNoBotao(40, 20, esquerda));
+    VERIFICAR(BarraFerramentas::verificarCliqueNoBotao(40, 20, direita));
+    VERIFICAR(!(BarraFerramentas::verificarCliqueNoBotao(40, 20, esquerda) &&
+               BarraFerramentas::verificarCliqueNoBotao(40, 20, direita)));
+}
+
+void validarBotoesDaBarraRespondemAoCliqueCentral() {
+    const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
+
+    const auto verificarBotao = [&botoes](
+        const Interface::AreaDeInteracao& botao,
+        Ferramentas::TipoDeFerramenta ferramentaEsperada
+    ) {
+        Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Cursor;
+        Interface::EstadoDaCenaFazenda estadoDaCena;
+        const int centroX = botao.posicaoBotaoHorizontal + botao.tamanhoBotaoLargura / 2;
+        const int centroY = botao.posicaoBotaoVertical + botao.tamanhoBotaoAltura / 2;
+
+        VERIFICAR(BarraFerramentas::processarCliqueNaInterface(
+            centroX,
+            centroY,
+            botoes,
+            ferramentaSelecionada,
+            estadoDaCena
+        ));
+        VERIFICAR(ferramentaSelecionada == ferramentaEsperada);
+    };
+
+    verificarBotao(botoes.cursor, Ferramentas::TipoDeFerramenta::Cursor);
+    verificarBotao(botoes.enxada, Ferramentas::TipoDeFerramenta::Enxada);
+    verificarBotao(botoes.removerTerra, Ferramentas::TipoDeFerramenta::RemoverTerra);
+    verificarBotao(botoes.semente, Ferramentas::TipoDeFerramenta::Semente);
+    verificarBotao(botoes.loja, Ferramentas::TipoDeFerramenta::Loja);
+}
+
 void validarFluxoDeCliqueDaLoja() {
     const Plantas::FabricaDePlantas fabrica;
     const auto especiesDaLoja = fabrica.todasAsEspecies();
@@ -405,6 +451,8 @@ int main() {
     validarMovimentoIsometricoDoPersonagem();
     validarEstadoDaCenaFazenda();
     validarEstadosVisuaisDePlantaParaDesenho();
+    validarContratoSemiabertoDasAreasDeInteracao();
+    validarBotoesDaBarraRespondemAoCliqueCentral();
     validarFluxoDeCliqueDaLoja();
     validarHitTestIsometricoDoCanteiro();
     validarHitTestIsometricoGlobalComCamera();

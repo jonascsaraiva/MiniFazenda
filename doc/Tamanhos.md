@@ -294,6 +294,8 @@ A animação idle atual usa uma spritesheet horizontal de cinco frames. A escolh
 
 Estas medidas não alteram o posicionamento do mundo, mas fazem parte da composicao visual desenhada por cima dele.
 
+O hit-test da interface usa retangulos semiabertos como padrao: `x <= pontoX < x + largura` e `y <= pontoY < y + altura`. O limite inicial pertence a area clicavel; os limites direito e inferior nao pertencem, evitando que retangulos adjacentes compartilhem o mesmo pixel clicavel. Origem: `src/Apresentacao/Interface/AreaDeInteracao.hpp::pontoEstaNoRetanguloSemiaberto`.
+
 ### Barra de ferramentas
 
 - **Quantidade de botões inferiores** — `5`

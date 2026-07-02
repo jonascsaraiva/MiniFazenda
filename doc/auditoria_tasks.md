@@ -793,15 +793,15 @@ Recomendacao:
 
 - Centralizar esse mapeamento em uma funcao de borda visual unica.
 
-#### B5. `verificarCliqueNoBotao` inclui o limite direito/inferior
+#### B5. `verificarCliqueNoBotao` usava limite direito/inferior inclusivo
 
 Arquivo/fluxo:
 
 - `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
 
-Problema:
+Situacao atual:
 
-- O hit-test usa `<= x + largura` e `<= y + altura`.
+- Corrigido: o hit-test usa retangulos semiabertos, com `x <= ponto < x + largura` e `y <= ponto < y + altura`.
 
 Por que importa:
 
@@ -811,9 +811,10 @@ Impacto provavel:
 
 - Baixo hoje, porque a toolbar tem espacamento.
 
-Recomendacao:
+Resolucao:
 
-- Usar semantica usual de retangulo: `x <= ponto < x + largura`.
+- O contrato foi centralizado em `AreaDeInteracao.hpp::pontoEstaNoRetanguloSemiaberto`.
+- `verificarCliqueNoBotao` delega para esse contrato compartilhado.
 
 #### B6. `remover_fundo.py` usa caminho absoluto antigo
 
@@ -1042,9 +1043,9 @@ O README instrui `cd C:\dev\MiniFazenda`, enquanto a pasta auditada e `MiniFazen
     **onde:** `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp`, `src/Infraestrutura/Assets/RecursosDaFazenda.hpp`
     **prioridade:** Baixa
 
-15. **Corrigir hit-test de botão com limite inclusivo**
-    **corrigir:** `verificarCliqueNoBotao` usa `<= x + largura` e `<= y + altura`. Trocar para padrão mais seguro: `x <= ponto < x + largura`.
-    **onde:** `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
+15. **Corrigir hit-test de botão com limite inclusivo** (CONCLUIDO)
+    **corrigido:** `verificarCliqueNoBotao` delega para o contrato centralizado de retangulo semiaberto: `x <= ponto < x + largura`.
+    **onde:** `src/Apresentacao/Interface/AreaDeInteracao.hpp`, `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
     **prioridade:** Baixa
 
 16. **Parametrizar o script de remover fundo**

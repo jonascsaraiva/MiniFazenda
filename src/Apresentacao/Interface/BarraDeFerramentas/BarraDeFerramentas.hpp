@@ -102,16 +102,12 @@ inline PainelDaLoja criarPainelDaLoja(
     return painel;
 }
 
-inline bool verificarCliqueNoBotao(int cliqueMouseHorizontal, int cliqueMouseVertical, AreaDeInteracao limitesDoBotao) {
-    const bool colidiuHorizontalmente =
-        cliqueMouseHorizontal >= limitesDoBotao.posicaoBotaoHorizontal &&
-        cliqueMouseHorizontal <= (limitesDoBotao.posicaoBotaoHorizontal + limitesDoBotao.tamanhoBotaoLargura);
-
-    const bool colidiuVerticalmente =
-        cliqueMouseVertical >= limitesDoBotao.posicaoBotaoVertical &&
-        cliqueMouseVertical <= (limitesDoBotao.posicaoBotaoVertical + limitesDoBotao.tamanhoBotaoAltura);
-
-    return colidiuHorizontalmente && colidiuVerticalmente;
+inline bool verificarCliqueNoBotao(
+    int cliqueMouseHorizontal,
+    int cliqueMouseVertical,
+    const AreaDeInteracao& limitesDoBotao
+) {
+    return pontoEstaNaAreaDeInteracao(cliqueMouseHorizontal, cliqueMouseVertical, limitesDoBotao);
 }
 
 inline std::optional<int> sementeClicadaNoPainelDaLoja(

@@ -162,12 +162,11 @@ public:
 
 private:
     static bool pontoDentroDoRetangulo(int x, int y, const SDL_Rect& retangulo) {
-        const SDL_Point ponto{x, y};
-        return SDL_PointInRect(&ponto, &retangulo) == SDL_TRUE;
+        return Interface::pontoEstaNoRetanguloSemiaberto(x, y, retangulo.x, retangulo.y, retangulo.w, retangulo.h);
     }
 
     static bool pontoDentroDaAreaDeInteracao(int x, int y, const Interface::AreaDeInteracao& area) {
-        return BarraFerramentas::verificarCliqueNoBotao(x, y, area);
+        return Interface::pontoEstaNaAreaDeInteracao(x, y, area);
     }
 
     static bool posicaoEstaDentroDaAreaJogavel(
