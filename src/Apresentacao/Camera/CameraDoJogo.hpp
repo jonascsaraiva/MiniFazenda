@@ -17,6 +17,11 @@ struct DimensoesDoCanteiroRenderizado {
     int altura = Compartilhado::Constantes::ALTURA_DO_CANTEIRO;
 };
 
+struct DimensoesDaUnidadeDeOcupacaoRenderizada {
+    int largura = Compartilhado::Constantes::LARGURA_DA_UNIDADE_DE_OCUPACAO;
+    int altura = Compartilhado::Constantes::ALTURA_DA_UNIDADE_DE_OCUPACAO;
+};
+
 struct EstadoDaCamera {
     int offsetHorizontal = 0;
     int offsetVertical = 0;
@@ -45,6 +50,42 @@ inline DimensoesDoCanteiroRenderizado calcularDimensoesDoCanteiroRenderizado(flo
     return DimensoesDoCanteiroRenderizado{
         std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::LARGURA_DO_CANTEIRO * zoomLimitado))),
         std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::ALTURA_DO_CANTEIRO * zoomLimitado)))
+    };
+}
+
+inline DimensoesDaUnidadeDeOcupacaoRenderizada calcularDimensoesDaUnidadeDeOcupacaoRenderizada(
+    float zoomAtual
+) {
+    const float zoomLimitado = std::clamp(
+        zoomAtual,
+        Compartilhado::Constantes::ZOOM_MINIMO,
+        Compartilhado::Constantes::ZOOM_MAXIMO
+    );
+
+    return DimensoesDaUnidadeDeOcupacaoRenderizada{
+        std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::LARGURA_DA_UNIDADE_DE_OCUPACAO * zoomLimitado))),
+        std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::ALTURA_DA_UNIDADE_DE_OCUPACAO * zoomLimitado)))
+    };
+}
+
+inline DimensoesDaUnidadeDeOcupacaoRenderizada calcularDimensoesDaAreaDeOcupacaoRenderizada(
+    Compartilhado::Geometria::AreaNaGradeDeOcupacao area,
+    float zoomAtual
+) {
+    const float zoomLimitado = std::clamp(
+        zoomAtual,
+        Compartilhado::Constantes::ZOOM_MINIMO,
+        Compartilhado::Constantes::ZOOM_MAXIMO
+    );
+    const float fatorDaArea = std::max(1, area.largura + area.altura) / 2.0f;
+
+    return DimensoesDaUnidadeDeOcupacaoRenderizada{
+        std::max(1, static_cast<int>(std::round(
+            Compartilhado::Constantes::LARGURA_DA_UNIDADE_DE_OCUPACAO * fatorDaArea * zoomLimitado
+        ))),
+        std::max(1, static_cast<int>(std::round(
+            Compartilhado::Constantes::ALTURA_DA_UNIDADE_DE_OCUPACAO * fatorDaArea * zoomLimitado
+        )))
     };
 }
 

@@ -1,14 +1,19 @@
 #pragma once
 
 #include "Compartilhado/ConstantesDaIsometria.hpp"
+#include "Compartilhado/ConstantesDoJogo.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace MiniFazenda::Apresentacao::Isometria {
 
+using Compartilhado::Geometria::AreaNaGradeDeOcupacao;
 using Compartilhado::Geometria::PosicaoNaGrade;
+using Compartilhado::Geometria::PosicaoNaGradeDeOcupacao;
 using Compartilhado::Geometria::PosicaoNaTela;
+using Compartilhado::Geometria::Retangulo;
 
 inline PosicaoNaTela converterGradeParaTela(
     int colunaGrade,
@@ -100,6 +105,133 @@ inline PosicaoNaGrade converterTelaParaGradeGlobal(
     return PosicaoNaGrade{
         Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceColuna,
         Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL + posicaoLocal.indiceLinha
+    };
+}
+
+inline PosicaoNaTela converterOcupacaoParaTela(
+    int colunaDeOcupacao,
+    int linhaDeOcupacao,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int deslocamentoHorizontal,
+    int deslocamentoVertical
+) {
+    return converterGradeParaTela(
+        colunaDeOcupacao,
+        linhaDeOcupacao,
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
+}
+
+inline PosicaoNaGradeDeOcupacao converterTelaParaOcupacao(
+    int posicaoMouseHorizontal,
+    int posicaoMouseVertical,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int deslocamentoHorizontal,
+    int deslocamentoVertical
+) {
+    const PosicaoNaGrade posicaoLocal = converterTelaParaGrade(
+        posicaoMouseHorizontal,
+        posicaoMouseVertical,
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
+
+    return PosicaoNaGradeDeOcupacao{posicaoLocal.indiceColuna, posicaoLocal.indiceLinha};
+}
+
+inline PosicaoNaTela converterOcupacaoGlobalParaTela(
+    PosicaoNaGradeDeOcupacao posicaoGlobal,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int origemHorizontal,
+    int origemVertical,
+    int cameraOffsetHorizontal,
+    int cameraOffsetVertical
+) {
+    const int colunaLocal =
+        posicaoGlobal.indiceColuna -
+        Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL *
+            Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO;
+    const int linhaLocal =
+        posicaoGlobal.indiceLinha -
+        Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL *
+            Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO;
+    const int deslocamentoHorizontal = origemHorizontal + cameraOffsetHorizontal;
+    const int deslocamentoVertical = origemVertical + cameraOffsetVertical;
+
+    return converterOcupacaoParaTela(
+        colunaLocal,
+        linhaLocal,
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
+}
+
+inline PosicaoNaGradeDeOcupacao converterTelaParaOcupacaoGlobal(
+    int posicaoMouseHorizontal,
+    int posicaoMouseVertical,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int origemHorizontal,
+    int origemVertical,
+    int cameraOffsetHorizontal,
+    int cameraOffsetVertical
+) {
+    const int deslocamentoHorizontal = origemHorizontal + cameraOffsetHorizontal;
+    const int deslocamentoVertical = origemVertical + cameraOffsetVertical;
+    const PosicaoNaGradeDeOcupacao posicaoLocal = converterTelaParaOcupacao(
+        posicaoMouseHorizontal,
+        posicaoMouseVertical,
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
+
+    return PosicaoNaGradeDeOcupacao{
+        Compartilhado::Constantes::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL *
+                Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO +
+            posicaoLocal.indiceColuna,
+        Compartilhado::Constantes::LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL *
+                Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO +
+            posicaoLocal.indiceLinha
+    };
+}
+
+inline Retangulo calcularRetanguloDaAreaDeOcupacaoGlobal(
+    AreaNaGradeDeOcupacao area,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int origemHorizontal,
+    int origemVertical,
+    int cameraOffsetHorizontal,
+    int cameraOffsetVertical
+) {
+    const PosicaoNaTela origem = converterOcupacaoGlobalParaTela(
+        PosicaoNaGradeDeOcupacao{area.indiceColuna, area.indiceLinha},
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        origemHorizontal,
+        origemVertical,
+        cameraOffsetHorizontal,
+        cameraOffsetVertical
+    );
+    const int somaDasDimensoes = std::max(1, area.largura + area.altura);
+
+    return Retangulo{
+        origem.coordenadaHorizontal,
+        origem.coordenadaVertical,
+        std::max(1, (somaDasDimensoes * larguraDaUnidadeDeOcupacao) / 2),
+        std::max(1, (somaDasDimensoes * alturaDaUnidadeDeOcupacao) / 2)
     };
 }
 

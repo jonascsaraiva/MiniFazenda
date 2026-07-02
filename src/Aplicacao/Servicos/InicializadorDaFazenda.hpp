@@ -16,7 +16,7 @@ inline Dominio::Mapa::MapaDaFazenda criarMapaDaFazendaComNucleoInicial() {
                 Compartilhado::Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL + linha
             };
 
-            mapa.criarCanteiro(posicao);
+            mapa.criarCanteiro(posicao, Compartilhado::Constantes::TAMANHO_INICIAL_GRID);
         }
     }
 

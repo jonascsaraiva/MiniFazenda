@@ -77,6 +77,15 @@ A conversão de grade para tela usa o topo-esquerda do retângulo de destino do 
 - **Tela para grade** — subtrai `64 px` do X ajustado antes de inverter a isometria
   - Origem: `src/Apresentacao/Isometria/Isometrico.hpp::converterTelaParaGrade`, usando `larguraDoCanteiro / 2`
 
+### Unidade de ocupacao
+
+- **Largura da unidade de ocupacao no zoom base** - `64 px`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::LARGURA_DA_UNIDADE_DE_OCUPACAO`; um canteiro ocupa `2 x 2` unidades
+- **Altura da unidade de ocupacao no zoom base** - `32 px`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::ALTURA_DA_UNIDADE_DE_OCUPACAO`; um canteiro ocupa `2 x 2` unidades
+- **Origem logica do canteiro** - `PosicaoNaGradeDeOcupacao`
+  - Origem: `src/Dominio/Ocupacao/GridDeOcupacao.hpp::calcularAreaDeOcupacaoDoCanteiro(PosicaoNaGradeDeOcupacao)`; a origem pode ser par ou impar
+
 ## 3. Zoom e dimensões escaladas
 
 O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtual)`, limitado entre `ZOOM_MINIMO` e `ZOOM_MAXIMO` (`src/Apresentacao/Camera/CameraDoJogo.hpp::calcularDimensoesDoCanteiroRenderizado`).
@@ -123,8 +132,12 @@ O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtua
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::COLUNA_CENTRAL_DA_GRADE_GLOBAL` e `LINHA_CENTRAL_DA_GRADE_GLOBAL`
 - **Tamanho inicial da grade jogável** — `12 x 12 tiles`
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::TAMANHO_INICIAL_GRID`
+- **Tamanho inicial em unidades de ocupacao** - `24 x 24 unidades`
+  - Origem: `TAMANHO_INICIAL_GRID * UNIDADES_DE_OCUPACAO_POR_CANTEIRO`; validado por `src/Dominio/Mapa/MapaDaFazenda.hpp::calcularTamanhoDaAreaJogavelEmOcupacao`
 - **Tamanho máximo da grade jogável** — `24 x 24 tiles`
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::TAMANHO_MAXIMO_GRID`
+- **Tamanho maximo em unidades de ocupacao** - `48 x 48 unidades`
+  - Origem: `TAMANHO_MAXIMO_GRID * UNIDADES_DE_OCUPACAO_POR_CANTEIRO`
 - **Incremento de tamanho da grade jogável** — `2 tiles`
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::INCREMENTO_TAMANHO_GRID`
 - **Tamanhos validos pela normalizacao atual** — `12, 14, 16, 18, 20, 22, 24`
@@ -282,6 +295,10 @@ A animação idle atual usa uma spritesheet horizontal de cinco frames. A escolh
   - Origem: Derivado de `posicaoDosPesNaGrade_`, origem `(512, 232)`, `LARGURA_DO_CANTEIRO` e `ALTURA_DO_CANTEIRO`
 - **Retângulo inicial do personagem na tela, sem pan e no zoom base** — `x=544, y=232, w=63, h=96`
   - Origem: `(576 - 32, 328 - 96, 63, 96)`, derivado de `calcularRetanguloDeDestino`
+
+### Movimento e ocupacao
+
+O personagem ainda usa `PosicaoNaGrade` para a posicao logica dos pes e nao e ocupante fixo do `GridDeOcupacao`. Clique, preview e ferramentas agricolas ja usam `PosicaoNaGradeDeOcupacao`; migrar velocidade/caminho do personagem para a malha menor e uma proxima etapa.
 
 ### Padrão de arte atual
 

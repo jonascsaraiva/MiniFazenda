@@ -109,7 +109,7 @@ public:
     }
 
     void renderizar() {
-        const Geometria::PosicaoDeCanteiroNoMapa posicaoRealcada = calcularPosicaoRealcada();
+        const Geometria::PosicaoNaGradeDeOcupacao posicaoRealcada = calcularPosicaoRealcada();
 
         Mundo::desenharFundo(renderizador_, recursos_.texturaFundo);
         Mundo::desenharGradeAtiva(
@@ -309,25 +309,27 @@ private:
     void processarCliqueNoMundo() {
         const Geometria::PosicaoNaGrade posicaoNaGrade =
             Mundo::converterMouseParaGradeGlobal(mouseX_, mouseY_, configuracoes_, camera_);
-        const Geometria::PosicaoDeCanteiroNoMapa posicaoDoCanteiro =
+        const Geometria::PosicaoNaGradeDeOcupacao posicaoDeOcupacao =
+            Mundo::converterMouseParaGradeDeOcupacaoGlobal(mouseX_, mouseY_, configuracoes_, camera_);
+        const Geometria::PosicaoDeCanteiroNoMapa posicaoDoCanteiroParaMovimento =
             Geometria::converterPosicaoNaGradeParaCanteiroNoMapa(posicaoNaGrade);
 
-        if (posicaoEstaDentroDaAreaJogavel(posicaoDoCanteiro, jogo_.tamanhoAtualDoGrid())) {
+        if (posicaoEstaDentroDaAreaJogavel(posicaoDoCanteiroParaMovimento, jogo_.tamanhoAtualDoGrid())) {
             jogo_.personagem().caminharAte(posicaoNaGrade);
         }
 
-        const auto resultado = AppServicos::aplicarFerramentaNoJogo(jogo_, posicaoDoCanteiro);
+        const auto resultado = AppServicos::aplicarFerramentaNoJogo(jogo_, posicaoDeOcupacao);
         if (audioInicializado_) {
             Assets::tocarSomDaAcao(ativos_, diretorioAssets_, resultado);
         }
     }
 
-    Geometria::PosicaoDeCanteiroNoMapa calcularPosicaoRealcada() const {
+    Geometria::PosicaoNaGradeDeOcupacao calcularPosicaoRealcada() const {
         if (camera_.panAtivo) {
-            return Geometria::PosicaoDeCanteiroNoMapa{-1, -1};
+            return Geometria::PosicaoNaGradeDeOcupacao{-1, -1};
         }
 
-        return Mundo::converterMouseParaCanteiroNoMapa(mouseX_, mouseY_, configuracoes_, camera_);
+        return Mundo::converterMouseParaGradeDeOcupacaoGlobal(mouseX_, mouseY_, configuracoes_, camera_);
     }
 
     void recarregarConfiguracoesVisuais() {

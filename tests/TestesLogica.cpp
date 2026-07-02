@@ -67,12 +67,17 @@ void validarListasDoMapa(const Mapa::MapaDaFazenda& mapa) {
         VERIFICAR(mapa.obterEntidade(entidade.identificador()) != nullptr);
 
         if (entidade.ehCanteiroAgricola()) {
-            VERIFICAR(entidade.posicaoDoCanteiroNoMapa().has_value());
             VERIFICAR(entidade.canteiroAgricola() != nullptr);
-            const Mapa::EntidadeDoMapa* entidadeNoMapa =
-                mapa.entidadeEmCanteiro(*entidade.posicaoDoCanteiroNoMapa());
-            VERIFICAR(entidadeNoMapa != nullptr);
-            VERIFICAR(entidadeNoMapa->identificador() == entidade.identificador());
+
+            const Geometria::AreaNaGradeDeOcupacao area = entidade.areaDeOcupacao();
+            for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+                for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+                    const Mapa::EntidadeDoMapa* entidadeNoMapa =
+                        mapa.entidadeEm(Geometria::PosicaoNaGradeDeOcupacao{coluna, linha});
+                    VERIFICAR(entidadeNoMapa != nullptr);
+                    VERIFICAR(entidadeNoMapa->identificador() == entidade.identificador());
+                }
+            }
         }
     }
 
@@ -151,10 +156,9 @@ void validarIndiceDeOcupacaoDoMapa(const Mapa::MapaDaFazenda& mapa) {
             continue;
         }
 
-        VERIFICAR(entidade.posicaoDoCanteiroNoMapa().has_value());
-        const Geometria::AreaNaGradeDeOcupacao area =
-            Ocupacao::calcularAreaDeOcupacaoDoCanteiro(*entidade.posicaoDoCanteiroNoMapa());
-        VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(entidade.areaDeOcupacao(), area));
+        const Geometria::AreaNaGradeDeOcupacao area = entidade.areaDeOcupacao();
+        VERIFICAR(area.largura == Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO);
+        VERIFICAR(area.altura == Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO);
 
         for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
             for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
@@ -168,10 +172,92 @@ void validarIndiceDeOcupacaoDoMapa(const Mapa::MapaDaFazenda& mapa) {
     }
 }
 
-Geometria::PosicaoDeCanteiroNoMapa posicaoLivreProximaDoNucleo() {
-    return Geometria::PosicaoDeCanteiroNoMapa{
-        Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + 3,
-        Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL
+void validarCanteiroPodeNascerEmOrigemParEImparDeOcupacao() {
+    Mapa::MapaDaFazenda mapa;
+    const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
+    const int colunaInicial = Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const int linhaInicial = Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const Geometria::PosicaoNaGradeDeOcupacao origemPar{colunaInicial, linhaInicial};
+    const Geometria::PosicaoNaGradeDeOcupacao origemImpar{colunaInicial + 3, linhaInicial + 1};
+
+    const auto idPar = mapa.criarCanteiroEm(origemPar, tamanho);
+    const auto idImpar = mapa.criarCanteiroEm(origemImpar, tamanho);
+
+    VERIFICAR(idPar.has_value());
+    VERIFICAR(idImpar.has_value());
+    VERIFICAR(mapa.quantidadeDeCanteiros() == 2);
+    VERIFICAR(mapa.obterEntidade(*idPar)->posicaoDoCanteiroNoMapa().has_value());
+    VERIFICAR(!mapa.obterEntidade(*idImpar)->posicaoDoCanteiroNoMapa().has_value());
+    VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(
+        mapa.obterEntidade(*idPar)->areaDeOcupacao(),
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origemPar)
+    ));
+    VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(
+        mapa.obterEntidade(*idImpar)->areaDeOcupacao(),
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origemImpar)
+    ));
+}
+
+void validarSobreposicaoEContatoDeCanteirosPorOcupacao() {
+    Mapa::MapaDaFazenda mapa;
+    const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
+    const int colunaInicial = Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const int linhaInicial = Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const Geometria::PosicaoNaGradeDeOcupacao origemBase{colunaInicial, linhaInicial};
+    const Geometria::PosicaoNaGradeDeOcupacao origemSobreposta{colunaInicial + 1, linhaInicial};
+    const Geometria::PosicaoNaGradeDeOcupacao origemEncostada{colunaInicial + 2, linhaInicial};
+
+    VERIFICAR(mapa.criarCanteiroEm(origemBase, tamanho).has_value());
+    VERIFICAR(!mapa.criarCanteiroEm(origemSobreposta, tamanho).has_value());
+    VERIFICAR(mapa.criarCanteiroEm(origemEncostada, tamanho).has_value());
+    VERIFICAR(mapa.quantidadeDeCanteiros() == 2);
+}
+
+void validarRemocaoDeCanteiroDesalinhadoLiberaAreaExata() {
+    Mapa::MapaDaFazenda mapa;
+    const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
+    const int colunaInicial = Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const int linhaInicial = Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const Geometria::PosicaoNaGradeDeOcupacao origem{colunaInicial + 1, linhaInicial + 1};
+    const Geometria::AreaNaGradeDeOcupacao area = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origem);
+    const auto id = mapa.criarCanteiroEm(origem, tamanho);
+
+    VERIFICAR(id.has_value());
+    for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+        for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+            const Geometria::PosicaoNaGradeDeOcupacao posicao{coluna, linha};
+            const Mapa::EntidadeDoMapa* entidade = mapa.entidadeEm(posicao);
+            VERIFICAR(entidade != nullptr);
+            VERIFICAR(entidade->identificador() == *id);
+            VERIFICAR(mapa.obterCanteiroAgricolaEm(posicao) != nullptr);
+        }
+    }
+
+    VERIFICAR(mapa.removerCanteiroEm(Geometria::PosicaoNaGradeDeOcupacao{
+        area.indiceColuna + 1,
+        area.indiceLinha + 1
+    }));
+
+    for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+        for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+            VERIFICAR(mapa.entidadeEm(Geometria::PosicaoNaGradeDeOcupacao{coluna, linha}) == nullptr);
+        }
+    }
+
+    VERIFICAR(mapa.indiceDeOcupacao().quantidadeDeOcupacoes() == 0);
+    VERIFICAR(mapa.quantidadeDeEntidades() == 0);
+}
+
+void validarProfundidadePorBaseDaAreaDeOcupacao() {
+    VERIFICAR(Ocupacao::calcularProfundidadeDaBase(Geometria::AreaNaGradeDeOcupacao{10, 20, 1, 1}) == 30);
+    VERIFICAR(Ocupacao::calcularProfundidadeDaBase(Geometria::AreaNaGradeDeOcupacao{10, 20, 2, 2}) == 32);
+    VERIFICAR(Ocupacao::calcularProfundidadeDaBase(Geometria::AreaNaGradeDeOcupacao{10, 20, 4, 3}) == 35);
+}
+
+Geometria::PosicaoNaGradeDeOcupacao origemDeOcupacaoLivreProximaDoNucleo() {
+    return Geometria::PosicaoNaGradeDeOcupacao{
+        Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO + 5,
+        Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO
     };
 }
 
@@ -539,11 +625,80 @@ void validarHitTestIsometricoGlobalComCamera() {
     VERIFICAR(Geometria::posicoesDaGradeSaoIguais(posicaoConvertida, posicao));
 }
 
+void validarHitTestIsometricoDeOcupacaoGlobalComCamera() {
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+
+    Camera::EstadoDaCamera camera;
+    camera.offsetHorizontal = -23;
+    camera.offsetVertical = 41;
+    camera.zoomAtual = 1.5f;
+
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoAlinhada{
+        (Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + 3) * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO,
+        Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO
+    };
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoImpar{
+        posicaoAlinhada.indiceColuna + 1,
+        posicaoAlinhada.indiceLinha
+    };
+
+    const Geometria::PosicaoNaTela telaAlinhada = Isometria::converterOcupacaoGlobalParaTela(
+        posicaoAlinhada,
+        unidade.largura,
+        unidade.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+    const Geometria::PosicaoNaTela telaImpar = Isometria::converterOcupacaoGlobalParaTela(
+        posicaoImpar,
+        unidade.largura,
+        unidade.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+
+    VERIFICAR(telaImpar.coordenadaHorizontal == telaAlinhada.coordenadaHorizontal + unidade.largura / 2);
+    VERIFICAR(telaImpar.coordenadaVertical == telaAlinhada.coordenadaVertical + unidade.altura / 2);
+
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoConvertida = Isometria::converterTelaParaOcupacaoGlobal(
+        telaImpar.coordenadaHorizontal + unidade.largura / 2,
+        telaImpar.coordenadaVertical,
+        unidade.largura,
+        unidade.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(posicaoConvertida, posicaoImpar));
+
+    const Geometria::AreaNaGradeDeOcupacao areaDoCanteiro =
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(posicaoImpar);
+    const Camera::DimensoesDoCanteiroRenderizado dimensoesDoCanteiro =
+        Camera::calcularDimensoesDoCanteiroRenderizado(camera.zoomAtual);
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada dimensoesDaArea =
+        Camera::calcularDimensoesDaAreaDeOcupacaoRenderizada(areaDoCanteiro, camera.zoomAtual);
+    VERIFICAR(dimensoesDaArea.largura == dimensoesDoCanteiro.largura);
+    VERIFICAR(dimensoesDaArea.altura == dimensoesDoCanteiro.altura);
+}
+
 } // namespace
 
 int main() {
     validarGridDeOcupacaoBasico();
     validarConversaoDeCanteiroParaOcupacao();
+    validarCanteiroPodeNascerEmOrigemParEImparDeOcupacao();
+    validarSobreposicaoEContatoDeCanteirosPorOcupacao();
+    validarRemocaoDeCanteiroDesalinhadoLiberaAreaExata();
+    validarProfundidadePorBaseDaAreaDeOcupacao();
     validarAnimacaoIdleDoPersonagem();
     validarSequenciasDaAnimacaoIdleDoPersonagem();
     validarMovimentoIsometricoDoPersonagem();
@@ -554,6 +709,7 @@ int main() {
     validarFluxoDeCliqueDaLoja();
     validarHitTestIsometricoDoCanteiro();
     validarHitTestIsometricoGlobalComCamera();
+    validarHitTestIsometricoDeOcupacaoGlobalComCamera();
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
     VERIFICAR(!jogo.identificadorDaSementeSelecionada().has_value());
@@ -563,7 +719,7 @@ int main() {
     validarListasDoMapa(jogo.mapa());
     validarIndiceDeOcupacaoDoMapa(jogo.mapa());
 
-    const Geometria::PosicaoDeCanteiroNoMapa posicaoNova = posicaoLivreProximaDoNucleo();
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoNova = origemDeOcupacaoLivreProximaDoNucleo();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
 
     Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
@@ -589,12 +745,12 @@ int main() {
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
     VERIFICAR(jogo.jogador().moedas() == moedasAntesDoPlantio - mirtilo.custoEmMoedas());
     VERIFICAR(jogo.mapa().quantidadeDeCanteirosEmCrescimento() == 1);
-    VERIFICAR(jogo.mapa().obterCanteiroAgricola(posicaoNova)->identificadorDaSemente() ==
+    VERIFICAR(jogo.mapa().obterCanteiroAgricolaEm(posicaoNova)->identificadorDaSemente() ==
               Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     validarListasDoMapa(jogo.mapa());
 
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaCrescer()));
-    const Canteiros::Canteiro* canteiro = jogo.mapa().obterCanteiroAgricola(posicaoNova);
+    const Canteiros::Canteiro* canteiro = jogo.mapa().obterCanteiroAgricolaEm(posicaoNova);
     VERIFICAR(canteiro != nullptr);
     VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
 
@@ -689,12 +845,12 @@ int main() {
     validarListasDoMapa(jogo.mapa());
     validarIndiceDeOcupacaoDoMapa(jogo.mapa());
 
-    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoDeCanteiroNoMapa{-1, -1});
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoNaGradeDeOcupacao{-1, -1});
     VERIFICAR(!resultado.houveMudanca());
 
-    const Geometria::PosicaoDeCanteiroNoMapa foraDaGradeJogavel{
-        Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavel(jogo.tamanhoAtualDoGrid()) - 1,
-        Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavel(jogo.tamanhoAtualDoGrid())
+    const Geometria::PosicaoNaGradeDeOcupacao foraDaGradeJogavel{
+        Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) - 1,
+        Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid())
     };
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, foraDaGradeJogavel);

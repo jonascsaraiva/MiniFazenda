@@ -12,9 +12,9 @@ public:
 
     ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
+        Compartilhado::Geometria::PosicaoNaGradeDeOcupacao posicao
     ) const override {
-        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.mapa, posicao, contexto.tamanhoAtualDoGrid)) {
+        if (!posicaoDeOcupacaoPodeReceberAcaoDaFerramenta(contexto.mapa, posicao, contexto.tamanhoAtualDoGrid)) {
             return ResultadoDaFerramenta{};
         }
 
@@ -22,7 +22,7 @@ public:
             return ResultadoDaFerramenta{};
         }
 
-        contexto.mapa.removerCanteiro(posicao);
+        contexto.mapa.removerCanteiroEm(posicao);
         return ResultadoDaFerramenta{AcaoDaFerramenta::RemoverTerra};
     }
 };

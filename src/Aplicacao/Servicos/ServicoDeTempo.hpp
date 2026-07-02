@@ -3,7 +3,6 @@
 #include "Aplicacao/Estado/EstadoDoJogo.hpp"
 
 #include <cstddef>
-#include <optional>
 
 namespace MiniFazenda::Aplicacao::Servicos {
 
@@ -17,15 +16,12 @@ inline void avancarCrescimentoDosCanteiros(
         const Dominio::Ocupacao::IdentificadorDeEntidadeDeMapa identificador =
             mapa.identificadoresDeCanteirosEmCrescimento()[indice];
         Dominio::Mapa::EntidadeDoMapa* entidade = mapa.obterEntidade(identificador);
-        const std::optional<Compartilhado::Geometria::PosicaoDeCanteiroNoMapa> posicaoDaEntidade =
-            entidade != nullptr ? entidade->posicaoDoCanteiroNoMapa() : std::nullopt;
         Dominio::Canteiros::Canteiro* canteiro =
-            posicaoDaEntidade.has_value() ? mapa.obterCanteiroAgricola(*posicaoDaEntidade) : nullptr;
+            entidade != nullptr ? mapa.obterCanteiroAgricola(identificador) : nullptr;
 
         const bool canteiroInvalido =
             entidade == nullptr ||
             !entidade->ehCanteiroAgricola() ||
-            !posicaoDaEntidade.has_value() ||
             canteiro == nullptr ||
             !canteiro->precisaAvancarCrescimento();
 
@@ -34,10 +30,10 @@ inline void avancarCrescimentoDosCanteiros(
             continue;
         }
 
-        const Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao =
-            *posicaoDaEntidade;
-
-        if (!Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(posicao, tamanhoAtualDoGrid)) {
+        if (!Dominio::Mapa::MapaDaFazenda::areaDeOcupacaoEstaDentroDaAreaJogavel(
+                entidade->areaDeOcupacao(),
+                tamanhoAtualDoGrid
+            )) {
             ++indice;
             continue;
         }

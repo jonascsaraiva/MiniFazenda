@@ -48,14 +48,43 @@ inline PosicaoNaGradeDeOcupacao converterCanteiroParaOcupacao(PosicaoDeCanteiroN
     };
 }
 
-inline AreaNaGradeDeOcupacao calcularAreaDeOcupacaoDoCanteiro(PosicaoDeCanteiroNoMapa posicaoDoCanteiro) {
-    const PosicaoNaGradeDeOcupacao origem = converterCanteiroParaOcupacao(posicaoDoCanteiro);
+inline std::optional<PosicaoDeCanteiroNoMapa> converterOcupacaoAlinhadaParaCanteiro(
+    PosicaoNaGradeDeOcupacao origem
+) {
+    if (origem.indiceColuna % Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO != 0 ||
+        origem.indiceLinha % Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO != 0) {
+        return std::nullopt;
+    }
+
+    return PosicaoDeCanteiroNoMapa{
+        origem.indiceColuna / Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO,
+        origem.indiceLinha / Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO
+    };
+}
+
+inline AreaNaGradeDeOcupacao calcularAreaDeOcupacao(
+    PosicaoNaGradeDeOcupacao origem,
+    int largura,
+    int altura
+) {
     return AreaNaGradeDeOcupacao{
         origem.indiceColuna,
         origem.indiceLinha,
+        largura,
+        altura
+    };
+}
+
+inline AreaNaGradeDeOcupacao calcularAreaDeOcupacaoDoCanteiro(PosicaoNaGradeDeOcupacao origem) {
+    return calcularAreaDeOcupacao(
+        origem,
         Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO,
         Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO
-    };
+    );
+}
+
+inline AreaNaGradeDeOcupacao calcularAreaDeOcupacaoDoCanteiro(PosicaoDeCanteiroNoMapa posicaoDoCanteiro) {
+    return calcularAreaDeOcupacaoDoCanteiro(converterCanteiroParaOcupacao(posicaoDoCanteiro));
 }
 
 struct RegistroDeOcupacao {
