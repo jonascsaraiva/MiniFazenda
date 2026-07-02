@@ -2,7 +2,7 @@
 
 #include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
 #include "Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
 
 #include <SDL.h>

@@ -175,9 +175,17 @@ Responsável por inicializar SDL, criar a janela e o renderer, carregar recursos
 
 ### `src/Compartilhado/`
 
-#### `Constantes.hpp`
+#### Headers de constantes
 
-Contém constantes primitivas compartilhadas.
+As constantes compartilhadas ficam separadas por responsabilidade em `src/Compartilhado/`:
+
+- `ConstantesDoJogo.hpp`: regras e medidas logicas de gameplay, como grade, nucleo inicial, ocupacao e movimento logico do personagem.
+- `ConstantesDaJanela.hpp`: janela e loop visual, como largura, altura, titulo, FPS alvo e milissegundos por quadro.
+- `ConstantesDaCamera.hpp`: parametros de camera, zoom e pan.
+- `ConstantesDaIsometria.hpp`: medidas de conversao isometrica, origem visual da grade global, centro visual do background e debug visual de tiles.
+- `ConstantesDaInterface.hpp`: medidas de interface e HUD, como tamanho e espacamento de botoes.
+
+Novas constantes devem ser adicionadas ao header da responsabilidade correspondente. O dominio deve depender apenas de `ConstantesDoJogo.hpp`; apresentacao, infraestrutura e testes devem incluir somente os headers especificos que usam.
 
 #### `Geometria/Posicoes.hpp`
 

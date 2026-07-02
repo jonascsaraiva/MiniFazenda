@@ -15,7 +15,7 @@
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp"
 #include "Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp"
 #include "Apresentacao/Renderizacao/UI/HudRenderer.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Mapa/MapaDaFazenda.hpp"

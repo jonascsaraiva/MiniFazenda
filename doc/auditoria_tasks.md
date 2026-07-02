@@ -24,7 +24,7 @@ Foram revisados:
 
 Contagem da base no momento da auditoria:
 
-- 50 arquivos em `src/`
+- 54 arquivos em `src/`
 - 1 arquivo em `tests/`
 - 6 documentos em `doc/`
 - 59 arquivos em `assets/`
@@ -363,11 +363,15 @@ Fluxo confirmado:
 Estado:
 
 - Puro e sem SDL.
-- Contem posicoes, retangulo logico e constantes.
+- Contem posicoes, retangulo logico e headers de constantes separados por responsabilidade.
 
-Ponto fragil:
+Organizacao atual:
 
-- `Constantes.hpp` mistura janela, background, grade, ocupacao, zoom, pan, personagem e UI. Ainda e administravel, mas tende a virar um ponto global de alteracoes desconectadas.
+- `ConstantesDoJogo.hpp`: grade, nucleo inicial, ocupacao e constantes logicas de personagem.
+- `ConstantesDaJanela.hpp`: janela, titulo, FPS alvo e tempo por quadro.
+- `ConstantesDaCamera.hpp`: zoom, pan e limites de camera.
+- `ConstantesDaIsometria.hpp`: centro visual, origem visual da grade global, dimensoes base do canteiro isometrico e debug visual de tiles.
+- `ConstantesDaInterface.hpp`: medidas de interface.
 
 ### 4.2. Dominio
 
@@ -757,27 +761,31 @@ Recomendacao:
 
 - Manter por simplicidade agora; revisar quando houver simulacao acelerada ou persistencia de tempo.
 
-#### B5. `Constantes.hpp` concentra dominios diferentes
+#### B5. Resolvido: constantes separadas por responsabilidade
 
 Arquivo/fluxo:
 
-- `src/Compartilhado/Constantes.hpp`
+- `src/Compartilhado/ConstantesDoJogo.hpp`
+- `src/Compartilhado/ConstantesDaJanela.hpp`
+- `src/Compartilhado/ConstantesDaCamera.hpp`
+- `src/Compartilhado/ConstantesDaIsometria.hpp`
+- `src/Compartilhado/ConstantesDaInterface.hpp`
 
-Problema:
+Estado atual:
 
-- O arquivo mistura constantes de janela, fundo, grade, ocupacao, camera, personagem e UI.
+- O antigo agrupamento foi removido e os consumidores incluem apenas os headers especificos que usam.
 
 Por que importa:
 
-- Mudancas de areas diferentes passam pelo mesmo arquivo global.
+- O dominio passa a depender apenas de constantes de jogo, sem trazer medidas de janela, interface, camera ou renderizacao.
 
-Impacto provavel:
+Risco residual:
 
-- Conflitos e dificuldade de governanca se o projeto crescer.
+- Novas constantes devem continuar entrando no header da responsabilidade correta para evitar recriar um ponto global.
 
 Recomendacao:
 
-- Separar gradualmente por assunto quando a quantidade de constantes aumentar.
+- Manter a regra de includes especificos e evitar criar um novo agregador generico.
 
 ### Observacoes
 
@@ -843,7 +851,7 @@ As tasks chamam `ninja.exe` diretamente e uma task limpa `build` via `cmd.exe`. 
 - Fallback de personagem e mais fraco que fallback de canteiros/plantas.
 - Hot reload visual pode nao se recuperar de falha de asset cacheada como `nullptr`.
 - Arredondamentos inteiros de camera/isometria podem gerar pequenos artefatos.
-- `Constantes.hpp` mistura assuntos de varias partes do jogo.
+- As constantes compartilhadas ja foram separadas por responsabilidade; manter novas constantes no header especifico correspondente.
 
 ## 9. Riscos futuros
 
@@ -1260,26 +1268,23 @@ prioridade:
 Baixa
 
 
-19. Separar Constantes.hpp por assunto
+19. Separar constantes por assunto
 
-corrigir:
-Constantes.hpp mistura janela, background, grade, ocupação, câmera, personagem e UI.
+status:
+Concluida. O header generico foi removido e as constantes foram separadas por responsabilidade.
 
-Solução recomendada:
-Separar gradualmente por responsabilidade.
-
-Possíveis divisões:
+Estrutura atual:
+- ConstantesDoJogo.hpp
 - ConstantesDaJanela.hpp
-- ConstantesDaGrade.hpp
 - ConstantesDaCamera.hpp
+- ConstantesDaIsometria.hpp
 - ConstantesDaInterface.hpp
-- ConstantesDoPersonagem.hpp
+
+Regra:
+Novas constantes devem entrar no header da responsabilidade real. O dominio deve incluir somente `ConstantesDoJogo.hpp`.
 
 onde:
-src/Compartilhado/Constantes.hpp
-
-novo possível:
-src/Compartilhado/Constantes/
+src/Compartilhado/
 
 prioridade:
 Baixa

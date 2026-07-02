@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Aplicacao/Estado/EstadoDoJogo.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDoJogo.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 
 namespace MiniFazenda::Aplicacao::Servicos {

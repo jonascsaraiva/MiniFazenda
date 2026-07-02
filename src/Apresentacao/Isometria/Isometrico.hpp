@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDaIsometria.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 
 #include <cmath>

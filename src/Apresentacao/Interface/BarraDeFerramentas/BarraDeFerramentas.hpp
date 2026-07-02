@@ -2,7 +2,8 @@
 
 #include "Apresentacao/Interface/AreaDeInteracao.hpp"
 #include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDaInterface.hpp"
+#include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Plantas/Planta.hpp"
 

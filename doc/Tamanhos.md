@@ -21,13 +21,13 @@ A documentação foi reorganizada em blocos curtos. Cada item mantém a medida, 
 ## 1. Janela e background
 
 - **Largura da janela** — `1280 px`
-  - Origem: `src/Compartilhado/Constantes.hpp::LARGURA_DA_JANELA`
+  - Origem: `src/Compartilhado/ConstantesDaJanela.hpp::LARGURA_DA_JANELA`
 - **Altura da janela** — `720 px`
-  - Origem: `src/Compartilhado/Constantes.hpp::ALTURA_DA_JANELA`
+  - Origem: `src/Compartilhado/ConstantesDaJanela.hpp::ALTURA_DA_JANELA`
 - **Retângulo usado para desenhar o background** — `x=0, y=0, w=1280, h=720`
   - Origem: `src/Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp::desenharFundo`, usando `LARGURA_DA_JANELA` e `ALTURA_DA_JANELA`
 - **Centro visual do background** — `x=576, y=296`
-  - Origem: `src/Compartilhado/Constantes.hpp::CENTRO_VISUAL_BACKGROUND_X` e `CENTRO_VISUAL_BACKGROUND_Y`; os mesmos valores aparecem em `assets/config.ini::centroVisualBackgroundX/Y`
+  - Origem: `src/Compartilhado/ConstantesDaIsometria.hpp::CENTRO_VISUAL_BACKGROUND_X` e `CENTRO_VISUAL_BACKGROUND_Y`; os mesmos valores aparecem em `assets/config.ini::centroVisualBackgroundX/Y`
 - **Origem inicial de layout antes de centralizar a grade** — `x=576, y=296`
   - Origem: `src/Apresentacao/ConfiguracoesDoLayout.hpp::origemGradeHorizontal/origemGradeVertical`, inicializadas com `CENTRO_VISUAL_BACKGROUND_X/Y`
 - **Arquivo de background configurado** — `background.png`
@@ -40,9 +40,9 @@ Observação: o código sempre desenha o background no retângulo da janela (`12
 ## 2. Canteiro isométrico no zoom inicial
 
 - **Largura do canteiro** — `128 px`
-  - Origem: `src/Compartilhado/Constantes.hpp::LARGURA_DO_CANTEIRO`
+  - Origem: `src/Compartilhado/ConstantesDaIsometria.hpp::LARGURA_DO_CANTEIRO`
 - **Altura do canteiro** — `64 px`
-  - Origem: `src/Compartilhado/Constantes.hpp::ALTURA_DO_CANTEIRO`
+  - Origem: `src/Compartilhado/ConstantesDaIsometria.hpp::ALTURA_DO_CANTEIRO`
 - **Proporção do losango** — `2:1`
   - Origem: `128 / 64`, derivado de `LARGURA_DO_CANTEIRO` e `ALTURA_DO_CANTEIRO`
 - **Meia largura usada na isometria** — `64 px`
@@ -82,13 +82,13 @@ A conversão de grade para tela usa o topo-esquerda do retângulo de destino do 
 O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtual)`, limitado entre `ZOOM_MINIMO` e `ZOOM_MAXIMO` (`src/Apresentacao/Camera/CameraDoJogo.hpp::calcularDimensoesDoCanteiroRenderizado`).
 
 - **Zoom mínimo** — `0.5x`
-  - Origem: `src/Compartilhado/Constantes.hpp::ZOOM_MINIMO`
+  - Origem: `src/Compartilhado/ConstantesDaCamera.hpp::ZOOM_MINIMO`
 - **Zoom inicial** — `1.0x`
-  - Origem: `src/Compartilhado/Constantes.hpp::ZOOM_INICIAL`
+  - Origem: `src/Compartilhado/ConstantesDaCamera.hpp::ZOOM_INICIAL`
 - **Zoom máximo** — `2.0x`
-  - Origem: `src/Compartilhado/Constantes.hpp::ZOOM_MAXIMO`
+  - Origem: `src/Compartilhado/ConstantesDaCamera.hpp::ZOOM_MAXIMO`
 - **Passo do zoom** — `0.1x`
-  - Origem: `src/Compartilhado/Constantes.hpp::PASSO_DO_ZOOM`
+  - Origem: `src/Compartilhado/ConstantesDaCamera.hpp::PASSO_DO_ZOOM`
 - **Canteiro no zoom mínimo** — `64 x 32 px`
   - Origem: `round(128 * 0.5)` e `round(64 * 0.5)`, derivados de `LARGURA_DO_CANTEIRO`, `ALTURA_DO_CANTEIRO` e `ZOOM_MINIMO`
 - **Canteiro no zoom inicial** — `128 x 64 px`
@@ -111,22 +111,22 @@ O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtua
 - **Alturas ímpares nos passos de zoom** — `45, 51, 77, 83, 109, 115 px`
   - Observação: Derivados de `round(64 * zoom)`, para `zoom = 0.7, 0.8, 1.2, 1.3, 1.7, 1.8`; `desenharLosango` usa `h / 2` inteiro, então a metade inferior pode ficar `1 px` mais longa nesses casos
 - **Hitbox debug em dimensões ímpares** — remove `1 px` quando `w` ou `h` é ímpar
-  - Observação: `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularHitboxDoCanteiro`, com `(destino.w / 2) * 2` e `(destino.h / 2) * 2`; `DEBUG_HITBOX_TILES` está `false` em `src/Compartilhado/Constantes.hpp::DEBUG_HITBOX_TILES`
+  - Observação: `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularHitboxDoCanteiro`, com `(destino.w / 2) * 2` e `(destino.h / 2) * 2`; `DEBUG_HITBOX_TILES` está `false` em `src/Compartilhado/ConstantesDaIsometria.hpp::DEBUG_HITBOX_TILES`
 
 ## 4. Grade jogável, grade global e centralização
 
 - **Grade global alocada** — `256 x 256 tiles`
-  - Origem: `src/Compartilhado/Constantes.hpp::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA` e `QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL_ALOCADA` e `QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL_ALOCADA`
 - **Total de tiles alocados** — `65536 tiles`
-  - Origem: `256 * 256`, derivado de `src/Compartilhado/Constantes.hpp::TOTAL_DE_TILES_DA_GRADE_GLOBAL`
+  - Origem: `256 * 256`, derivado de `src/Compartilhado/ConstantesDoJogo.hpp::TOTAL_DE_TILES_DA_GRADE_GLOBAL`
 - **Centro da grade global** — `(128, 128)`
-  - Origem: `src/Compartilhado/Constantes.hpp::COLUNA_CENTRAL_DA_GRADE_GLOBAL` e `LINHA_CENTRAL_DA_GRADE_GLOBAL`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::COLUNA_CENTRAL_DA_GRADE_GLOBAL` e `LINHA_CENTRAL_DA_GRADE_GLOBAL`
 - **Tamanho inicial da grade jogável** — `12 x 12 tiles`
-  - Origem: `src/Compartilhado/Constantes.hpp::TAMANHO_INICIAL_GRID`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::TAMANHO_INICIAL_GRID`
 - **Tamanho máximo da grade jogável** — `24 x 24 tiles`
-  - Origem: `src/Compartilhado/Constantes.hpp::TAMANHO_MAXIMO_GRID`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::TAMANHO_MAXIMO_GRID`
 - **Incremento de tamanho da grade jogável** — `2 tiles`
-  - Origem: `src/Compartilhado/Constantes.hpp::INCREMENTO_TAMANHO_GRID`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::INCREMENTO_TAMANHO_GRID`
 - **Tamanhos validos pela normalizacao atual** — `12, 14, 16, 18, 20, 22, 24`
   - Origem: Derivados de `TAMANHO_INICIAL_GRID`, `TAMANHO_MAXIMO_GRID`, `INCREMENTO_TAMANHO_GRID` e `src/Dominio/Mapa/MapaDaFazenda.hpp::normalizarTamanhoDaAreaJogavel`
 - **Inicio global da grade jogável inicial** — `(122, 122)`
@@ -138,11 +138,11 @@ O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtua
 - **Fim global incluso da grade jogável maxima** — `(139, 139)`
   - Origem: `(116 + 24 - 1)`, derivado de `posicaoEstaDentroDaAreaJogavel`
 - **Nucleo inicial criado** — `2 x 2 canteiros`
-  - Origem: `src/Compartilhado/Constantes.hpp::QUANTIDADE_DE_COLUNAS_DO_NUCLEO_INICIAL` e `QUANTIDADE_DE_LINHAS_DO_NUCLEO_INICIAL`; criado em `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarMapaDaFazendaComNucleoInicial`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::QUANTIDADE_DE_COLUNAS_DO_NUCLEO_INICIAL` e `QUANTIDADE_DE_LINHAS_DO_NUCLEO_INICIAL`; criado em `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarMapaDaFazendaComNucleoInicial`
 - **Inicio global do núcleo inicial** — `(127, 127)`
-  - Origem: `src/Compartilhado/Constantes.hpp::COLUNA_INICIAL_DO_NUCLEO_INICIAL` e `LINHA_INICIAL_DO_NUCLEO_INICIAL`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::COLUNA_INICIAL_DO_NUCLEO_INICIAL` e `LINHA_INICIAL_DO_NUCLEO_INICIAL`
 - **Origem visual global da grade** — `(127, 127)`
-  - Origem: `src/Compartilhado/Constantes.hpp::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL` e `LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL`
+  - Origem: `src/Compartilhado/ConstantesDaIsometria.hpp::COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL` e `LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL`
 - **Canteiros iniciais realmente criados** — `(127,127)`, `(128,127)`, `(127,128)`, `(128,128)`
   - Origem: `src/Aplicacao/Servicos/InicializadorDaFazenda.hpp::criarMapaDaFazendaComNucleoInicial`
 
@@ -169,9 +169,9 @@ A grade global de coordenadas (`256 x 256 posicoes de canteiro`) e a area jogave
 - **Centro do retângulo `24 x 24`** — `(576, 296)`
   - Origem: Derivado do retângulo `x=-960, y=-472, w=3072, h=1536`, alinhado a `CENTRO_VISUAL_BACKGROUND_X/Y`
 - **Margem horizontal minima visivel no pan** — `320 px`
-  - Origem: `1280 * 0.25`, derivado de `LARGURA_DA_JANELA` e `FRACAO_MINIMA_VISIVEL_AO_PAN` em `src/Compartilhado/Constantes.hpp`
+  - Origem: `1280 * 0.25`, derivado de `LARGURA_DA_JANELA` em `src/Compartilhado/ConstantesDaJanela.hpp` e `FRACAO_MINIMA_VISIVEL_AO_PAN` em `src/Compartilhado/ConstantesDaCamera.hpp`
 - **Margem vertical minima visivel no pan** — `180 px`
-  - Origem: `720 * 0.25`, derivado de `ALTURA_DA_JANELA` e `FRACAO_MINIMA_VISIVEL_AO_PAN` em `src/Compartilhado/Constantes.hpp`
+  - Origem: `720 * 0.25`, derivado de `ALTURA_DA_JANELA` em `src/Compartilhado/ConstantesDaJanela.hpp` e `FRACAO_MINIMA_VISIVEL_AO_PAN` em `src/Compartilhado/ConstantesDaCamera.hpp`
 
 ## 5. Plantas dentro do tile
 
@@ -301,9 +301,9 @@ O hit-test da interface usa retangulos semiabertos como padrao: `x <= pontoX < x
 - **Quantidade de botões inferiores** — `5`
   - Origem: `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp::criarBotoesDaInterface`
 - **Tamanho do botão** — `52 x 52 px`
-  - Origem: `src/Compartilhado/Constantes.hpp::TAMANHO_DO_BOTAO_DA_INTERFACE`
+  - Origem: `src/Compartilhado/ConstantesDaInterface.hpp::TAMANHO_DO_BOTAO_DA_INTERFACE`
 - **Espacamento entre botões** — `12 px`
-  - Origem: `src/Compartilhado/Constantes.hpp::ESPACAMENTO_DOS_BOTOES`
+  - Origem: `src/Compartilhado/ConstantesDaInterface.hpp::ESPACAMENTO_DOS_BOTOES`
 - **Largura total da barra** — `308 px`
   - Origem: `52 * 5 + 12 * (5 - 1)`, derivado de `criarBotoesDaInterface`
 - **X do primeiro botão** — `486 px`
@@ -360,7 +360,7 @@ O hit-test da interface usa retangulos semiabertos como padrao: `x <= pontoX < x
 
 ## 9. Notas para arte
 
-- O tile do chão deve ser pensado como um losango de proporção `2:1`, ou seja, `128 x 64 px` no zoom base (`src/Compartilhado/Constantes.hpp::LARGURA_DO_CANTEIRO` e `ALTURA_DO_CANTEIRO`).
+- O tile do chão deve ser pensado como um losango de proporção `2:1`, ou seja, `128 x 64 px` no zoom base (`src/Compartilhado/ConstantesDaIsometria.hpp::LARGURA_DO_CANTEIRO` e `ALTURA_DO_CANTEIRO`).
 - Para montar um canvas de referência de um tile, use os pontos `(64,0)`, `(128,32)`, `(64,64)` e `(0,32)` dentro de um retângulo `128 x 64 px` (`src/Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp::desenharLosango`).
 - No código atual, o ponto de contato de planta e personagem com o tile é o centro do losango, `(64,32)`, não a ponta inferior `(64,64)` (`src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularDestinoDoSpriteDaPlanta` e `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`).
 - Para sprites de planta, o motor procura a base no ponto mais baixo dos pixels opacos e centraliza essa base no ponto `(64,32)` do tile (`src/Infraestrutura/Assets/RecursosDaFazenda.hpp::calcularAncoraDaBaseDoSpriteDaPlanta`).

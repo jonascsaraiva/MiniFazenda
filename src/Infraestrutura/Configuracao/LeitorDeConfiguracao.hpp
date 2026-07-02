@@ -2,7 +2,7 @@
 
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDoJogo.hpp"
 
 #include <algorithm>
 #include <cctype>

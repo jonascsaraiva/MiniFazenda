@@ -1,6 +1,6 @@
 #include "Apresentacao/Cenas/CenaFazenda.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Dominio/Plantas/FabricaDePlantas.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"

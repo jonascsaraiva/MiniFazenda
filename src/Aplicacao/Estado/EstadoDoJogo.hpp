@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDoJogo.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Jogador/Jogador.hpp"
 #include "Dominio/Mapa/MapaDaFazenda.hpp"

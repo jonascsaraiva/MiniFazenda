@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDaCamera.hpp"
+#include "Compartilhado/ConstantesDaIsometria.hpp"
+#include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Mapa/MapaDaFazenda.hpp"
 

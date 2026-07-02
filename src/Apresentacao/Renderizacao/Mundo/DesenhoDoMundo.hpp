@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp"
-#include "Compartilhado/Constantes.hpp"
+#include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Dominio/Canteiros/Canteiro.hpp"
 #include "Infraestrutura/Assets/EstadoVisualDaPlanta.hpp"
 
