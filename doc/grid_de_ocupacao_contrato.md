@@ -114,9 +114,11 @@ Para canteiros, `largura = 2` e `altura = 2`. Nao ha obrigacao arquitetural de a
 
 `PosicaoNaGradeDeOcupacao` representa a menor unidade logica de ocupacao.
 
-`PosicaoNaGrade` ainda aparece em isometria e personagem porque o personagem usa posicao dos pes na grade visual atual.
+`PosicaoNaGrade` ainda aparece em isometria e compatibilidades de canteiro, mas nao e mais a posicao principal dos pes do personagem.
 
-`PosicaoNaGradeDeOcupacao` e a menor unidade real de posicionamento do mundo. Clique de ferramenta, preview, validacao de area livre, criacao e renderizacao de canteiro devem usar essa unidade.
+`PosicaoNaGradeDeOcupacao` e a menor unidade real de posicionamento do mundo. Clique de ferramenta, preview, validacao de area livre, criacao, renderizacao de canteiro e movimento do personagem devem usar essa unidade.
+
+`PosicaoDecimalNaGradeDeOcupacao` representa a posicao dos pes do personagem durante o avanco entre dois destinos inteiros de ocupacao.
 
 `PosicaoDeCanteiroNoMapa` pode continuar existindo para compatibilidade com canteiros alinhados, inicializacao e chamadas antigas. Ela nao pode ser usada como trava arquitetural que force novas entidades a nascerem em coordenadas pares de ocupacao.
 
@@ -127,9 +129,13 @@ O clique no mundo separa movimento e ferramenta:
 1. Para ferramentas, a apresentacao converte a tela para `PosicaoNaGradeDeOcupacao`.
 2. A ferramenta consulta `MapaDaFazenda::entidadeEm()` pela celula real sob o mouse.
 3. Se nao houver entidade e a enxada estiver selecionada, o mapa tenta criar um canteiro `2 x 2` com origem nessa celula.
-4. Para movimento do personagem, a cena ainda converte a tela para `PosicaoNaGrade` e preserva o comportamento atual dos pes.
+4. Para movimento do personagem, a cena converte a tela para `PosicaoNaGradeDeOcupacao`, valida a area jogavel de ocupacao e cria o caminho simples em segmentos no dominio do personagem.
 
-Uma etapa futura deve migrar o personagem para pes em `PosicaoNaGradeDeOcupacao`, revisando velocidade e caminho sem transforma-lo em ocupante fixo do `GridDeOcupacao`.
+A ordem de conversao de tela para mundo e: coordenada do mouse na janela, compensacao de camera/pan, compensacao da origem visual da grade, uso das dimensoes renderizadas arredondadas pelo zoom, inversao isometrica e resolucao final para `PosicaoNaGradeDeOcupacao`. Preview, ferramenta, entidades e movimento do personagem devem usar essa mesma base matematica.
+
+O zoom no ponto do cursor preserva a `PosicaoDecimalNaGradeDeOcupacao` local sob o mouse antes de recomputar o offset da camera. Isso evita que o preview ou o destino do clique escorreguem para outra unidade quando o zoom muda em valores com dimensoes impares ou arredondadas.
+
+O personagem nao e registrado como ocupante fixo do `GridDeOcupacao`. A migracao atual muda escala logica, clique, caminho, velocidade e renderizacao dos pes; colisao dinamica e pathfinding continuam fora deste contrato.
 
 ## Renderizacao atual
 

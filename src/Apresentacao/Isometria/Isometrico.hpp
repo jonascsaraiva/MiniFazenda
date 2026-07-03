@@ -10,10 +10,16 @@
 namespace MiniFazenda::Apresentacao::Isometria {
 
 using Compartilhado::Geometria::AreaNaGradeDeOcupacao;
+using Compartilhado::Geometria::PosicaoDecimalNaGradeDeOcupacao;
 using Compartilhado::Geometria::PosicaoNaGrade;
+using Compartilhado::Geometria::PosicaoNaGradeDecimal;
 using Compartilhado::Geometria::PosicaoNaGradeDeOcupacao;
 using Compartilhado::Geometria::PosicaoNaTela;
 using Compartilhado::Geometria::Retangulo;
+
+inline int calcularMetadeDaDimensaoIsometrica(int dimensao) {
+    return std::max(1, dimensao / 2);
+}
 
 inline PosicaoNaTela converterGradeParaTela(
     int colunaGrade,
@@ -25,11 +31,37 @@ inline PosicaoNaTela converterGradeParaTela(
 ) {
     PosicaoNaTela posicaoCalculada;
     posicaoCalculada.coordenadaHorizontal =
-        (colunaGrade - linhaGrade) * (larguraDoCanteiro / 2) + deslocamentoHorizontal;
+        (colunaGrade - linhaGrade) * calcularMetadeDaDimensaoIsometrica(larguraDoCanteiro) +
+        deslocamentoHorizontal;
     posicaoCalculada.coordenadaVertical =
-        (colunaGrade + linhaGrade) * (alturaDoCanteiro / 2) + deslocamentoVertical;
+        (colunaGrade + linhaGrade) * calcularMetadeDaDimensaoIsometrica(alturaDoCanteiro) +
+        deslocamentoVertical;
 
     return posicaoCalculada;
+}
+
+inline PosicaoNaGradeDecimal converterTelaParaGradeDecimal(
+    int posicaoMouseHorizontal,
+    int posicaoMouseVertical,
+    int larguraDoCanteiro,
+    int alturaDoCanteiro,
+    int deslocamentoHorizontal,
+    int deslocamentoVertical
+) {
+    const double metadeDaLargura = static_cast<double>(calcularMetadeDaDimensaoIsometrica(larguraDoCanteiro));
+    const double metadeDaAltura = static_cast<double>(calcularMetadeDaDimensaoIsometrica(alturaDoCanteiro));
+    const double posicaoHorizontalAjustada =
+        posicaoMouseHorizontal - deslocamentoHorizontal - metadeDaLargura;
+    const double posicaoVerticalAjustada = posicaoMouseVertical - deslocamentoVertical;
+
+    return PosicaoNaGradeDecimal{
+        static_cast<float>(
+            (posicaoHorizontalAjustada / metadeDaLargura + posicaoVerticalAjustada / metadeDaAltura) / 2.0
+        ),
+        static_cast<float>(
+            (posicaoVerticalAjustada / metadeDaAltura - posicaoHorizontalAjustada / metadeDaLargura) / 2.0
+        )
+    };
 }
 
 inline PosicaoNaGrade converterTelaParaGrade(
@@ -40,19 +72,18 @@ inline PosicaoNaGrade converterTelaParaGrade(
     int deslocamentoHorizontal,
     int deslocamentoVertical
 ) {
-    const double metadeDaLargura = static_cast<double>(larguraDoCanteiro / 2);
-    const double metadeDaAltura = static_cast<double>(alturaDoCanteiro / 2);
-    const double posicaoHorizontalAjustada =
-        posicaoMouseHorizontal - deslocamentoHorizontal - metadeDaLargura;
-    const double posicaoVerticalAjustada = posicaoMouseVertical - deslocamentoVertical;
+    const PosicaoNaGradeDecimal gradeDecimal = converterTelaParaGradeDecimal(
+        posicaoMouseHorizontal,
+        posicaoMouseVertical,
+        larguraDoCanteiro,
+        alturaDoCanteiro,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
 
     PosicaoNaGrade gradeCalculada;
-    gradeCalculada.indiceColuna = static_cast<int>(std::floor(
-        (posicaoHorizontalAjustada / metadeDaLargura + posicaoVerticalAjustada / metadeDaAltura) / 2.0
-    ));
-    gradeCalculada.indiceLinha = static_cast<int>(std::floor(
-        (posicaoVerticalAjustada / metadeDaAltura - posicaoHorizontalAjustada / metadeDaLargura) / 2.0
-    ));
+    gradeCalculada.indiceColuna = static_cast<int>(std::floor(gradeDecimal.indiceColuna));
+    gradeCalculada.indiceLinha = static_cast<int>(std::floor(gradeDecimal.indiceLinha));
 
     return gradeCalculada;
 }
@@ -146,6 +177,26 @@ inline PosicaoNaGradeDeOcupacao converterTelaParaOcupacao(
     return PosicaoNaGradeDeOcupacao{posicaoLocal.indiceColuna, posicaoLocal.indiceLinha};
 }
 
+inline PosicaoDecimalNaGradeDeOcupacao converterTelaParaOcupacaoDecimal(
+    int posicaoMouseHorizontal,
+    int posicaoMouseVertical,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int deslocamentoHorizontal,
+    int deslocamentoVertical
+) {
+    const PosicaoNaGradeDecimal posicaoLocal = converterTelaParaGradeDecimal(
+        posicaoMouseHorizontal,
+        posicaoMouseVertical,
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        deslocamentoHorizontal,
+        deslocamentoVertical
+    );
+
+    return PosicaoDecimalNaGradeDeOcupacao{posicaoLocal.indiceColuna, posicaoLocal.indiceLinha};
+}
+
 inline PosicaoNaTela converterOcupacaoGlobalParaTela(
     PosicaoNaGradeDeOcupacao posicaoGlobal,
     int larguraDaUnidadeDeOcupacao,
@@ -174,6 +225,68 @@ inline PosicaoNaTela converterOcupacaoGlobalParaTela(
         deslocamentoHorizontal,
         deslocamentoVertical
     );
+}
+
+inline PosicaoNaTela converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+    PosicaoNaGradeDeOcupacao posicaoGlobal,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int origemHorizontal,
+    int origemVertical,
+    int cameraOffsetHorizontal,
+    int cameraOffsetVertical
+) {
+    const PosicaoNaTela origemDaUnidade = converterOcupacaoGlobalParaTela(
+        posicaoGlobal,
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        origemHorizontal,
+        origemVertical,
+        cameraOffsetHorizontal,
+        cameraOffsetVertical
+    );
+
+    return PosicaoNaTela{
+        origemDaUnidade.coordenadaHorizontal + calcularMetadeDaDimensaoIsometrica(larguraDaUnidadeDeOcupacao),
+        origemDaUnidade.coordenadaVertical + calcularMetadeDaDimensaoIsometrica(alturaDaUnidadeDeOcupacao)
+    };
+}
+
+inline PosicaoNaTela converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+    PosicaoDecimalNaGradeDeOcupacao posicaoGlobal,
+    int larguraDaUnidadeDeOcupacao,
+    int alturaDaUnidadeDeOcupacao,
+    int origemHorizontal,
+    int origemVertical,
+    int cameraOffsetHorizontal,
+    int cameraOffsetVertical
+) {
+    const PosicaoNaGradeDeOcupacao posicaoBase{
+        static_cast<int>(std::floor(posicaoGlobal.indiceColuna)),
+        static_cast<int>(std::floor(posicaoGlobal.indiceLinha))
+    };
+    PosicaoNaTela pontoCentral = converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+        posicaoBase,
+        larguraDaUnidadeDeOcupacao,
+        alturaDaUnidadeDeOcupacao,
+        origemHorizontal,
+        origemVertical,
+        cameraOffsetHorizontal,
+        cameraOffsetVertical
+    );
+    const float deslocamentoColuna = posicaoGlobal.indiceColuna - posicaoBase.indiceColuna;
+    const float deslocamentoLinha = posicaoGlobal.indiceLinha - posicaoBase.indiceLinha;
+
+    pontoCentral.coordenadaHorizontal += static_cast<int>(std::lround(
+        (deslocamentoColuna - deslocamentoLinha) *
+            calcularMetadeDaDimensaoIsometrica(larguraDaUnidadeDeOcupacao)
+    ));
+    pontoCentral.coordenadaVertical += static_cast<int>(std::lround(
+        (deslocamentoColuna + deslocamentoLinha) *
+            calcularMetadeDaDimensaoIsometrica(alturaDaUnidadeDeOcupacao)
+    ));
+
+    return pontoCentral;
 }
 
 inline PosicaoNaGradeDeOcupacao converterTelaParaOcupacaoGlobal(

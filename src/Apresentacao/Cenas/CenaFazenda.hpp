@@ -170,11 +170,14 @@ private:
     }
 
     static bool posicaoEstaDentroDaAreaJogavel(
-        Geometria::PosicaoDeCanteiroNoMapa posicao,
+        Geometria::PosicaoNaGradeDeOcupacao posicao,
         int tamanhoAtualDoGrid
     ) {
         return Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDoMapaGlobal(posicao) &&
-               Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(posicao, tamanhoAtualDoGrid);
+               Dominio::Mapa::MapaDaFazenda::posicaoDeOcupacaoEstaDentroDaAreaJogavel(
+                   posicao,
+                   tamanhoAtualDoGrid
+               );
     }
 
     void processarMovimentoDoMouse(const SDL_MouseMotionEvent& movimento) {
@@ -307,15 +310,11 @@ private:
     }
 
     void processarCliqueNoMundo() {
-        const Geometria::PosicaoNaGrade posicaoNaGrade =
-            Mundo::converterMouseParaGradeGlobal(mouseX_, mouseY_, configuracoes_, camera_);
         const Geometria::PosicaoNaGradeDeOcupacao posicaoDeOcupacao =
             Mundo::converterMouseParaGradeDeOcupacaoGlobal(mouseX_, mouseY_, configuracoes_, camera_);
-        const Geometria::PosicaoDeCanteiroNoMapa posicaoDoCanteiroParaMovimento =
-            Geometria::converterPosicaoNaGradeParaCanteiroNoMapa(posicaoNaGrade);
 
-        if (posicaoEstaDentroDaAreaJogavel(posicaoDoCanteiroParaMovimento, jogo_.tamanhoAtualDoGrid())) {
-            jogo_.personagem().caminharAte(posicaoNaGrade);
+        if (posicaoEstaDentroDaAreaJogavel(posicaoDeOcupacao, jogo_.tamanhoAtualDoGrid())) {
+            jogo_.personagem().caminharAte(posicaoDeOcupacao);
         }
 
         const auto resultado = AppServicos::aplicarFerramentaNoJogo(jogo_, posicaoDeOcupacao);

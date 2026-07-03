@@ -272,7 +272,7 @@ Controla:
 
 Controla apenas estado logico de gameplay:
 
-- posicao dos pes na grade;
+- posicao dos pes na grade de ocupacao;
 - estado parado/andando;
 - direcao isometrica atual;
 - caminho em segmentos.

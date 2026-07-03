@@ -81,7 +81,7 @@ Infraestrutura:
 
 O personagem nao e ocupante fixo do `GridDeOcupacao` nesta etapa.
 
-Sua posicao logica continua representando os pes, e o sprite e desenhado acima desse ponto. O mapa podera ajudar em colisao ou pathfinding no futuro, mas esta migracao nao mistura mapa estatico com navegacao dinamica do personagem.
+Sua posicao logica continua representando os pes, e o sprite e desenhado acima desse ponto. Os pes agora usam `PosicaoNaGradeDeOcupacao` para destinos inteiros e `PosicaoDecimalNaGradeDeOcupacao` durante o movimento em segmentos. O mapa podera ajudar em colisao ou pathfinding no futuro, mas esta migracao nao mistura mapa estatico com navegacao dinamica do personagem.
 
 ## Clique
 
@@ -92,7 +92,7 @@ O clique de ferramentas agricolas usa a unidade real de ocupacao:
 3. Se a enxada clicar em celula livre, ela monta uma area `2 x 2` com essa origem e pede ao `MapaDaFazenda` para criar o canteiro.
 4. Preview, validacao de area livre, criacao e renderizacao usam a mesma `AreaNaGradeDeOcupacao`.
 
-O movimento do personagem ainda usa `PosicaoNaGrade` como compatibilidade de pes na grade visual antiga. A infraestrutura de tela para ocupacao ja existe; uma proxima etapa pode migrar velocidade, caminho e renderizacao dos pes para a menor malha sem alterar o personagem para ocupante fixo do grid.
+O movimento do personagem tambem usa a unidade real de ocupacao: a cena converte o clique no mundo para `PosicaoNaGradeDeOcupacao`, valida a area jogavel e envia essa posicao ao dominio do personagem. Isso nao registra o personagem como ocupante fixo do grid e nao aplica colisao com canteiros nesta etapa.
 
 ## Renderizacao
 

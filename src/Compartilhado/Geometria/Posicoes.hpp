@@ -27,6 +27,11 @@ struct PosicaoNaGradeDeOcupacao {
     int indiceLinha = -1;
 };
 
+struct PosicaoDecimalNaGradeDeOcupacao {
+    float indiceColuna = -1.0f;
+    float indiceLinha = -1.0f;
+};
+
 struct AreaNaGradeDeOcupacao {
     int indiceColuna = -1;
     int indiceLinha = -1;
