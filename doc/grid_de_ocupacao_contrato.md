@@ -9,6 +9,7 @@ O agregado principal do mundo agora e `src/Dominio/Mapa/MapaDaFazenda.hpp`.
 - `MapaDaFazenda` e a fonte da verdade para entidades presentes no mapa.
 - `MapaDaFazenda` cria, remove, lista e consulta entidades do mapa.
 - Canteiros sao entidades agricolas do mapa e carregam o componente de dominio `Canteiro`.
+- Canteiros ocupam `2 x 2` unidades de ocupacao e podem iniciar em qualquer `PosicaoNaGradeDeOcupacao` livre, inclusive coordenadas impares.
 - `GridDeOcupacao` e apenas o indice espacial interno do mapa.
 - `GradeGlobalDeCanteiros`, `TileDeTerra` e `SincronizadorDoGridDeOcupacao` foram removidos.
 
@@ -98,7 +99,14 @@ PosicaoDeCanteiroNoMapa(coluna, linha)
   -> AreaNaGradeDeOcupacao(coluna * 2, linha * 2, 2, 2)
 ```
 
-Essa conversao fica em `Dominio/Ocupacao/GridDeOcupacao.hpp`.
+Essa conversao fica em `Dominio/Ocupacao/GridDeOcupacao.hpp`, mas e apenas um helper de compatibilidade para posicoes alinhadas ao legado. O contrato principal para criacao e posicionamento livre e:
+
+```text
+PosicaoNaGradeDeOcupacao(coluna, linha)
+  -> AreaNaGradeDeOcupacao(coluna, linha, largura, altura)
+```
+
+Para canteiros, `largura = 2` e `altura = 2`. Nao ha obrigacao arquitetural de a origem do canteiro ser par.
 
 ## Tipos de posicao
 
@@ -106,22 +114,34 @@ Essa conversao fica em `Dominio/Ocupacao/GridDeOcupacao.hpp`.
 
 `PosicaoNaGradeDeOcupacao` representa a menor unidade logica de ocupacao.
 
-`PosicaoNaGrade` ainda aparece em isometria e personagem porque o personagem usa posicao dos pes na grade visual atual. O clique visual e convertido na apresentacao para `PosicaoDeCanteiroNoMapa` antes de aplicar ferramentas.
+`PosicaoNaGrade` ainda aparece em isometria e compatibilidades de canteiro, mas nao e mais a posicao principal dos pes do personagem.
+
+`PosicaoNaGradeDeOcupacao` e a menor unidade real de posicionamento do mundo. Clique de ferramenta, preview, validacao de area livre, criacao, renderizacao de canteiro e movimento do personagem devem usar essa unidade.
+
+`PosicaoDecimalNaGradeDeOcupacao` representa a posicao dos pes do personagem durante o avanco entre dois destinos inteiros de ocupacao.
+
+`PosicaoDeCanteiroNoMapa` pode continuar existindo para compatibilidade com canteiros alinhados, inicializacao e chamadas antigas. Ela nao pode ser usada como trava arquitetural que force novas entidades a nascerem em coordenadas pares de ocupacao.
 
 ## Clique e interacao
 
-O clique no mundo ainda preserva o comportamento funcional atual:
+O clique no mundo separa movimento e ferramenta:
 
-1. A apresentacao converte a tela para `PosicaoNaGrade`.
-2. Para movimento do personagem, essa posicao continua sendo usada como destino dos pes.
-3. Para ferramentas agricolas, a posicao e convertida para `PosicaoDeCanteiroNoMapa`.
-4. As ferramentas consultam `MapaDaFazenda`, nao a grade antiga.
+1. Para ferramentas, a apresentacao converte a tela para `PosicaoNaGradeDeOcupacao`.
+2. A ferramenta consulta `MapaDaFazenda::entidadeEm()` pela celula real sob o mouse.
+3. Se nao houver entidade e a enxada estiver selecionada, o mapa tenta criar um canteiro `2 x 2` com origem nessa celula.
+4. Para movimento do personagem, a cena converte a tela para `PosicaoNaGradeDeOcupacao`, valida a area jogavel de ocupacao e cria o caminho simples em segmentos no dominio do personagem.
 
-Uma etapa futura pode consultar diretamente a unidade de ocupacao para entidades nao agricolas e so depois cair em chao livre ou movimento.
+A ordem de conversao de tela para mundo e: coordenada do mouse na janela, compensacao de camera/pan, compensacao da origem visual da grade, uso das dimensoes renderizadas arredondadas pelo zoom, inversao isometrica e resolucao final para `PosicaoNaGradeDeOcupacao`. Preview, ferramenta, entidades e movimento do personagem devem usar essa mesma base matematica.
+
+O zoom no ponto do cursor preserva a `PosicaoDecimalNaGradeDeOcupacao` local sob o mouse antes de recomputar o offset da camera. Isso evita que o preview ou o destino do clique escorreguem para outra unidade quando o zoom muda em valores com dimensoes impares ou arredondadas.
+
+O personagem nao e registrado como ocupante fixo do `GridDeOcupacao`. A migracao atual muda escala logica, clique, caminho, velocidade e renderizacao dos pes; colisao dinamica e pathfinding continuam fora deste contrato.
 
 ## Renderizacao atual
 
-`RenderizadorDaFazenda` consome `jogo.mapa().entidades()`, filtra entidades agricolas de tipo canteiro e desenha o mesmo resultado visual anterior.
+`RenderizadorDaFazenda` consome `jogo.mapa().entidades()`, filtra entidades agricolas de tipo canteiro e calcula o destino visual pela `AreaNaGradeDeOcupacao` real da entidade.
+
+O sprite do canteiro continua sendo o mesmo tile visual. Se a area comecar em origem impar, preview, area ocupada, clique interno, canteiro e planta se deslocam juntos na malha menor.
 
 A lista unica de renderizaveis por profundidade ainda nao foi implementada. O personagem continua desenhado no fluxo existente e nao vira ocupante fixo do grid nesta etapa.
 

@@ -24,18 +24,18 @@ public:
     virtual TipoDeFerramenta tipo() const = 0;
     virtual ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
+        Compartilhado::Geometria::PosicaoNaGradeDeOcupacao posicao
     ) const = 0;
 };
 
-inline bool posicaoPodeReceberAcaoDaFerramenta(
+inline bool posicaoDeOcupacaoPodeReceberAcaoDaFerramenta(
     const Mapa::MapaDaFazenda& mapa,
-    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao,
+    Compartilhado::Geometria::PosicaoNaGradeDeOcupacao posicao,
     int tamanhoAtualDoGrid
 ) {
     (void)mapa;
     return Mapa::MapaDaFazenda::posicaoEstaDentroDoMapaGlobal(posicao) &&
-           Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(posicao, tamanhoAtualDoGrid);
+           Mapa::MapaDaFazenda::posicaoDeOcupacaoEstaDentroDaAreaJogavel(posicao, tamanhoAtualDoGrid);
 }
 
 } // namespace MiniFazenda::Dominio::Ferramentas

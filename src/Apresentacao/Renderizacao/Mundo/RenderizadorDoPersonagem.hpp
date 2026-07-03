@@ -3,6 +3,7 @@
 #include "Apresentacao/Animacao/AnimadorDoPersonagem.hpp"
 #include "Apresentacao/Camera/CameraDoJogo.hpp"
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Apresentacao/Isometria/Isometrico.hpp"
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Personagem/Personagem.hpp"
@@ -11,52 +12,50 @@
 
 #include <SDL.h>
 
-#include <cmath>
-
 namespace MiniFazenda::Apresentacao::Renderizacao::Mundo {
 
 inline SDL_Rect converterRetanguloLogicoParaSDL(Compartilhado::Geometria::Retangulo retangulo) {
     return SDL_Rect{retangulo.x, retangulo.y, retangulo.w, retangulo.h};
 }
 
+inline void centralizarPontoDosPesDoPersonagemNaUnidadeDeOcupacao(
+    Compartilhado::Geometria::PosicaoNaTela& pontoDosPes,
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada& unidade
+) {
+    pontoDosPes.coordenadaHorizontal += unidade.largura / 2;
+}
+
 inline Compartilhado::Geometria::PosicaoNaTela calcularPontoDosPesDoPersonagemNaTela(
-    Compartilhado::Geometria::PosicaoNaGradeDecimal posicaoDosPesNaGrade,
+    Compartilhado::Geometria::PosicaoDecimalNaGradeDeOcupacao posicaoDosPesNaGradeDeOcupacao,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera
 ) {
-    const Compartilhado::Geometria::PosicaoNaGrade posicaoBase{
-        static_cast<int>(std::floor(posicaoDosPesNaGrade.indiceColuna)),
-        static_cast<int>(std::floor(posicaoDosPesNaGrade.indiceLinha))
-    };
-    const SDL_Rect destinoDoCanteiroBase = calcularDestinoDoCanteiro(posicaoBase, configuracoes, camera);
-    Compartilhado::Geometria::PosicaoNaTela pontoDosPes{
-        destinoDoCanteiroBase.x + destinoDoCanteiroBase.w / 2,
-        destinoDoCanteiroBase.y + destinoDoCanteiroBase.h / 2
-    };
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
 
-    const Camera::DimensoesDoCanteiroRenderizado dimensoes =
-        Camera::calcularDimensoesDoCanteiroRenderizado(camera.zoomAtual);
-    const float deslocamentoColuna = posicaoDosPesNaGrade.indiceColuna - posicaoBase.indiceColuna;
-    const float deslocamentoLinha = posicaoDosPesNaGrade.indiceLinha - posicaoBase.indiceLinha;
+    Compartilhado::Geometria::PosicaoNaTela pontoDosPes =
+        Isometria::converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+            posicaoDosPesNaGradeDeOcupacao,
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
 
-    pontoDosPes.coordenadaHorizontal += static_cast<int>(
-        std::lround((deslocamentoColuna - deslocamentoLinha) * (dimensoes.largura / 2))
-    );
-    pontoDosPes.coordenadaVertical += static_cast<int>(
-        std::lround((deslocamentoColuna + deslocamentoLinha) * (dimensoes.altura / 2))
-    );
-
+    centralizarPontoDosPesDoPersonagemNaUnidadeDeOcupacao(pontoDosPes, unidade);
     return pontoDosPes;
 }
 
 inline SDL_Rect calcularDestinoDoPersonagem(
-    Compartilhado::Geometria::PosicaoNaGradeDecimal posicaoDosPesNaGrade,
+    Compartilhado::Geometria::PosicaoDecimalNaGradeDeOcupacao posicaoDosPesNaGradeDeOcupacao,
     const Infraestrutura::Assets::ConfigVisualDoPersonagem::ConfiguracaoDaAnimacao& configuracaoVisual,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera
 ) {
     const Compartilhado::Geometria::PosicaoNaTela pontoDosPes =
-        calcularPontoDosPesDoPersonagemNaTela(posicaoDosPesNaGrade, configuracoes, camera);
+        calcularPontoDosPesDoPersonagemNaTela(posicaoDosPesNaGradeDeOcupacao, configuracoes, camera);
 
     return converterRetanguloLogicoParaSDL(
         Infraestrutura::Assets::ConfigVisualDoPersonagem::calcularRetanguloDeDestino(
@@ -122,7 +121,7 @@ inline void desenharPersonagem(
     }
 
     const SDL_Rect destinoDoPersonagem = calcularDestinoDoPersonagem(
-        personagem.posicaoDosPesNaGrade(),
+        personagem.posicaoDosPesNaGradeDeOcupacao(),
         configuracaoVisual,
         configuracoes,
         camera
@@ -141,7 +140,7 @@ inline void desenharPersonagem(
     SDL_RenderCopy(renderizador, texturaDoPersonagem, &origem, &destinoDoPersonagem);
 
     const Compartilhado::Geometria::PosicaoNaTela pontoDosPes =
-        calcularPontoDosPesDoPersonagemNaTela(personagem.posicaoDosPesNaGrade(), configuracoes, camera);
+        calcularPontoDosPesDoPersonagemNaTela(personagem.posicaoDosPesNaGradeDeOcupacao(), configuracoes, camera);
     desenharDebugDoPersonagem(renderizador, destinoDoPersonagem, pontoDosPes);
 }
 

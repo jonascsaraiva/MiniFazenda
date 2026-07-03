@@ -109,7 +109,7 @@ public:
     }
 
     void renderizar() {
-        const Geometria::PosicaoDeCanteiroNoMapa posicaoRealcada = calcularPosicaoRealcada();
+        const Geometria::PosicaoNaGradeDeOcupacao posicaoRealcada = calcularPosicaoRealcada();
 
         Mundo::desenharFundo(renderizador_, recursos_.texturaFundo);
         Mundo::desenharGradeAtiva(
@@ -170,11 +170,14 @@ private:
     }
 
     static bool posicaoEstaDentroDaAreaJogavel(
-        Geometria::PosicaoDeCanteiroNoMapa posicao,
+        Geometria::PosicaoNaGradeDeOcupacao posicao,
         int tamanhoAtualDoGrid
     ) {
         return Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDoMapaGlobal(posicao) &&
-               Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(posicao, tamanhoAtualDoGrid);
+               Dominio::Mapa::MapaDaFazenda::posicaoDeOcupacaoEstaDentroDaAreaJogavel(
+                   posicao,
+                   tamanhoAtualDoGrid
+               );
     }
 
     void processarMovimentoDoMouse(const SDL_MouseMotionEvent& movimento) {
@@ -307,27 +310,25 @@ private:
     }
 
     void processarCliqueNoMundo() {
-        const Geometria::PosicaoNaGrade posicaoNaGrade =
-            Mundo::converterMouseParaGradeGlobal(mouseX_, mouseY_, configuracoes_, camera_);
-        const Geometria::PosicaoDeCanteiroNoMapa posicaoDoCanteiro =
-            Geometria::converterPosicaoNaGradeParaCanteiroNoMapa(posicaoNaGrade);
+        const Geometria::PosicaoNaGradeDeOcupacao posicaoDeOcupacao =
+            Mundo::converterMouseParaGradeDeOcupacaoGlobal(mouseX_, mouseY_, configuracoes_, camera_);
 
-        if (posicaoEstaDentroDaAreaJogavel(posicaoDoCanteiro, jogo_.tamanhoAtualDoGrid())) {
-            jogo_.personagem().caminharAte(posicaoNaGrade);
+        if (posicaoEstaDentroDaAreaJogavel(posicaoDeOcupacao, jogo_.tamanhoAtualDoGrid())) {
+            jogo_.personagem().caminharAte(posicaoDeOcupacao);
         }
 
-        const auto resultado = AppServicos::aplicarFerramentaNoJogo(jogo_, posicaoDoCanteiro);
+        const auto resultado = AppServicos::aplicarFerramentaNoJogo(jogo_, posicaoDeOcupacao);
         if (audioInicializado_) {
             Assets::tocarSomDaAcao(ativos_, diretorioAssets_, resultado);
         }
     }
 
-    Geometria::PosicaoDeCanteiroNoMapa calcularPosicaoRealcada() const {
+    Geometria::PosicaoNaGradeDeOcupacao calcularPosicaoRealcada() const {
         if (camera_.panAtivo) {
-            return Geometria::PosicaoDeCanteiroNoMapa{-1, -1};
+            return Geometria::PosicaoNaGradeDeOcupacao{-1, -1};
         }
 
-        return Mundo::converterMouseParaCanteiroNoMapa(mouseX_, mouseY_, configuracoes_, camera_);
+        return Mundo::converterMouseParaGradeDeOcupacaoGlobal(mouseX_, mouseY_, configuracoes_, camera_);
     }
 
     void recarregarConfiguracoesVisuais() {

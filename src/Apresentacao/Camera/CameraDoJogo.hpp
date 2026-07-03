@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
+#include "Apresentacao/Isometria/Isometrico.hpp"
 #include "Compartilhado/ConstantesDaCamera.hpp"
 #include "Compartilhado/ConstantesDaIsometria.hpp"
 #include "Compartilhado/ConstantesDaJanela.hpp"
@@ -15,6 +16,11 @@ namespace MiniFazenda::Apresentacao::Camera {
 struct DimensoesDoCanteiroRenderizado {
     int largura = Compartilhado::Constantes::LARGURA_DO_CANTEIRO;
     int altura = Compartilhado::Constantes::ALTURA_DO_CANTEIRO;
+};
+
+struct DimensoesDaUnidadeDeOcupacaoRenderizada {
+    int largura = Compartilhado::Constantes::LARGURA_DA_UNIDADE_DE_OCUPACAO;
+    int altura = Compartilhado::Constantes::ALTURA_DA_UNIDADE_DE_OCUPACAO;
 };
 
 struct EstadoDaCamera {
@@ -45,6 +51,42 @@ inline DimensoesDoCanteiroRenderizado calcularDimensoesDoCanteiroRenderizado(flo
     return DimensoesDoCanteiroRenderizado{
         std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::LARGURA_DO_CANTEIRO * zoomLimitado))),
         std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::ALTURA_DO_CANTEIRO * zoomLimitado)))
+    };
+}
+
+inline DimensoesDaUnidadeDeOcupacaoRenderizada calcularDimensoesDaUnidadeDeOcupacaoRenderizada(
+    float zoomAtual
+) {
+    const float zoomLimitado = std::clamp(
+        zoomAtual,
+        Compartilhado::Constantes::ZOOM_MINIMO,
+        Compartilhado::Constantes::ZOOM_MAXIMO
+    );
+
+    return DimensoesDaUnidadeDeOcupacaoRenderizada{
+        std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::LARGURA_DA_UNIDADE_DE_OCUPACAO * zoomLimitado))),
+        std::max(1, static_cast<int>(std::round(Compartilhado::Constantes::ALTURA_DA_UNIDADE_DE_OCUPACAO * zoomLimitado)))
+    };
+}
+
+inline DimensoesDaUnidadeDeOcupacaoRenderizada calcularDimensoesDaAreaDeOcupacaoRenderizada(
+    Compartilhado::Geometria::AreaNaGradeDeOcupacao area,
+    float zoomAtual
+) {
+    const float zoomLimitado = std::clamp(
+        zoomAtual,
+        Compartilhado::Constantes::ZOOM_MINIMO,
+        Compartilhado::Constantes::ZOOM_MAXIMO
+    );
+    const float fatorDaArea = std::max(1, area.largura + area.altura) / 2.0f;
+
+    return DimensoesDaUnidadeDeOcupacaoRenderizada{
+        std::max(1, static_cast<int>(std::round(
+            Compartilhado::Constantes::LARGURA_DA_UNIDADE_DE_OCUPACAO * fatorDaArea * zoomLimitado
+        ))),
+        std::max(1, static_cast<int>(std::round(
+            Compartilhado::Constantes::ALTURA_DA_UNIDADE_DE_OCUPACAO * fatorDaArea * zoomLimitado
+        )))
     };
 }
 
@@ -148,6 +190,18 @@ inline bool aplicarZoomNoPonto(
     int passosDoScroll
 ) {
     const float zoomAnterior = camera.zoomAtual;
+    const DimensoesDaUnidadeDeOcupacaoRenderizada unidadeAnterior =
+        calcularDimensoesDaUnidadeDeOcupacaoRenderizada(zoomAnterior);
+    const Compartilhado::Geometria::PosicaoDecimalNaGradeDeOcupacao posicaoLocalSobCursor =
+        Isometria::converterTelaParaOcupacaoDecimal(
+            mouseX,
+            mouseY,
+            unidadeAnterior.largura,
+            unidadeAnterior.altura,
+            configuracoes.origemGradeHorizontal + camera.offsetHorizontal,
+            configuracoes.origemGradeVertical + camera.offsetVertical
+        );
+
     camera.zoomAtual = std::clamp(
         camera.zoomAtual + passosDoScroll * Compartilhado::Constantes::PASSO_DO_ZOOM,
         Compartilhado::Constantes::ZOOM_MINIMO,
@@ -158,14 +212,24 @@ inline bool aplicarZoomNoPonto(
         return false;
     }
 
-    const float fatorEscala = camera.zoomAtual / zoomAnterior;
-    const float distanciaMouseDaOrigemX =
-        static_cast<float>(mouseX - configuracoes.origemGradeHorizontal - camera.offsetHorizontal);
-    const float distanciaMouseDaOrigemY =
-        static_cast<float>(mouseY - configuracoes.origemGradeVertical - camera.offsetVertical);
+    const DimensoesDaUnidadeDeOcupacaoRenderizada unidadeNova =
+        calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+    const int metadeDaLarguraNova = Isometria::calcularMetadeDaDimensaoIsometrica(unidadeNova.largura);
+    const int metadeDaAlturaNova = Isometria::calcularMetadeDaDimensaoIsometrica(unidadeNova.altura);
 
-    camera.offsetHorizontal += static_cast<int>(std::round(distanciaMouseDaOrigemX * (1.0f - fatorEscala)));
-    camera.offsetVertical += static_cast<int>(std::round(distanciaMouseDaOrigemY * (1.0f - fatorEscala)));
+    camera.offsetHorizontal = static_cast<int>(std::round(
+        mouseX -
+        configuracoes.origemGradeHorizontal -
+        metadeDaLarguraNova -
+        (posicaoLocalSobCursor.indiceColuna - posicaoLocalSobCursor.indiceLinha) *
+            static_cast<float>(metadeDaLarguraNova)
+    ));
+    camera.offsetVertical = static_cast<int>(std::round(
+        mouseY -
+        configuracoes.origemGradeVertical -
+        (posicaoLocalSobCursor.indiceColuna + posicaoLocalSobCursor.indiceLinha) *
+            static_cast<float>(metadeDaAlturaNova)
+    ));
     limitarPanAosLimitesDoGrid(camera, configuracoes, tamanhoGrid);
     return true;
 }

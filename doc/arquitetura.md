@@ -272,7 +272,7 @@ Controla:
 
 Controla apenas estado logico de gameplay:
 
-- posicao dos pes na grade;
+- posicao dos pes na grade de ocupacao;
 - estado parado/andando;
 - direcao isometrica atual;
 - caminho em segmentos.
@@ -439,12 +439,14 @@ Toda ferramenta deriva de:
 E implementa o método:
 
 ```cpp
-ResultadoDaFerramenta aplicar(ContextoDaFerramenta&, PosicaoDeCanteiroNoMapa) const;
+ResultadoDaFerramenta aplicar(ContextoDaFerramenta&, PosicaoNaGradeDeOcupacao) const;
 ```
 
 `RegistroDeFerramentas` guarda as instâncias por `TipoDeFerramenta`.
 
 Esse padrão elimina o `switch` antigo de `SistemasDoJogo.hpp` e mantém cada regra dentro da própria ferramenta.
+
+A menor unidade de ferramenta no mundo e `PosicaoNaGradeDeOcupacao`. `PosicaoDeCanteiroNoMapa` ainda pode aparecer como compatibilidade para canteiros alinhados ao legado, mas nao deve ser usada como trava de alinhamento para criacao nova.
 
 ### Como adicionar uma ferramenta
 
@@ -549,15 +551,17 @@ As mutacoes passam por metodos controlados:
 
 ```text
 criarCanteiro()
+criarCanteiroEm()
 removerEntidade()
 removerCanteiro()
+removerCanteiroEm()
 sincronizarCrescimentoDoCanteiro()
 removerCanteiroDaListaDeCrescimento()
 ```
 
 Essa estrutura impede alteracao direta do mapa por codigo externo e preserva as validacoes internas.
 
-O canteiro e uma entidade agricola do mapa e carrega o componente `Canteiro`, que continua dono das regras agricolas.
+O canteiro e uma entidade agricola do mapa e carrega o componente `Canteiro`, que continua dono das regras agricolas. Ele ocupa `2 x 2` unidades logicas e pode comecar em qualquer `PosicaoNaGradeDeOcupacao` livre dentro da area jogavel, inclusive coordenadas impares.
 
 `GridDeOcupacao` e o indice espacial interno do mapa. Ele nao e fonte da verdade de entidades e nao conhece regras de lavoura.
 

@@ -61,8 +61,8 @@ Observação: o código sempre desenha o background no retângulo da janela (`12
   - Origem: `src/Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp::desenharLosango`, com `x + w / 2` e `y + h`
 - **Ponto esquerdo do losango dentro do retângulo do tile** — `(0, 32)`
   - Origem: `src/Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp::desenharLosango`, com `x` e `y + h / 2`
-- **Ponto usado pelo código como base de planta e pés do personagem** — `(64, 32)`
-  - Origem: `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularDestinoDoSpriteDaPlanta` e `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`
+- **Ponto usado pelo código como base de planta e ponto legado equivalente dos pés do personagem** — `(64, 32)`
+  - Origem: `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularDestinoDoSpriteDaPlanta` e equivalencia mantida por `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`
 - **Distancia vertical entre a base usada pelo código e a ponta inferior** — `32 px`
   - Origem: `(64 - 32)`, derivado de `ALTURA_DO_CANTEIRO` e das funcoes `desenharLosango` e `calcularPontoDosPesDoPersonagemNaTela`
 
@@ -74,8 +74,19 @@ A conversão de grade para tela usa o topo-esquerda do retângulo de destino do 
   - Origem: `src/Apresentacao/Isometria/Isometrico.hpp::converterGradeParaTela`
 - **Grade global para local** — `colunaLocal = colunaGlobal - 127`, `linhaLocal = linhaGlobal - 127`
   - Origem: `src/Apresentacao/Isometria/Isometrico.hpp::converterGradeGlobalParaTela`, usando `COLUNA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL` e `LINHA_DE_ORIGEM_VISUAL_DA_GRADE_GLOBAL`
-- **Tela para grade** — subtrai `64 px` do X ajustado antes de inverter a isometria
-  - Origem: `src/Apresentacao/Isometria/Isometrico.hpp::converterTelaParaGrade`, usando `larguraDoCanteiro / 2`
+- **Tela para grade decimal** — remove origem visual e camera, subtrai meia largura renderizada do X ajustado e inverte a isometria antes do `floor`
+  - Origem: `src/Apresentacao/Isometria/Isometrico.hpp::converterTelaParaGradeDecimal` e `converterTelaParaGrade`
+- **Tela para ocupacao global** — usa as dimensoes renderizadas arredondadas da unidade de ocupacao, remove origem visual e camera, inverte a isometria e soma a origem global de ocupacao
+  - Origem: `src/Apresentacao/Isometria/Isometrico.hpp::converterTelaParaOcupacaoGlobal`, com dimensoes de `Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada`
+
+### Unidade de ocupacao
+
+- **Largura da unidade de ocupacao no zoom base** - `64 px`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::LARGURA_DA_UNIDADE_DE_OCUPACAO`; um canteiro ocupa `2 x 2` unidades
+- **Altura da unidade de ocupacao no zoom base** - `32 px`
+  - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::ALTURA_DA_UNIDADE_DE_OCUPACAO`; um canteiro ocupa `2 x 2` unidades
+- **Origem logica do canteiro** - `PosicaoNaGradeDeOcupacao`
+  - Origem: `src/Dominio/Ocupacao/GridDeOcupacao.hpp::calcularAreaDeOcupacaoDoCanteiro(PosicaoNaGradeDeOcupacao)`; a origem pode ser par ou impar
 
 ## 3. Zoom e dimensões escaladas
 
@@ -112,6 +123,10 @@ O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtua
   - Observação: Derivados de `round(64 * zoom)`, para `zoom = 0.7, 0.8, 1.2, 1.3, 1.7, 1.8`; `desenharLosango` usa `h / 2` inteiro, então a metade inferior pode ficar `1 px` mais longa nesses casos
 - **Hitbox debug em dimensões ímpares** — remove `1 px` quando `w` ou `h` é ímpar
   - Observação: `src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularHitboxDoCanteiro`, com `(destino.w / 2) * 2` e `(destino.h / 2) * 2`; `DEBUG_HITBOX_TILES` está `false` em `src/Compartilhado/ConstantesDaIsometria.hpp::DEBUG_HITBOX_TILES`
+- **Clique em zoom quebrado** - a conversao inversa usa as mesmas dimensoes renderizadas arredondadas usadas no desenho, e as metades inteiras calculadas por `Isometrico::calcularMetadeDaDimensaoIsometrica`
+  - Observação: a ordem logica e mouse na janela -> camera/pan -> origem visual -> dimensoes renderizadas do zoom -> inversao isometrica -> `PosicaoNaGradeDeOcupacao`
+- **Zoom no ponto do cursor** - `Camera::aplicarZoomNoPonto` preserva a `PosicaoDecimalNaGradeDeOcupacao` local sob o mouse ao recomputar o offset com as novas dimensoes renderizadas
+  - Observação: isso evita deriva quando `round(tamanhoBase * zoom)` e divisao inteira produzem fatores efetivos diferentes de `zoomNovo / zoomAntigo`
 
 ## 4. Grade jogável, grade global e centralização
 
@@ -123,8 +138,12 @@ O tamanho renderizado do canteiro é calculado por `round(tamanhoBase * zoomAtua
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::COLUNA_CENTRAL_DA_GRADE_GLOBAL` e `LINHA_CENTRAL_DA_GRADE_GLOBAL`
 - **Tamanho inicial da grade jogável** — `12 x 12 tiles`
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::TAMANHO_INICIAL_GRID`
+- **Tamanho inicial em unidades de ocupacao** - `24 x 24 unidades`
+  - Origem: `TAMANHO_INICIAL_GRID * UNIDADES_DE_OCUPACAO_POR_CANTEIRO`; validado por `src/Dominio/Mapa/MapaDaFazenda.hpp::calcularTamanhoDaAreaJogavelEmOcupacao`
 - **Tamanho máximo da grade jogável** — `24 x 24 tiles`
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::TAMANHO_MAXIMO_GRID`
+- **Tamanho maximo em unidades de ocupacao** - `48 x 48 unidades`
+  - Origem: `TAMANHO_MAXIMO_GRID * UNIDADES_DE_OCUPACAO_POR_CANTEIRO`
 - **Incremento de tamanho da grade jogável** — `2 tiles`
   - Origem: `src/Compartilhado/ConstantesDoJogo.hpp::INCREMENTO_TAMANHO_GRID`
 - **Tamanhos validos pela normalizacao atual** — `12, 14, 16, 18, 20, 22, 24`
@@ -272,16 +291,22 @@ A animação idle atual usa uma spritesheet horizontal de cinco frames. A escolh
   - Origem: `round(63 * 2.0)` e `round(96 * 2.0)`, derivados de `destinoLargura`, `destinoAltura` e `ZOOM_MAXIMO`
 - **Ponto dos pés no destino no zoom máximo** — `(64, 192)`
   - Origem: `round(32 * 2.0)` e `round(96 * 2.0)`, derivados de `pontoDosPesX/Y` e `ZOOM_MAXIMO`
-- **Ponto dos pés quando parado exatamente em um tile no zoom base** — `(64, 32)` relativo ao topo-esquerda do tile
-  - Origem: `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`
-- **Retângulo do personagem relativo ao tile no zoom base** — `x=32, y=-64, w=63, h=96`
-  - Origem: `(64 - 32, 32 - 96, 63, 96)`, derivado de `calcularPontoDosPesDoPersonagemNaTela` e `calcularRetanguloDeDestino`
-- **Posicao inicial dos pés na grade global** — `(128, 128)`
-  - Origem: `src/Dominio/Personagem/Personagem.hpp::posicaoDosPesNaGrade_`, usando `COLUNA_CENTRAL_DA_GRADE_GLOBAL` e `LINHA_CENTRAL_DA_GRADE_GLOBAL`
-- **Posicao inicial dos pés na tela, sem pan e no zoom base** — `(576, 328)`
-  - Origem: Derivado de `posicaoDosPesNaGrade_`, origem `(512, 232)`, `LARGURA_DO_CANTEIRO` e `ALTURA_DO_CANTEIRO`
-- **Retângulo inicial do personagem na tela, sem pan e no zoom base** — `x=544, y=232, w=63, h=96`
-  - Origem: `(576 - 32, 328 - 96, 63, 96)`, derivado de `calcularRetanguloDeDestino`
+- **Ponto visual dos pés do personagem dentro da unidade de ocupacao no zoom base** — `(64, 16)` relativo ao topo-esquerda da unidade `64 x 32`
+  - Origem: `src/Apresentacao/Isometria/Isometrico.hpp::converterCentroDaUnidadeDeOcupacaoGlobalParaTela` mais a centralizacao horizontal em `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::centralizarPontoDosPesDoPersonagemNaUnidadeDeOcupacao`
+- **Posicao inicial dos pés na grade de ocupacao** — `(257, 256)`
+  - Origem: `src/Dominio/Personagem/Personagem.hpp::calcularPosicaoInicialDosPes`, derivada de `converterCanteiroParaOcupacao(PosicaoDeCanteiroNoMapa{128, 128})` mais `(1, 0)` para preservar o centro do canteiro legado
+- **Posicao inicial visual dos pés na tela, sem pan e no zoom base** — `(608, 328)`
+  - Origem: Derivado de `posicaoDosPesNaGradeDeOcupacao_`, origem `(512, 232)`, `LARGURA_DA_UNIDADE_DE_OCUPACAO` e `ALTURA_DA_UNIDADE_DE_OCUPACAO`
+- **Retângulo inicial do personagem na tela, sem pan e no zoom base** — `x=576, y=232, w=63, h=96`
+  - Origem: `(608 - 32, 328 - 96, 63, 96)`, derivado de `calcularRetanguloDeDestino`
+
+### Movimento e ocupacao
+
+O personagem usa `PosicaoNaGradeDeOcupacao` para a posicao inteira dos pes e `PosicaoDecimalNaGradeDeOcupacao` durante o movimento. Ele anda na malha menor `1 x 1` de ocupacao, mas nao e ocupante fixo do `GridDeOcupacao`.
+
+A velocidade logica atual e `VELOCIDADE_PERSONAGEM_EM_UNIDADES_DE_OCUPACAO_POR_SEGUNDO = 10.0f`, derivada de `VELOCIDADE_PERSONAGEM_EM_CELULAS_POR_SEGUNDO = 5.0f` multiplicada por `UNIDADES_DE_OCUPACAO_POR_CANTEIRO = 2`. Isso preserva a velocidade visual aproximada da grade antiga.
+
+Cliques no mundo para movimento usam a mesma conversao tela -> `PosicaoNaGradeDeOcupacao` usada pela malha de ocupacao. Ferramentas agricolas, preview e criacao de canteiros continuam usando a ocupacao real e nao dependem do personagem.
 
 ### Padrão de arte atual
 
@@ -362,7 +387,7 @@ O hit-test da interface usa retangulos semiabertos como padrao: `x <= pontoX < x
 
 - O tile do chão deve ser pensado como um losango de proporção `2:1`, ou seja, `128 x 64 px` no zoom base (`src/Compartilhado/ConstantesDaIsometria.hpp::LARGURA_DO_CANTEIRO` e `ALTURA_DO_CANTEIRO`).
 - Para montar um canvas de referência de um tile, use os pontos `(64,0)`, `(128,32)`, `(64,64)` e `(0,32)` dentro de um retângulo `128 x 64 px` (`src/Apresentacao/Renderizacao/Primitivas/PrimitivasSDL.hpp::desenharLosango`).
-- No código atual, o ponto de contato de planta e personagem com o tile é o centro do losango, `(64,32)`, não a ponta inferior `(64,64)` (`src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularDestinoDoSpriteDaPlanta` e `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`).
+- No código atual, o ponto de contato de planta com o tile é o centro do losango, `(64,32)`, não a ponta inferior `(64,64)`. O personagem preserva esse ponto apenas como equivalencia inicial legada; depois anda pelos centros das unidades `1 x 1` de ocupacao (`src/Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp::calcularDestinoDoSpriteDaPlanta` e `src/Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp::calcularPontoDosPesDoPersonagemNaTela`).
 - Para sprites de planta, o motor procura a base no ponto mais baixo dos pixels opacos e centraliza essa base no ponto `(64,32)` do tile (`src/Infraestrutura/Assets/RecursosDaFazenda.hpp::calcularAncoraDaBaseDoSpriteDaPlanta`).
 - O personagem atual e desenhado em um destino de `63 x 96 px` no zoom base, com os pés em `(32,96)` dentro desse destino (`src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::destinoLargura`, `destinoAltura`, `pontoDosPesX`, `pontoDosPesY`).
 - O padrão atual de frame do personagem é `250 x 250 px`, com 5 frames alinhados horizontalmente e sem espaçamento (`src/Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp::frameLargura`, `frameAltura`, `quantidadeFramesIdle`, `frameEspacamentoX`).

@@ -41,14 +41,24 @@ inline Compartilhado::Geometria::PosicaoNaGrade converterMouseParaGradeGlobal(
     );
 }
 
-inline Compartilhado::Geometria::PosicaoDeCanteiroNoMapa converterMouseParaCanteiroNoMapa(
+inline Compartilhado::Geometria::PosicaoNaGradeDeOcupacao converterMouseParaGradeDeOcupacaoGlobal(
     int mouseX,
     int mouseY,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera
 ) {
-    return Compartilhado::Geometria::converterPosicaoNaGradeParaCanteiroNoMapa(
-        converterMouseParaGradeGlobal(mouseX, mouseY, configuracoes, camera)
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada dimensoes =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+
+    return Isometria::converterTelaParaOcupacaoGlobal(
+        mouseX,
+        mouseY,
+        dimensoes.largura,
+        dimensoes.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
     );
 }
 
@@ -77,16 +87,32 @@ inline SDL_Rect calcularDestinoDoCanteiro(
     };
 }
 
-inline SDL_Rect calcularDestinoDoCanteiro(
-    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao,
+inline SDL_Rect calcularDestinoDaAreaDeOcupacao(
+    Compartilhado::Geometria::AreaNaGradeDeOcupacao area,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera
 ) {
-    return calcularDestinoDoCanteiro(
-        Compartilhado::Geometria::converterCanteiroNoMapaParaPosicaoNaGrade(posicao),
-        configuracoes,
-        camera
-    );
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+    const Compartilhado::Geometria::Retangulo retangulo =
+        Isometria::calcularRetanguloDaAreaDeOcupacaoGlobal(
+            area,
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada dimensoesDaArea =
+        Camera::calcularDimensoesDaAreaDeOcupacaoRenderizada(area, camera.zoomAtual);
+
+    return SDL_Rect{
+        retangulo.x,
+        retangulo.y,
+        dimensoesDaArea.largura,
+        dimensoesDaArea.altura
+    };
 }
 
 inline bool retanguloApareceNaTela(SDL_Rect retangulo) {
@@ -144,17 +170,16 @@ inline void desenharGradeAtiva(
     const Infraestrutura::Assets::TexturasDosCanteiros& texturasCanteiro,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera,
-    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicaoRealcada
+    Compartilhado::Geometria::PosicaoNaGradeDeOcupacao posicaoRealcada
 ) {
     for (const Dominio::Mapa::EntidadeDoMapa& entidade : jogo.mapa().entidades()) {
-        if (!entidade.ehCanteiroAgricola() || !entidade.posicaoDoCanteiroNoMapa().has_value()) {
+        if (!entidade.ehCanteiroAgricola()) {
             continue;
         }
 
-        const Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicaoDoCanteiro =
-            *entidade.posicaoDoCanteiroNoMapa();
-        if (!Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(
-                posicaoDoCanteiro,
+        const Compartilhado::Geometria::AreaNaGradeDeOcupacao areaDoCanteiro = entidade.areaDeOcupacao();
+        if (!Dominio::Mapa::MapaDaFazenda::areaDeOcupacaoEstaDentroDaAreaJogavel(
+                areaDoCanteiro,
                 jogo.tamanhoAtualDoGrid()
             )) {
             continue;
@@ -165,7 +190,7 @@ inline void desenharGradeAtiva(
             continue;
         }
 
-        const SDL_Rect destino = calcularDestinoDoCanteiro(posicaoDoCanteiro, configuracoes, camera);
+        const SDL_Rect destino = calcularDestinoDaAreaDeOcupacao(areaDoCanteiro, configuracoes, camera);
         if (!retanguloApareceNaTela(destino)) {
             continue;
         }
@@ -197,7 +222,7 @@ inline void desenharGradeAtiva(
             destinoDaPlanta,
             *canteiro,
             destino,
-            Compartilhado::Geometria::posicoesDeCanteiroNoMapaSaoIguais(posicaoRealcada, posicaoDoCanteiro)
+            entidade.ocupa(posicaoRealcada)
         );
 
         if constexpr (Compartilhado::Constantes::DEBUG_HITBOX_TILES) {
@@ -211,16 +236,21 @@ inline void desenharPreviewDeCriacaoDeTerra(
     const Aplicacao::Estado::EstadoDoJogo& jogo,
     const ConfiguracoesDoLayout& configuracoes,
     const Camera::EstadoDaCamera& camera,
-    Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicaoRealcada
+    Compartilhado::Geometria::PosicaoNaGradeDeOcupacao posicaoRealcada
 ) {
+    const Compartilhado::Geometria::AreaNaGradeDeOcupacao areaDoPreview =
+        Dominio::Ocupacao::calcularAreaDeOcupacaoDoCanteiro(posicaoRealcada);
+
     if (jogo.ferramentaSelecionada() != Dominio::Ferramentas::TipoDeFerramenta::Enxada ||
-        !Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDoMapaGlobal(posicaoRealcada) ||
-        !Dominio::Mapa::MapaDaFazenda::posicaoEstaDentroDaAreaJogavel(posicaoRealcada, jogo.tamanhoAtualDoGrid()) ||
-        jogo.mapa().existeCanteiroEm(posicaoRealcada)) {
+        !Dominio::Mapa::MapaDaFazenda::areaDeOcupacaoEstaDentroDaAreaJogavel(
+            areaDoPreview,
+            jogo.tamanhoAtualDoGrid()
+        ) ||
+        !jogo.mapa().areaEstaLivre(areaDoPreview)) {
         return;
     }
 
-    const SDL_Rect destino = calcularDestinoDoCanteiro(posicaoRealcada, configuracoes, camera);
+    const SDL_Rect destino = calcularDestinoDaAreaDeOcupacao(areaDoPreview, configuracoes, camera);
     if (!retanguloApareceNaTela(destino)) {
         return;
     }

@@ -22,6 +22,7 @@
 #include "Infraestrutura/Assets/ConfigVisualDoPersonagem.hpp"
 #include "Infraestrutura/Assets/EstadoVisualDaPlanta.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
@@ -58,6 +59,15 @@ namespace Plantas = MiniFazenda::Dominio::Plantas;
         } \
     } while (false)
 
+bool posicaoDecimalDeOcupacaoEstaProxima(
+    Geometria::PosicaoDecimalNaGradeDeOcupacao atual,
+    Geometria::PosicaoNaGradeDeOcupacao esperada,
+    float tolerancia = 0.01f
+) {
+    return std::fabs(atual.indiceColuna - static_cast<float>(esperada.indiceColuna)) <= tolerancia &&
+           std::fabs(atual.indiceLinha - static_cast<float>(esperada.indiceLinha)) <= tolerancia;
+}
+
 void validarListasDoMapa(const Mapa::MapaDaFazenda& mapa) {
     VERIFICAR(mapa.entidades().size() == mapa.quantidadeDeEntidades());
     VERIFICAR(mapa.indiceDeOcupacao().quantidadeDeOcupacoes() == mapa.quantidadeDeEntidades());
@@ -67,12 +77,17 @@ void validarListasDoMapa(const Mapa::MapaDaFazenda& mapa) {
         VERIFICAR(mapa.obterEntidade(entidade.identificador()) != nullptr);
 
         if (entidade.ehCanteiroAgricola()) {
-            VERIFICAR(entidade.posicaoDoCanteiroNoMapa().has_value());
             VERIFICAR(entidade.canteiroAgricola() != nullptr);
-            const Mapa::EntidadeDoMapa* entidadeNoMapa =
-                mapa.entidadeEmCanteiro(*entidade.posicaoDoCanteiroNoMapa());
-            VERIFICAR(entidadeNoMapa != nullptr);
-            VERIFICAR(entidadeNoMapa->identificador() == entidade.identificador());
+
+            const Geometria::AreaNaGradeDeOcupacao area = entidade.areaDeOcupacao();
+            for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+                for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+                    const Mapa::EntidadeDoMapa* entidadeNoMapa =
+                        mapa.entidadeEm(Geometria::PosicaoNaGradeDeOcupacao{coluna, linha});
+                    VERIFICAR(entidadeNoMapa != nullptr);
+                    VERIFICAR(entidadeNoMapa->identificador() == entidade.identificador());
+                }
+            }
         }
     }
 
@@ -151,10 +166,9 @@ void validarIndiceDeOcupacaoDoMapa(const Mapa::MapaDaFazenda& mapa) {
             continue;
         }
 
-        VERIFICAR(entidade.posicaoDoCanteiroNoMapa().has_value());
-        const Geometria::AreaNaGradeDeOcupacao area =
-            Ocupacao::calcularAreaDeOcupacaoDoCanteiro(*entidade.posicaoDoCanteiroNoMapa());
-        VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(entidade.areaDeOcupacao(), area));
+        const Geometria::AreaNaGradeDeOcupacao area = entidade.areaDeOcupacao();
+        VERIFICAR(area.largura == Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO);
+        VERIFICAR(area.altura == Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO);
 
         for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
             for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
@@ -168,10 +182,92 @@ void validarIndiceDeOcupacaoDoMapa(const Mapa::MapaDaFazenda& mapa) {
     }
 }
 
-Geometria::PosicaoDeCanteiroNoMapa posicaoLivreProximaDoNucleo() {
-    return Geometria::PosicaoDeCanteiroNoMapa{
-        Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + 3,
-        Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL
+void validarCanteiroPodeNascerEmOrigemParEImparDeOcupacao() {
+    Mapa::MapaDaFazenda mapa;
+    const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
+    const int colunaInicial = Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const int linhaInicial = Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const Geometria::PosicaoNaGradeDeOcupacao origemPar{colunaInicial, linhaInicial};
+    const Geometria::PosicaoNaGradeDeOcupacao origemImpar{colunaInicial + 3, linhaInicial + 1};
+
+    const auto idPar = mapa.criarCanteiroEm(origemPar, tamanho);
+    const auto idImpar = mapa.criarCanteiroEm(origemImpar, tamanho);
+
+    VERIFICAR(idPar.has_value());
+    VERIFICAR(idImpar.has_value());
+    VERIFICAR(mapa.quantidadeDeCanteiros() == 2);
+    VERIFICAR(mapa.obterEntidade(*idPar)->posicaoDoCanteiroNoMapa().has_value());
+    VERIFICAR(!mapa.obterEntidade(*idImpar)->posicaoDoCanteiroNoMapa().has_value());
+    VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(
+        mapa.obterEntidade(*idPar)->areaDeOcupacao(),
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origemPar)
+    ));
+    VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(
+        mapa.obterEntidade(*idImpar)->areaDeOcupacao(),
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origemImpar)
+    ));
+}
+
+void validarSobreposicaoEContatoDeCanteirosPorOcupacao() {
+    Mapa::MapaDaFazenda mapa;
+    const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
+    const int colunaInicial = Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const int linhaInicial = Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const Geometria::PosicaoNaGradeDeOcupacao origemBase{colunaInicial, linhaInicial};
+    const Geometria::PosicaoNaGradeDeOcupacao origemSobreposta{colunaInicial + 1, linhaInicial};
+    const Geometria::PosicaoNaGradeDeOcupacao origemEncostada{colunaInicial + 2, linhaInicial};
+
+    VERIFICAR(mapa.criarCanteiroEm(origemBase, tamanho).has_value());
+    VERIFICAR(!mapa.criarCanteiroEm(origemSobreposta, tamanho).has_value());
+    VERIFICAR(mapa.criarCanteiroEm(origemEncostada, tamanho).has_value());
+    VERIFICAR(mapa.quantidadeDeCanteiros() == 2);
+}
+
+void validarRemocaoDeCanteiroDesalinhadoLiberaAreaExata() {
+    Mapa::MapaDaFazenda mapa;
+    const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
+    const int colunaInicial = Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const int linhaInicial = Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const Geometria::PosicaoNaGradeDeOcupacao origem{colunaInicial + 1, linhaInicial + 1};
+    const Geometria::AreaNaGradeDeOcupacao area = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origem);
+    const auto id = mapa.criarCanteiroEm(origem, tamanho);
+
+    VERIFICAR(id.has_value());
+    for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+        for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+            const Geometria::PosicaoNaGradeDeOcupacao posicao{coluna, linha};
+            const Mapa::EntidadeDoMapa* entidade = mapa.entidadeEm(posicao);
+            VERIFICAR(entidade != nullptr);
+            VERIFICAR(entidade->identificador() == *id);
+            VERIFICAR(mapa.obterCanteiroAgricolaEm(posicao) != nullptr);
+        }
+    }
+
+    VERIFICAR(mapa.removerCanteiroEm(Geometria::PosicaoNaGradeDeOcupacao{
+        area.indiceColuna + 1,
+        area.indiceLinha + 1
+    }));
+
+    for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+        for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+            VERIFICAR(mapa.entidadeEm(Geometria::PosicaoNaGradeDeOcupacao{coluna, linha}) == nullptr);
+        }
+    }
+
+    VERIFICAR(mapa.indiceDeOcupacao().quantidadeDeOcupacoes() == 0);
+    VERIFICAR(mapa.quantidadeDeEntidades() == 0);
+}
+
+void validarProfundidadePorBaseDaAreaDeOcupacao() {
+    VERIFICAR(Ocupacao::calcularProfundidadeDaBase(Geometria::AreaNaGradeDeOcupacao{10, 20, 1, 1}) == 30);
+    VERIFICAR(Ocupacao::calcularProfundidadeDaBase(Geometria::AreaNaGradeDeOcupacao{10, 20, 2, 2}) == 32);
+    VERIFICAR(Ocupacao::calcularProfundidadeDaBase(Geometria::AreaNaGradeDeOcupacao{10, 20, 4, 3}) == 35);
+}
+
+Geometria::PosicaoNaGradeDeOcupacao origemDeOcupacaoLivreProximaDoNucleo() {
+    return Geometria::PosicaoNaGradeDeOcupacao{
+        Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO + 5,
+        Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO
     };
 }
 
@@ -287,10 +383,9 @@ void validarAnimacaoIdleDoPersonagem() {
         ConfigPersonagem::AnimacaoVisualDoPersonagem::Idle
     );
     Animacao::EstadoVisualDoPersonagem estadoVisualDoPersonagem;
-    const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
-    const Geometria::PosicaoDeCanteiroNoMapa canteiroDoPersonagem =
-        Geometria::converterPosicaoNaGradeParaCanteiroNoMapa(posicaoInicial);
-    VERIFICAR(jogo.mapa().obterCanteiroAgricola(canteiroDoPersonagem) != nullptr);
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoInicial =
+        jogo.personagem().posicaoNaGradeDeOcupacao();
+    VERIFICAR(jogo.mapa().obterCanteiroAgricolaEm(posicaoInicial) != nullptr);
 
     VERIFICAR(configuracaoIdle.quantidadeFrames == 5);
     VERIFICAR(configuracaoIdle.frameOrigemX == 0);
@@ -331,7 +426,10 @@ void validarAnimacaoIdleDoPersonagem() {
     AppServicos::avancarTempoDoJogo(jogo, 2.49f);
     Animacao::avancarAnimacaoDoPersonagem(estadoVisualDoPersonagem, jogo.personagem(), 2.49f);
     VERIFICAR(estadoVisualDoPersonagem.indiceFrameAtual == 0);
-    VERIFICAR(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        posicaoInicial,
+        jogo.personagem().posicaoNaGradeDeOcupacao()
+    ));
 }
 
 void validarSequenciasDaAnimacaoIdleDoPersonagem() {
@@ -386,13 +484,14 @@ void validarSequenciasDaAnimacaoIdleDoPersonagem() {
 
 void validarMovimentoIsometricoDoPersonagem() {
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
-    const Geometria::PosicaoNaGrade posicaoInicial = jogo.personagem().posicaoNaGrade();
-    const Geometria::PosicaoNaGrade destino{
-        posicaoInicial.indiceColuna + 2,
-        posicaoInicial.indiceLinha + 1
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoInicial =
+        jogo.personagem().posicaoNaGradeDeOcupacao();
+    const Geometria::PosicaoNaGradeDeOcupacao destinoPar{
+        posicaoInicial.indiceColuna + 3,
+        posicaoInicial.indiceLinha + 2
     };
 
-    jogo.personagem().caminharAte(destino);
+    jogo.personagem().caminharAte(destinoPar);
     VERIFICAR(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
     VERIFICAR(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoDireita);
     VERIFICAR(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
@@ -400,23 +499,186 @@ void validarMovimentoIsometricoDoPersonagem() {
 
     AppServicos::avancarTempoDoJogo(
         jogo,
-        (2.0f + 0.01f) / Constantes::VELOCIDADE_PERSONAGEM_EM_CELULAS_POR_SEGUNDO
+        (3.0f + 0.01f) / Constantes::VELOCIDADE_PERSONAGEM_EM_UNIDADES_DE_OCUPACAO_POR_SEGUNDO
     );
     VERIFICAR(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Andando);
     VERIFICAR(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::BaixoEsquerda);
     VERIFICAR(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
            ConfigPersonagem::AnimacaoVisualDoPersonagem::WalkBaixoEsquerda);
+    VERIFICAR(std::fabs(
+        jogo.personagem().posicaoDosPesNaGradeDeOcupacao().indiceColuna -
+        static_cast<float>(destinoPar.indiceColuna)
+    ) <= 0.02f);
+    VERIFICAR(jogo.personagem().posicaoDosPesNaGradeDeOcupacao().indiceLinha >
+              static_cast<float>(posicaoInicial.indiceLinha));
+    VERIFICAR(jogo.personagem().posicaoDosPesNaGradeDeOcupacao().indiceLinha <
+              static_cast<float>(destinoPar.indiceLinha));
 
     AppServicos::avancarTempoDoJogo(jogo, 2.0f);
     VERIFICAR(jogo.personagem().estadoAtual() == Personagem::EstadoDoPersonagem::Parado);
     VERIFICAR(Animacao::animacaoVisualParaEstadoDoPersonagem(jogo.personagem()) ==
            ConfigPersonagem::AnimacaoVisualDoPersonagem::Idle);
-    VERIFICAR(Geometria::posicoesDaGradeSaoIguais(destino, jogo.personagem().posicaoNaGrade()));
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        destinoPar,
+        jogo.personagem().posicaoNaGradeDeOcupacao()
+    ));
+
+    const Geometria::PosicaoNaGradeDeOcupacao destinoImpar{
+        posicaoInicial.indiceColuna + 2,
+        posicaoInicial.indiceLinha + 1
+    };
+    jogo.personagem().caminharAte(destinoImpar);
+    VERIFICAR(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::CimaDireita);
+    AppServicos::avancarTempoDoJogo(jogo, 2.0f);
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        destinoImpar,
+        jogo.personagem().posicaoNaGradeDeOcupacao()
+    ));
 
     jogo.personagem().caminharAte(posicaoInicial);
     VERIFICAR(jogo.personagem().direcaoAtual() == Personagem::DirecaoIsometrica::CimaEsquerda);
     AppServicos::avancarTempoDoJogo(jogo, 2.0f);
-    VERIFICAR(Geometria::posicoesDaGradeSaoIguais(posicaoInicial, jogo.personagem().posicaoNaGrade()));
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        posicaoInicial,
+        jogo.personagem().posicaoNaGradeDeOcupacao()
+    ));
+}
+
+void validarPosicaoInicialDoPersonagemNaOcupacao() {
+    Personagem::Personagem personagem;
+    const Geometria::PosicaoDeCanteiroNoMapa posicaoLegada{
+        Constantes::COLUNA_CENTRAL_DA_GRADE_GLOBAL,
+        Constantes::LINHA_CENTRAL_DA_GRADE_GLOBAL
+    };
+    const Geometria::PosicaoNaGradeDeOcupacao origemDoCanteiro =
+        Ocupacao::converterCanteiroParaOcupacao(posicaoLegada);
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoEsperada{
+        origemDoCanteiro.indiceColuna + 1,
+        origemDoCanteiro.indiceLinha
+    };
+
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        posicaoEsperada,
+        personagem.posicaoNaGradeDeOcupacao()
+    ));
+    VERIFICAR(posicaoDecimalDeOcupacaoEstaProxima(
+        personagem.posicaoDosPesNaGradeDeOcupacao(),
+        posicaoEsperada
+    ));
+
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, Constantes::TAMANHO_INICIAL_GRID);
+    Camera::EstadoDaCamera camera;
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+    const Geometria::PosicaoNaTela pontoDosPesEmOcupacao =
+        Isometria::converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+            personagem.posicaoDosPesNaGradeDeOcupacao(),
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+
+    const Camera::DimensoesDoCanteiroRenderizado dimensoesDoCanteiro =
+        Camera::calcularDimensoesDoCanteiroRenderizado(camera.zoomAtual);
+    const Geometria::PosicaoNaTela topoDoCanteiroLegado =
+        Isometria::converterGradeGlobalParaTela(
+            Geometria::PosicaoNaGrade{posicaoLegada.indiceColuna, posicaoLegada.indiceLinha},
+            dimensoesDoCanteiro.largura,
+            dimensoesDoCanteiro.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+    const Geometria::PosicaoNaTela pontoDosPesLegado{
+        topoDoCanteiroLegado.coordenadaHorizontal + dimensoesDoCanteiro.largura / 2,
+        topoDoCanteiroLegado.coordenadaVertical + dimensoesDoCanteiro.altura / 2
+    };
+
+    VERIFICAR(pontoDosPesEmOcupacao.coordenadaHorizontal == pontoDosPesLegado.coordenadaHorizontal);
+    VERIFICAR(pontoDosPesEmOcupacao.coordenadaVertical == pontoDosPesLegado.coordenadaVertical);
+}
+
+void validarCliqueNoMundoMovePersonagemParaOcupacao() {
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+
+    Camera::EstadoDaCamera camera;
+    camera.offsetHorizontal = 11;
+    camera.offsetVertical = -7;
+    camera.zoomAtual = 1.2f;
+
+    const Geometria::PosicaoNaGradeDeOcupacao destino{
+        Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 5,
+        Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 3
+    };
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+    const Geometria::PosicaoNaTela pontoDoClique =
+        Isometria::converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+            destino,
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoConvertida =
+        Isometria::converterTelaParaOcupacaoGlobal(
+            pontoDoClique.coordenadaHorizontal,
+            pontoDoClique.coordenadaVertical,
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(posicaoConvertida, destino));
+    VERIFICAR(Mapa::MapaDaFazenda::posicaoDeOcupacaoEstaDentroDaAreaJogavel(
+        posicaoConvertida,
+        jogo.tamanhoAtualDoGrid()
+    ));
+
+    jogo.personagem().caminharAte(posicaoConvertida);
+    AppServicos::avancarTempoDoJogo(jogo, 10.0f);
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        destino,
+        jogo.personagem().posicaoNaGradeDeOcupacao()
+    ));
+}
+
+void validarCliqueEmInterfaceNaoMovePersonagemNoFluxo() {
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoInicial =
+        jogo.personagem().posicaoNaGradeDeOcupacao();
+    const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
+    Ferramentas::TipoDeFerramenta ferramentaSelecionada = jogo.ferramentaSelecionada();
+    Interface::EstadoDaCenaFazenda estadoDaCena;
+    const int centroX = botoes.enxada.posicaoBotaoHorizontal + botoes.enxada.tamanhoBotaoLargura / 2;
+    const int centroY = botoes.enxada.posicaoBotaoVertical + botoes.enxada.tamanhoBotaoAltura / 2;
+
+    const bool cliqueConsumido = BarraFerramentas::processarCliqueNaInterface(
+        centroX,
+        centroY,
+        botoes,
+        ferramentaSelecionada,
+        estadoDaCena
+    );
+
+    VERIFICAR(cliqueConsumido);
+    jogo.selecionarFerramenta(ferramentaSelecionada);
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        posicaoInicial,
+        jogo.personagem().posicaoNaGradeDeOcupacao()
+    ));
 }
 
 void validarHitTestIsometricoDoCanteiro() {
@@ -539,14 +801,322 @@ void validarHitTestIsometricoGlobalComCamera() {
     VERIFICAR(Geometria::posicoesDaGradeSaoIguais(posicaoConvertida, posicao));
 }
 
+void validarHitTestIsometricoDeOcupacaoGlobalComCamera() {
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+
+    Camera::EstadoDaCamera camera;
+    camera.offsetHorizontal = -23;
+    camera.offsetVertical = 41;
+    camera.zoomAtual = 1.5f;
+
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoAlinhada{
+        (Constantes::COLUNA_INICIAL_DO_NUCLEO_INICIAL + 3) * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO,
+        Constantes::LINHA_INICIAL_DO_NUCLEO_INICIAL * Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO
+    };
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoImpar{
+        posicaoAlinhada.indiceColuna + 1,
+        posicaoAlinhada.indiceLinha
+    };
+
+    const Geometria::PosicaoNaTela telaAlinhada = Isometria::converterOcupacaoGlobalParaTela(
+        posicaoAlinhada,
+        unidade.largura,
+        unidade.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+    const Geometria::PosicaoNaTela telaImpar = Isometria::converterOcupacaoGlobalParaTela(
+        posicaoImpar,
+        unidade.largura,
+        unidade.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+
+    VERIFICAR(telaImpar.coordenadaHorizontal == telaAlinhada.coordenadaHorizontal + unidade.largura / 2);
+    VERIFICAR(telaImpar.coordenadaVertical == telaAlinhada.coordenadaVertical + unidade.altura / 2);
+
+    const Geometria::PosicaoNaTela centroImpar =
+        Isometria::converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+            posicaoImpar,
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+    VERIFICAR(centroImpar.coordenadaHorizontal == telaImpar.coordenadaHorizontal + unidade.largura / 2);
+    VERIFICAR(centroImpar.coordenadaVertical == telaImpar.coordenadaVertical + unidade.altura / 2);
+
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoConvertida = Isometria::converterTelaParaOcupacaoGlobal(
+        telaImpar.coordenadaHorizontal + unidade.largura / 2,
+        telaImpar.coordenadaVertical,
+        unidade.largura,
+        unidade.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(posicaoConvertida, posicaoImpar));
+
+    const Geometria::PosicaoNaGradeDeOcupacao centroConvertido = Isometria::converterTelaParaOcupacaoGlobal(
+        centroImpar.coordenadaHorizontal,
+        centroImpar.coordenadaVertical,
+        unidade.largura,
+        unidade.altura,
+        configuracoes.origemGradeHorizontal,
+        configuracoes.origemGradeVertical,
+        camera.offsetHorizontal,
+        camera.offsetVertical
+    );
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(centroConvertido, posicaoImpar));
+
+    const Geometria::AreaNaGradeDeOcupacao areaDoCanteiro =
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(posicaoImpar);
+    const Camera::DimensoesDoCanteiroRenderizado dimensoesDoCanteiro =
+        Camera::calcularDimensoesDoCanteiroRenderizado(camera.zoomAtual);
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada dimensoesDaArea =
+        Camera::calcularDimensoesDaAreaDeOcupacaoRenderizada(areaDoCanteiro, camera.zoomAtual);
+    VERIFICAR(dimensoesDaArea.largura == dimensoesDoCanteiro.largura);
+    VERIFICAR(dimensoesDaArea.altura == dimensoesDoCanteiro.altura);
+}
+
+void validarConversaoDeOcupacaoComZoomsECamera() {
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+
+    const float zooms[] = {0.5f, 0.6f, 0.7f, 1.0f, 1.1f, 1.3f, 1.7f, 1.9f, 2.0f};
+    const Geometria::PosicaoNaTela offsets[] = {
+        Geometria::PosicaoNaTela{0, 0},
+        Geometria::PosicaoNaTela{37, -19},
+        Geometria::PosicaoNaTela{-23, 41}
+    };
+    const Geometria::PosicaoNaGradeDeOcupacao posicoes[] = {
+        Geometria::PosicaoNaGradeDeOcupacao{
+            Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 5,
+            Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 3
+        },
+        Geometria::PosicaoNaGradeDeOcupacao{
+            Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 7,
+            Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 8
+        }
+    };
+
+    for (const float zoom : zooms) {
+        for (const Geometria::PosicaoNaTela offset : offsets) {
+            Camera::EstadoDaCamera camera;
+            camera.zoomAtual = zoom;
+            camera.offsetHorizontal = offset.coordenadaHorizontal;
+            camera.offsetVertical = offset.coordenadaVertical;
+            const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+                Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+            const int metadeDaLargura = Isometria::calcularMetadeDaDimensaoIsometrica(unidade.largura);
+            const int metadeDaAltura = Isometria::calcularMetadeDaDimensaoIsometrica(unidade.altura);
+
+            for (const Geometria::PosicaoNaGradeDeOcupacao posicao : posicoes) {
+                const Geometria::PosicaoNaTela origem =
+                    Isometria::converterOcupacaoGlobalParaTela(
+                        posicao,
+                        unidade.largura,
+                        unidade.altura,
+                        configuracoes.origemGradeHorizontal,
+                        configuracoes.origemGradeVertical,
+                        camera.offsetHorizontal,
+                        camera.offsetVertical
+                    );
+                const Geometria::PosicaoNaTela pontos[] = {
+                    Geometria::PosicaoNaTela{origem.coordenadaHorizontal + metadeDaLargura,
+                                             origem.coordenadaVertical},
+                    Geometria::PosicaoNaTela{origem.coordenadaHorizontal + metadeDaLargura,
+                                             origem.coordenadaVertical + metadeDaAltura},
+                    Geometria::PosicaoNaTela{origem.coordenadaHorizontal + 1,
+                                             origem.coordenadaVertical + metadeDaAltura},
+                    Geometria::PosicaoNaTela{origem.coordenadaHorizontal + 2 * metadeDaLargura - 1,
+                                             origem.coordenadaVertical + metadeDaAltura},
+                    Geometria::PosicaoNaTela{origem.coordenadaHorizontal + metadeDaLargura,
+                                             origem.coordenadaVertical + 2 * metadeDaAltura - 1}
+                };
+
+                for (const Geometria::PosicaoNaTela ponto : pontos) {
+                    const Geometria::PosicaoNaGradeDeOcupacao convertida =
+                        Isometria::converterTelaParaOcupacaoGlobal(
+                            ponto.coordenadaHorizontal,
+                            ponto.coordenadaVertical,
+                            unidade.largura,
+                            unidade.altura,
+                            configuracoes.origemGradeHorizontal,
+                            configuracoes.origemGradeVertical,
+                            camera.offsetHorizontal,
+                            camera.offsetVertical
+                        );
+                    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(convertida, posicao));
+                }
+            }
+        }
+    }
+}
+
+void validarZoomNoCursorPreservaOcupacaoSobMouse() {
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+
+    struct CasoDeZoomNoCursor {
+        float zoomInicial;
+        int passos;
+        int offsetHorizontal;
+        int offsetVertical;
+    };
+
+    const CasoDeZoomNoCursor casos[] = {
+        CasoDeZoomNoCursor{0.5f, 1, 37, -19},
+        CasoDeZoomNoCursor{0.6f, 1, 0, 0},
+        CasoDeZoomNoCursor{0.7f, 1, -23, 41},
+        CasoDeZoomNoCursor{1.0f, 1, 11, -7},
+        CasoDeZoomNoCursor{1.1f, 1, 37, -19},
+        CasoDeZoomNoCursor{1.3f, -1, -23, 41},
+        CasoDeZoomNoCursor{1.7f, 1, 11, -7},
+        CasoDeZoomNoCursor{1.9f, 1, 37, -19},
+        CasoDeZoomNoCursor{2.0f, -1, -23, 41}
+    };
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoSobCursor{
+        Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 10,
+        Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) + 8
+    };
+
+    for (const CasoDeZoomNoCursor caso : casos) {
+        Camera::EstadoDaCamera camera;
+        camera.zoomAtual = caso.zoomInicial;
+        camera.offsetHorizontal = caso.offsetHorizontal;
+        camera.offsetVertical = caso.offsetVertical;
+
+        const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidadeAntes =
+            Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+        const Geometria::PosicaoNaTela pontoDoMouse =
+            Isometria::converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+                posicaoSobCursor,
+                unidadeAntes.largura,
+                unidadeAntes.altura,
+                configuracoes.origemGradeHorizontal,
+                configuracoes.origemGradeVertical,
+                camera.offsetHorizontal,
+                camera.offsetVertical
+            );
+        const Geometria::PosicaoNaGradeDeOcupacao antes =
+            Isometria::converterTelaParaOcupacaoGlobal(
+                pontoDoMouse.coordenadaHorizontal,
+                pontoDoMouse.coordenadaVertical,
+                unidadeAntes.largura,
+                unidadeAntes.altura,
+                configuracoes.origemGradeHorizontal,
+                configuracoes.origemGradeVertical,
+                camera.offsetHorizontal,
+                camera.offsetVertical
+            );
+
+        VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(antes, posicaoSobCursor));
+        VERIFICAR(Camera::aplicarZoomNoPonto(
+            camera,
+            configuracoes,
+            jogo.tamanhoAtualDoGrid(),
+            pontoDoMouse.coordenadaHorizontal,
+            pontoDoMouse.coordenadaVertical,
+            caso.passos
+        ));
+
+        const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidadeDepois =
+            Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+        const Geometria::PosicaoNaGradeDeOcupacao depois =
+            Isometria::converterTelaParaOcupacaoGlobal(
+                pontoDoMouse.coordenadaHorizontal,
+                pontoDoMouse.coordenadaVertical,
+                unidadeDepois.largura,
+                unidadeDepois.altura,
+                configuracoes.origemGradeHorizontal,
+                configuracoes.origemGradeVertical,
+                camera.offsetHorizontal,
+                camera.offsetVertical
+            );
+        VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(depois, posicaoSobCursor));
+    }
+}
+
+void validarPreviewECriacaoDeCanteiroUsamMesmaOcupacaoComZoom() {
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    MiniFazenda::Apresentacao::ConfiguracoesDoLayout configuracoes;
+    Camera::aplicarOrigemCentradaDaGrade(configuracoes, jogo.tamanhoAtualDoGrid());
+
+    Camera::EstadoDaCamera camera;
+    camera.zoomAtual = 1.3f;
+    camera.offsetHorizontal = 37;
+    camera.offsetVertical = -19;
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
+
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoLivre = origemDeOcupacaoLivreProximaDoNucleo();
+    const Camera::DimensoesDaUnidadeDeOcupacaoRenderizada unidade =
+        Camera::calcularDimensoesDaUnidadeDeOcupacaoRenderizada(camera.zoomAtual);
+    const Geometria::PosicaoNaTela pontoDoMouse =
+        Isometria::converterCentroDaUnidadeDeOcupacaoGlobalParaTela(
+            posicaoLivre,
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoDoPreview =
+        Isometria::converterTelaParaOcupacaoGlobal(
+            pontoDoMouse.coordenadaHorizontal,
+            pontoDoMouse.coordenadaVertical,
+            unidade.largura,
+            unidade.altura,
+            configuracoes.origemGradeHorizontal,
+            configuracoes.origemGradeVertical,
+            camera.offsetHorizontal,
+            camera.offsetVertical
+        );
+    const Geometria::AreaNaGradeDeOcupacao areaDoPreview =
+        Ocupacao::calcularAreaDeOcupacaoDoCanteiro(posicaoDoPreview);
+
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(posicaoDoPreview, posicaoLivre));
+    VERIFICAR(jogo.mapa().areaEstaLivre(areaDoPreview));
+
+    const Ferramentas::ResultadoDaFerramenta resultado =
+        AppServicos::aplicarFerramentaNoJogo(jogo, posicaoDoPreview);
+    const Mapa::EntidadeDoMapa* entidadeCriada = jogo.mapa().entidadeEm(posicaoDoPreview);
+
+    VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::CriarTerra);
+    VERIFICAR(entidadeCriada != nullptr);
+    VERIFICAR(Geometria::areasDaGradeDeOcupacaoSaoIguais(entidadeCriada->areaDeOcupacao(), areaDoPreview));
+}
+
 } // namespace
 
 int main() {
     validarGridDeOcupacaoBasico();
     validarConversaoDeCanteiroParaOcupacao();
+    validarCanteiroPodeNascerEmOrigemParEImparDeOcupacao();
+    validarSobreposicaoEContatoDeCanteirosPorOcupacao();
+    validarRemocaoDeCanteiroDesalinhadoLiberaAreaExata();
+    validarProfundidadePorBaseDaAreaDeOcupacao();
     validarAnimacaoIdleDoPersonagem();
     validarSequenciasDaAnimacaoIdleDoPersonagem();
+    validarPosicaoInicialDoPersonagemNaOcupacao();
     validarMovimentoIsometricoDoPersonagem();
+    validarCliqueNoMundoMovePersonagemParaOcupacao();
+    validarCliqueEmInterfaceNaoMovePersonagemNoFluxo();
     validarEstadoDaCenaFazenda();
     validarEstadosVisuaisDePlantaParaDesenho();
     validarContratoSemiabertoDasAreasDeInteracao();
@@ -554,6 +1124,10 @@ int main() {
     validarFluxoDeCliqueDaLoja();
     validarHitTestIsometricoDoCanteiro();
     validarHitTestIsometricoGlobalComCamera();
+    validarHitTestIsometricoDeOcupacaoGlobalComCamera();
+    validarConversaoDeOcupacaoComZoomsECamera();
+    validarZoomNoCursorPreservaOcupacaoSobMouse();
+    validarPreviewECriacaoDeCanteiroUsamMesmaOcupacaoComZoom();
 
     auto jogo = AppServicos::criarEstadoInicialDoJogo();
     VERIFICAR(!jogo.identificadorDaSementeSelecionada().has_value());
@@ -563,7 +1137,7 @@ int main() {
     validarListasDoMapa(jogo.mapa());
     validarIndiceDeOcupacaoDoMapa(jogo.mapa());
 
-    const Geometria::PosicaoDeCanteiroNoMapa posicaoNova = posicaoLivreProximaDoNucleo();
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoNova = origemDeOcupacaoLivreProximaDoNucleo();
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
 
     Ferramentas::ResultadoDaFerramenta resultado = AppServicos::aplicarFerramentaNoJogo(jogo, posicaoNova);
@@ -589,12 +1163,12 @@ int main() {
     VERIFICAR(resultado.acao == Ferramentas::AcaoDaFerramenta::Plantar);
     VERIFICAR(jogo.jogador().moedas() == moedasAntesDoPlantio - mirtilo.custoEmMoedas());
     VERIFICAR(jogo.mapa().quantidadeDeCanteirosEmCrescimento() == 1);
-    VERIFICAR(jogo.mapa().obterCanteiroAgricola(posicaoNova)->identificadorDaSemente() ==
+    VERIFICAR(jogo.mapa().obterCanteiroAgricolaEm(posicaoNova)->identificadorDaSemente() ==
               Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
     validarListasDoMapa(jogo.mapa());
 
     AppServicos::avancarTempoDoJogo(jogo, static_cast<float>(mirtilo.tempoParaCrescer()));
-    const Canteiros::Canteiro* canteiro = jogo.mapa().obterCanteiroAgricola(posicaoNova);
+    const Canteiros::Canteiro* canteiro = jogo.mapa().obterCanteiroAgricolaEm(posicaoNova);
     VERIFICAR(canteiro != nullptr);
     VERIFICAR(canteiro->estadoVisualAtual() == Canteiros::EstadoVisualDoCanteiro::PlantaCrescendo);
 
@@ -689,12 +1263,12 @@ int main() {
     validarListasDoMapa(jogo.mapa());
     validarIndiceDeOcupacaoDoMapa(jogo.mapa());
 
-    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoDeCanteiroNoMapa{-1, -1});
+    resultado = AppServicos::aplicarFerramentaNoJogo(jogo, Geometria::PosicaoNaGradeDeOcupacao{-1, -1});
     VERIFICAR(!resultado.houveMudanca());
 
-    const Geometria::PosicaoDeCanteiroNoMapa foraDaGradeJogavel{
-        Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavel(jogo.tamanhoAtualDoGrid()) - 1,
-        Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavel(jogo.tamanhoAtualDoGrid())
+    const Geometria::PosicaoNaGradeDeOcupacao foraDaGradeJogavel{
+        Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid()) - 1,
+        Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(jogo.tamanhoAtualDoGrid())
     };
     jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Enxada);
     resultado = AppServicos::aplicarFerramentaNoJogo(jogo, foraDaGradeJogavel);

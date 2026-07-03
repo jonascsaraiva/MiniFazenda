@@ -12,13 +12,13 @@ public:
 
     ResultadoDaFerramenta aplicar(
         ContextoDaFerramenta& contexto,
-        Compartilhado::Geometria::PosicaoDeCanteiroNoMapa posicao
+        Compartilhado::Geometria::PosicaoNaGradeDeOcupacao posicao
     ) const override {
-        if (!posicaoPodeReceberAcaoDaFerramenta(contexto.mapa, posicao, contexto.tamanhoAtualDoGrid)) {
+        if (!posicaoDeOcupacaoPodeReceberAcaoDaFerramenta(contexto.mapa, posicao, contexto.tamanhoAtualDoGrid)) {
             return ResultadoDaFerramenta{};
         }
 
-        Canteiros::Canteiro* canteiro = contexto.mapa.obterCanteiroAgricola(posicao);
+        Canteiros::Canteiro* canteiro = contexto.mapa.obterCanteiroAgricolaEm(posicao);
         if (canteiro == nullptr) {
             return ResultadoDaFerramenta{};
         }
@@ -29,7 +29,7 @@ public:
         }
 
         contexto.jogador.adicionarRecompensa(*recompensa);
-        contexto.mapa.sincronizarCrescimentoDoCanteiro(posicao);
+        contexto.mapa.sincronizarCrescimentoDoCanteiroEm(posicao);
         return ResultadoDaFerramenta{AcaoDaFerramenta::Colher};
     }
 };

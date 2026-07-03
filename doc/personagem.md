@@ -27,7 +27,7 @@ Essa camada controla:
 
 - Estado do personagem.
 - Direção atual.
-- Posição dos pés na grade.
+- Posição dos pés na grade de ocupação.
 - Caminho em segmentos.
 
 Essa camada não controla animação, spritesheet, índice de frame, tempo visual, piscadas, textura ou qualquer escolha de desenho.
@@ -78,7 +78,9 @@ A posição do personagem possui dois conceitos diferentes: posição lógica e 
 
 A posição lógica representa os pés, ou a base do personagem, no chão isométrico.
 
-Essa posição fica em coordenadas de grade e pode ter casas decimais durante o movimento.
+Essa posição fica em `PosicaoNaGradeDeOcupacao` quando está parada ou no destino, e em `PosicaoDecimalNaGradeDeOcupacao` durante o movimento.
+
+Isso significa que os pés andam na menor malha lógica `1 x 1` de ocupação. O personagem não é registrado como ocupante fixo do `GridDeOcupacao` nesta etapa.
 
 Em outras palavras, a lógica não controla o retângulo inteiro do sprite. Ela controla o ponto de contato do personagem com o chão.
 
@@ -114,7 +116,7 @@ Os valores de destino, ponto dos pés e offsets são definidos para o zoom `1.0`
 
 O movimento atual é isométrico em segmentos. Ele não é uma linha reta livre em pixels.
 
-Quando o jogador clica em uma área válida do chão, o clique é convertido para uma posição de grade/chão. A partir desse destino, o personagem cria um caminho simples em formato de “L” isométrico.
+Quando o jogador clica em uma área válida do chão, o clique é convertido para `PosicaoNaGradeDeOcupacao`. A partir desse destino, o personagem cria um caminho simples em formato de “L” isométrico.
 
 ### 3.1. Direções previstas
 
@@ -134,7 +136,7 @@ O clique só deve iniciar movimento quando todas as condições abaixo forem ate
 - O clique não aconteceu sobre a loja.
 - O clique não aconteceu sobre o painel de configurações.
 - O clique sobrou para a área jogável.
-- A posição convertida está dentro da grade válida.
+- A posição convertida está dentro da área jogável de ocupação.
 
 Cliques em UI, botões, loja ou painel de configurações não devem mover o personagem.
 
@@ -142,7 +144,9 @@ Cliques em UI, botões, loja ou painel de configurações não devem mover o per
 
 Ainda não há pathfinding com obstáculos.
 
-O caminho atual é propositalmente simples: primeiro o personagem percorre um segmento em uma direção da grade e, depois, percorre o outro segmento. Esse comportamento forma um “L” isométrico até o destino.
+O caminho atual é propositalmente simples: primeiro o personagem percorre um segmento em uma direção da grade de ocupação e, depois, percorre o outro segmento. Esse comportamento forma um “L” isométrico até o destino.
+
+A velocidade lógica atual é expressa em unidades de ocupação por segundo e é derivada da velocidade antiga em células grandes para preservar a sensação visual.
 
 ---
 
@@ -243,7 +247,7 @@ O sprite deve ser deslocado a partir dessa base, e não o contrário.
 Essa regra mantém coerente a relação entre:
 
 - Posição dos pés.
-- Movimento na grade.
+- Movimento na grade de ocupação.
 - Desenho do sprite.
 - Escala aplicada pelo zoom da câmera.
 
@@ -254,7 +258,7 @@ Não troque o movimento isométrico em segmentos por movimento direto pixel a pi
 O comportamento atual é:
 
 - Clique no chão válido.
-- Conversão para posição de grade/chão.
+- Conversão para `PosicaoNaGradeDeOcupacao`.
 - Criação de caminho simples em “L” isométrico.
 - Movimento em segmentos até o destino.
 

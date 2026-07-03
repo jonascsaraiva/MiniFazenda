@@ -69,13 +69,13 @@ private:
 
     static EntidadeDoMapa criarCanteiro(
         IdentificadorDeEntidadeDeMapa identificador,
-        PosicaoDeCanteiroNoMapa posicao
+        PosicaoNaGradeDeOcupacao origem
     ) {
         EntidadeDoMapa entidade;
         entidade.identificador_ = identificador;
         entidade.tipo_ = TipoDeEntidadeDoMapa::Canteiro;
-        entidade.areaDeOcupacao_ = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(posicao);
-        entidade.posicaoDoCanteiroNoMapa_ = posicao;
+        entidade.areaDeOcupacao_ = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origem);
+        entidade.posicaoDoCanteiroNoMapa_ = Ocupacao::converterOcupacaoAlinhadaParaCanteiro(origem);
         entidade.canteiroAgricola_ = Canteiros::Canteiro{};
         return entidade;
     }
@@ -99,6 +99,22 @@ public:
                posicao.indiceColuna < Compartilhado::Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_GLOBAL &&
                posicao.indiceLinha >= 0 &&
                posicao.indiceLinha < Compartilhado::Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE_GLOBAL;
+    }
+
+    static bool posicaoEstaDentroDoMapaGlobal(PosicaoNaGradeDeOcupacao posicao) {
+        return posicao.indiceColuna >= 0 &&
+               posicao.indiceColuna < Compartilhado::Constantes::QUANTIDADE_DE_COLUNAS_DA_GRADE_DE_OCUPACAO_GLOBAL &&
+               posicao.indiceLinha >= 0 &&
+               posicao.indiceLinha < Compartilhado::Constantes::QUANTIDADE_DE_LINHAS_DA_GRADE_DE_OCUPACAO_GLOBAL;
+    }
+
+    static bool areaDeOcupacaoEstaDentroDoMapaGlobal(AreaNaGradeDeOcupacao area) {
+        return Ocupacao::areaDeOcupacaoEhValida(area) &&
+               posicaoEstaDentroDoMapaGlobal(PosicaoNaGradeDeOcupacao{area.indiceColuna, area.indiceLinha}) &&
+               posicaoEstaDentroDoMapaGlobal(PosicaoNaGradeDeOcupacao{
+                   area.indiceColuna + area.largura - 1,
+                   area.indiceLinha + area.altura - 1
+               });
     }
 
     static int normalizarTamanhoDaAreaJogavel(int tamanhoAtualDoGrid) {
@@ -130,6 +146,21 @@ public:
         return Compartilhado::Constantes::LINHA_CENTRAL_DA_GRADE_GLOBAL - tamanhoNormalizado / 2;
     }
 
+    static int calcularTamanhoDaAreaJogavelEmOcupacao(int tamanhoAtualDoGrid) {
+        return normalizarTamanhoDaAreaJogavel(tamanhoAtualDoGrid) *
+               Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO;
+    }
+
+    static int calcularColunaInicialDaAreaJogavelEmOcupacao(int tamanhoAtualDoGrid) {
+        return calcularColunaInicialDaAreaJogavel(tamanhoAtualDoGrid) *
+               Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO;
+    }
+
+    static int calcularLinhaInicialDaAreaJogavelEmOcupacao(int tamanhoAtualDoGrid) {
+        return calcularLinhaInicialDaAreaJogavel(tamanhoAtualDoGrid) *
+               Compartilhado::Constantes::UNIDADES_DE_OCUPACAO_POR_CANTEIRO;
+    }
+
     static bool posicaoEstaDentroDaAreaJogavel(
         PosicaoDeCanteiroNoMapa posicao,
         int tamanhoAtualDoGrid
@@ -142,6 +173,38 @@ public:
                posicao.indiceColuna < colunaInicial + tamanhoNormalizado &&
                posicao.indiceLinha >= linhaInicial &&
                posicao.indiceLinha < linhaInicial + tamanhoNormalizado;
+    }
+
+    static bool posicaoDeOcupacaoEstaDentroDaAreaJogavel(
+        PosicaoNaGradeDeOcupacao posicao,
+        int tamanhoAtualDoGrid
+    ) {
+        const int tamanhoEmOcupacao = calcularTamanhoDaAreaJogavelEmOcupacao(tamanhoAtualDoGrid);
+        const int colunaInicial = calcularColunaInicialDaAreaJogavelEmOcupacao(tamanhoAtualDoGrid);
+        const int linhaInicial = calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanhoAtualDoGrid);
+
+        return posicao.indiceColuna >= colunaInicial &&
+               posicao.indiceColuna < colunaInicial + tamanhoEmOcupacao &&
+               posicao.indiceLinha >= linhaInicial &&
+               posicao.indiceLinha < linhaInicial + tamanhoEmOcupacao;
+    }
+
+    static bool areaDeOcupacaoEstaDentroDaAreaJogavel(
+        AreaNaGradeDeOcupacao area,
+        int tamanhoAtualDoGrid
+    ) {
+        return Ocupacao::areaDeOcupacaoEhValida(area) &&
+               posicaoDeOcupacaoEstaDentroDaAreaJogavel(
+                   PosicaoNaGradeDeOcupacao{area.indiceColuna, area.indiceLinha},
+                   tamanhoAtualDoGrid
+               ) &&
+               posicaoDeOcupacaoEstaDentroDaAreaJogavel(
+                   PosicaoNaGradeDeOcupacao{
+                       area.indiceColuna + area.largura - 1,
+                       area.indiceLinha + area.altura - 1
+                   },
+                   tamanhoAtualDoGrid
+               );
     }
 
     const std::vector<EntidadeDoMapa>& entidades() const {
@@ -178,26 +241,38 @@ public:
         return indiceDeOcupacao_.areaEstaLivre(area);
     }
 
+    std::optional<IdentificadorDeEntidadeDeMapa> criarCanteiroEm(
+        PosicaoNaGradeDeOcupacao origem,
+        int tamanhoAtualDoGrid
+    ) {
+        const AreaNaGradeDeOcupacao area = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origem);
+        if (!areaDeOcupacaoEstaDentroDaAreaJogavel(area, tamanhoAtualDoGrid) ||
+            !indiceDeOcupacao_.areaEstaLivre(area)) {
+            return std::nullopt;
+        }
+
+        return registrarCanteiroEmArea(origem, area);
+    }
+
     std::optional<IdentificadorDeEntidadeDeMapa> criarCanteiro(PosicaoDeCanteiroNoMapa posicao) {
         if (!posicaoEstaDentroDoMapaGlobal(posicao)) {
             return std::nullopt;
         }
 
-        const AreaNaGradeDeOcupacao area = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(posicao);
-        if (!indiceDeOcupacao_.areaEstaLivre(area)) {
+        const PosicaoNaGradeDeOcupacao origem = Ocupacao::converterCanteiroParaOcupacao(posicao);
+        const AreaNaGradeDeOcupacao area = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origem);
+        if (!areaDeOcupacaoEstaDentroDoMapaGlobal(area) || !indiceDeOcupacao_.areaEstaLivre(area)) {
             return std::nullopt;
         }
 
-        const IdentificadorDeEntidadeDeMapa identificador = proximoIdentificador_++;
-        EntidadeDoMapa entidade = EntidadeDoMapa::criarCanteiro(identificador, posicao);
-        entidades_.push_back(entidade);
+        return registrarCanteiroEmArea(origem, area);
+    }
 
-        if (!indiceDeOcupacao_.registrarOcupacao(identificador, area)) {
-            entidades_.pop_back();
-            return std::nullopt;
-        }
-
-        return identificador;
+    std::optional<IdentificadorDeEntidadeDeMapa> criarCanteiro(
+        PosicaoDeCanteiroNoMapa posicao,
+        int tamanhoAtualDoGrid
+    ) {
+        return criarCanteiroEm(Ocupacao::converterCanteiroParaOcupacao(posicao), tamanhoAtualDoGrid);
     }
 
     bool removerEntidade(IdentificadorDeEntidadeDeMapa identificador) {
@@ -221,6 +296,15 @@ public:
 
     bool removerCanteiro(PosicaoDeCanteiroNoMapa posicao) {
         const EntidadeDoMapa* entidade = entidadeEmCanteiro(posicao);
+        if (entidade == nullptr || !entidade->ehCanteiroAgricola()) {
+            return false;
+        }
+
+        return removerEntidade(entidade->identificador());
+    }
+
+    bool removerCanteiroEm(PosicaoNaGradeDeOcupacao posicao) {
+        const EntidadeDoMapa* entidade = entidadeEm(posicao);
         if (entidade == nullptr || !entidade->ehCanteiroAgricola()) {
             return false;
         }
@@ -252,6 +336,12 @@ public:
         return identificador.has_value() ? obterEntidade(*identificador) : nullptr;
     }
 
+    EntidadeDoMapa* entidadeEm(PosicaoNaGradeDeOcupacao posicao) {
+        return const_cast<EntidadeDoMapa*>(
+            static_cast<const MapaDaFazenda&>(*this).entidadeEm(posicao)
+        );
+    }
+
     const EntidadeDoMapa* entidadeEmCanteiro(PosicaoDeCanteiroNoMapa posicao) const {
         return entidadeEm(Ocupacao::converterCanteiroParaOcupacao(posicao));
     }
@@ -272,12 +362,54 @@ public:
         return entidade != nullptr ? entidade->canteiroAgricolaMutavel() : nullptr;
     }
 
+    const Canteiros::Canteiro* obterCanteiroAgricolaEm(PosicaoNaGradeDeOcupacao posicao) const {
+        const EntidadeDoMapa* entidade = entidadeEm(posicao);
+        return entidade != nullptr ? entidade->canteiroAgricola() : nullptr;
+    }
+
+    Canteiros::Canteiro* obterCanteiroAgricolaEm(PosicaoNaGradeDeOcupacao posicao) {
+        EntidadeDoMapa* entidade = entidadeEm(posicao);
+        return entidade != nullptr ? entidade->canteiroAgricolaMutavel() : nullptr;
+    }
+
+    const Canteiros::Canteiro* obterCanteiroAgricola(IdentificadorDeEntidadeDeMapa identificador) const {
+        const EntidadeDoMapa* entidade = obterEntidade(identificador);
+        return entidade != nullptr ? entidade->canteiroAgricola() : nullptr;
+    }
+
+    Canteiros::Canteiro* obterCanteiroAgricola(IdentificadorDeEntidadeDeMapa identificador) {
+        EntidadeDoMapa* entidade = obterEntidade(identificador);
+        return entidade != nullptr ? entidade->canteiroAgricolaMutavel() : nullptr;
+    }
+
     bool existeCanteiroEm(PosicaoDeCanteiroNoMapa posicao) const {
         return obterCanteiroAgricola(posicao) != nullptr;
     }
 
+    bool existeCanteiroEm(PosicaoNaGradeDeOcupacao posicao) const {
+        return obterCanteiroAgricolaEm(posicao) != nullptr;
+    }
+
     void sincronizarCrescimentoDoCanteiro(PosicaoDeCanteiroNoMapa posicao) {
         EntidadeDoMapa* entidade = entidadeEmCanteiro(posicao);
+        if (entidade == nullptr || !entidade->ehCanteiroAgricola()) {
+            return;
+        }
+
+        sincronizarCrescimentoDoCanteiro(entidade->identificador());
+    }
+
+    void sincronizarCrescimentoDoCanteiroEm(PosicaoNaGradeDeOcupacao posicao) {
+        EntidadeDoMapa* entidade = entidadeEm(posicao);
+        if (entidade == nullptr || !entidade->ehCanteiroAgricola()) {
+            return;
+        }
+
+        sincronizarCrescimentoDoCanteiro(entidade->identificador());
+    }
+
+    void sincronizarCrescimentoDoCanteiro(IdentificadorDeEntidadeDeMapa identificador) {
+        EntidadeDoMapa* entidade = obterEntidade(identificador);
         if (entidade == nullptr || !entidade->ehCanteiroAgricola()) {
             return;
         }
@@ -321,6 +453,23 @@ public:
     }
 
 private:
+    std::optional<IdentificadorDeEntidadeDeMapa> registrarCanteiroEmArea(
+        PosicaoNaGradeDeOcupacao origem,
+        AreaNaGradeDeOcupacao area
+    ) {
+        const IdentificadorDeEntidadeDeMapa identificador = proximoIdentificador_;
+        EntidadeDoMapa entidade = EntidadeDoMapa::criarCanteiro(identificador, origem);
+        entidades_.push_back(entidade);
+
+        if (!indiceDeOcupacao_.registrarOcupacao(identificador, area)) {
+            entidades_.pop_back();
+            return std::nullopt;
+        }
+
+        ++proximoIdentificador_;
+        return identificador;
+    }
+
     void registrarCanteiroEmCrescimento(IdentificadorDeEntidadeDeMapa identificador) {
         EntidadeDoMapa* entidade = obterEntidade(identificador);
         if (entidade == nullptr ||
