@@ -271,6 +271,14 @@ Geometria::PosicaoNaGradeDeOcupacao origemDeOcupacaoLivreProximaDoNucleo() {
     };
 }
 
+int centroHorizontalDaArea(const Interface::AreaDeInteracao& area) {
+    return area.posicaoBotaoHorizontal + area.tamanhoBotaoLargura / 2;
+}
+
+int centroVerticalDaArea(const Interface::AreaDeInteracao& area) {
+    return area.posicaoBotaoVertical + area.tamanhoBotaoAltura / 2;
+}
+
 void validarContratoSemiabertoDasAreasDeInteracao() {
     const Interface::AreaDeInteracao esquerda{10, 20, 30, 40};
     const Interface::AreaDeInteracao direita{40, 20, 30, 40};
@@ -290,6 +298,33 @@ void validarContratoSemiabertoDasAreasDeInteracao() {
 
 void validarBotoesDaBarraRespondemAoCliqueCentral() {
     const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
+    using AcaoDaInterface = BarraFerramentas::AcaoDoCliqueNaInterface;
+
+    VERIFICAR(
+        botoes.areaTotalDoHud.posicaoBotaoHorizontal + botoes.areaTotalDoHud.tamanhoBotaoLargura ==
+        Constantes::LARGURA_DA_JANELA - Constantes::MARGEM_DIREITA_DO_HUD_FERRAMENTAS
+    );
+    VERIFICAR(
+        botoes.areaTotalDoHud.posicaoBotaoVertical + botoes.areaTotalDoHud.tamanhoBotaoAltura ==
+        Constantes::ALTURA_DA_JANELA - Constantes::MARGEM_INFERIOR_DO_HUD_FERRAMENTAS
+    );
+    VERIFICAR(botoes.loja.tamanhoBotaoLargura == Constantes::LARGURA_DO_BOTAO_DA_LOJA);
+    VERIFICAR(botoes.loja.tamanhoBotaoAltura == Constantes::ALTURA_DO_BOTAO_DA_LOJA);
+    VERIFICAR(botoes.cursor.posicaoBotaoHorizontal ==
+              botoes.loja.posicaoBotaoHorizontal + botoes.loja.tamanhoBotaoLargura +
+              Constantes::ESPACAMENTO_DOS_BOTOES);
+    VERIFICAR(botoes.enxada.posicaoBotaoHorizontal ==
+              botoes.cursor.posicaoBotaoHorizontal + botoes.cursor.tamanhoBotaoLargura +
+              Constantes::ESPACAMENTO_DOS_BOTOES);
+    VERIFICAR(botoes.removerTerra.posicaoBotaoHorizontal ==
+              botoes.enxada.posicaoBotaoHorizontal + botoes.enxada.tamanhoBotaoLargura +
+              Constantes::ESPACAMENTO_DOS_BOTOES);
+    VERIFICAR(botoes.estrela.posicaoBotaoVertical ==
+              botoes.cursor.posicaoBotaoVertical + botoes.cursor.tamanhoBotaoAltura +
+              Constantes::ESPACAMENTO_DOS_BOTOES);
+    VERIFICAR(botoes.ajuda.posicaoBotaoVertical < botoes.cursor.posicaoBotaoVertical);
+    VERIFICAR(botoes.zoomMais.posicaoBotaoVertical == botoes.ajuda.posicaoBotaoVertical);
+    VERIFICAR(botoes.zoomMenos.posicaoBotaoVertical == botoes.ajuda.posicaoBotaoVertical);
 
     const auto verificarBotao = [&botoes](
         const Interface::AreaDeInteracao& botao,
@@ -297,24 +332,97 @@ void validarBotoesDaBarraRespondemAoCliqueCentral() {
     ) {
         Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Cursor;
         Interface::EstadoDaCenaFazenda estadoDaCena;
-        const int centroX = botao.posicaoBotaoHorizontal + botao.tamanhoBotaoLargura / 2;
-        const int centroY = botao.posicaoBotaoVertical + botao.tamanhoBotaoAltura / 2;
+        const int centroX = centroHorizontalDaArea(botao);
+        const int centroY = centroVerticalDaArea(botao);
 
-        VERIFICAR(BarraFerramentas::processarCliqueNaInterface(
+        const BarraFerramentas::ResultadoDoCliqueNaInterface resultado =
+            BarraFerramentas::processarCliqueNaInterface(
             centroX,
             centroY,
             botoes,
             ferramentaSelecionada,
             estadoDaCena
-        ));
+        );
+        VERIFICAR(resultado.cliqueConsumido);
+        VERIFICAR(resultado.acao == AcaoDaInterface::SelecionarFerramenta);
         VERIFICAR(ferramentaSelecionada == ferramentaEsperada);
     };
 
     verificarBotao(botoes.cursor, Ferramentas::TipoDeFerramenta::Cursor);
     verificarBotao(botoes.enxada, Ferramentas::TipoDeFerramenta::Enxada);
     verificarBotao(botoes.removerTerra, Ferramentas::TipoDeFerramenta::RemoverTerra);
-    verificarBotao(botoes.semente, Ferramentas::TipoDeFerramenta::Semente);
-    verificarBotao(botoes.loja, Ferramentas::TipoDeFerramenta::Loja);
+
+    Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Enxada;
+    Interface::EstadoDaCenaFazenda estadoDaCena;
+    estadoDaCena.alternarPainelDaLoja();
+
+    const auto verificarPlaceholder = [&botoes, &ferramentaSelecionada, &estadoDaCena](
+        const Interface::AreaDeInteracao& botao
+    ) {
+        const BarraFerramentas::ResultadoDoCliqueNaInterface resultado =
+            BarraFerramentas::processarCliqueNaInterface(
+                centroHorizontalDaArea(botao),
+                centroVerticalDaArea(botao),
+                botoes,
+                ferramentaSelecionada,
+                estadoDaCena
+            );
+
+        VERIFICAR(resultado.cliqueConsumido);
+        VERIFICAR(resultado.acao == AcaoDaInterface::ConsumirClique);
+        VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Enxada);
+        VERIFICAR(estadoDaCena.painelDaLojaAberto());
+    };
+
+    verificarPlaceholder(botoes.ajuda);
+    verificarPlaceholder(botoes.estrela);
+    verificarPlaceholder(botoes.presente);
+    verificarPlaceholder(botoes.foto);
+
+    BarraFerramentas::ResultadoDoCliqueNaInterface resultado =
+        BarraFerramentas::processarCliqueNaInterface(
+            centroHorizontalDaArea(botoes.zoomMais),
+            centroVerticalDaArea(botoes.zoomMais),
+            botoes,
+            ferramentaSelecionada,
+            estadoDaCena
+        );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == AcaoDaInterface::AumentarZoom);
+    VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Enxada);
+    VERIFICAR(estadoDaCena.painelDaLojaAberto());
+
+    resultado = BarraFerramentas::processarCliqueNaInterface(
+        centroHorizontalDaArea(botoes.zoomMenos),
+        centroVerticalDaArea(botoes.zoomMenos),
+        botoes,
+        ferramentaSelecionada,
+        estadoDaCena
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == AcaoDaInterface::DiminuirZoom);
+    VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Enxada);
+    VERIFICAR(estadoDaCena.painelDaLojaAberto());
+
+    resultado = BarraFerramentas::processarCliqueNaInterface(
+        botoes.loja.posicaoBotaoHorizontal + botoes.loja.tamanhoBotaoLargura +
+            Constantes::ESPACAMENTO_DOS_BOTOES / 2,
+        botoes.loja.posicaoBotaoVertical + 8,
+        botoes,
+        ferramentaSelecionada,
+        estadoDaCena
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == AcaoDaInterface::ConsumirClique);
+
+    resultado = BarraFerramentas::processarCliqueNaInterface(
+        botoes.areaTotalDoHud.posicaoBotaoHorizontal - 1,
+        botoes.areaTotalDoHud.posicaoBotaoVertical,
+        botoes,
+        ferramentaSelecionada,
+        estadoDaCena
+    );
+    VERIFICAR(!resultado.cliqueConsumido);
 }
 
 void validarFluxoDeCliqueDaLoja() {
@@ -325,19 +433,24 @@ void validarFluxoDeCliqueDaLoja() {
 
     Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Cursor;
     Interface::EstadoDaCenaFazenda estadoDaCena;
-    const int xDaLoja = botoes.loja.posicaoBotaoHorizontal + botoes.loja.tamanhoBotaoLargura / 2;
-    const int yDaLoja = botoes.loja.posicaoBotaoVertical + botoes.loja.tamanhoBotaoAltura / 2;
-    const bool clicouNaLoja =
+    const int xDaLoja = centroHorizontalDaArea(botoes.loja);
+    const int yDaLoja = centroVerticalDaArea(botoes.loja);
+    const BarraFerramentas::ResultadoDoCliqueNaInterface resultadoLoja =
         BarraFerramentas::processarCliqueNaInterface(xDaLoja, yDaLoja, botoes, ferramentaSelecionada, estadoDaCena);
 
-    VERIFICAR(clicouNaLoja);
+    VERIFICAR(resultadoLoja.cliqueConsumido);
+    VERIFICAR(resultadoLoja.acao == BarraFerramentas::AcaoDoCliqueNaInterface::AlternarPainelDaLoja);
     VERIFICAR(estadoDaCena.painelDaLojaAberto());
     VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Loja);
     VERIFICAR(!painel.opcoes.empty());
+    VERIFICAR(
+        painel.fundo.posicaoBotaoVertical + painel.fundo.tamanhoBotaoAltura <=
+        botoes.areaTotalDoHud.posicaoBotaoVertical - Constantes::ESPACAMENTO_DOS_BOTOES
+    );
 
     const BarraFerramentas::OpcaoDeSementeDaLoja& opcaoMirtilo = painel.opcoes.front();
-    const int xDaSemente = opcaoMirtilo.area.posicaoBotaoHorizontal + opcaoMirtilo.area.tamanhoBotaoLargura / 2;
-    const int yDaSemente = opcaoMirtilo.area.posicaoBotaoVertical + opcaoMirtilo.area.tamanhoBotaoAltura / 2;
+    const int xDaSemente = centroHorizontalDaArea(opcaoMirtilo.area);
+    const int yDaSemente = centroVerticalDaArea(opcaoMirtilo.area);
     const auto sementeClicada = BarraFerramentas::sementeClicadaNoPainelDaLoja(xDaSemente, yDaSemente, painel);
 
     VERIFICAR(sementeClicada.has_value());
@@ -662,10 +775,10 @@ void validarCliqueEmInterfaceNaoMovePersonagemNoFluxo() {
     const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
     Ferramentas::TipoDeFerramenta ferramentaSelecionada = jogo.ferramentaSelecionada();
     Interface::EstadoDaCenaFazenda estadoDaCena;
-    const int centroX = botoes.enxada.posicaoBotaoHorizontal + botoes.enxada.tamanhoBotaoLargura / 2;
-    const int centroY = botoes.enxada.posicaoBotaoVertical + botoes.enxada.tamanhoBotaoAltura / 2;
+    const int centroX = centroHorizontalDaArea(botoes.enxada);
+    const int centroY = centroVerticalDaArea(botoes.enxada);
 
-    const bool cliqueConsumido = BarraFerramentas::processarCliqueNaInterface(
+    const BarraFerramentas::ResultadoDoCliqueNaInterface resultado = BarraFerramentas::processarCliqueNaInterface(
         centroX,
         centroY,
         botoes,
@@ -673,7 +786,7 @@ void validarCliqueEmInterfaceNaoMovePersonagemNoFluxo() {
         estadoDaCena
     );
 
-    VERIFICAR(cliqueConsumido);
+    VERIFICAR(resultado.cliqueConsumido);
     jogo.selecionarFerramenta(ferramentaSelecionada);
     VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
         posicaoInicial,

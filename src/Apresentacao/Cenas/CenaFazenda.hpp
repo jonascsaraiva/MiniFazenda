@@ -133,11 +133,7 @@ public:
         UI::desenharInterface(
             renderizador_,
             jogo_.ferramentaSelecionada(),
-            botoes_.cursor,
-            botoes_.enxada,
-            botoes_.removerTerra,
-            botoes_.semente,
-            botoes_.loja,
+            botoes_,
             recursos_.texturasDosBotoes
         );
 
@@ -225,6 +221,14 @@ private:
     }
 
     void processarCliqueDoMouse(const SDL_MouseButtonEvent& clique) {
+        mouseX_ = clique.x;
+        mouseY_ = clique.y;
+
+        if ((clique.button == SDL_BUTTON_MIDDLE || clique.button == SDL_BUTTON_RIGHT) &&
+            BarraFerramentas::pontoEstaNaAreaDoHud(clique.x, clique.y, botoes_)) {
+            return;
+        }
+
         if (clique.button == SDL_BUTTON_MIDDLE || clique.button == SDL_BUTTON_RIGHT) {
             Camera::iniciarPanDaCamera(camera_, clique.button, clique.timestamp);
             return;
@@ -294,18 +298,51 @@ private:
 
     bool processarCliqueNaBarraDeFerramentas() {
         auto ferramentaSelecionada = jogo_.ferramentaSelecionada();
-        if (!BarraFerramentas::processarCliqueNaInterface(
+        const BarraFerramentas::ResultadoDoCliqueNaInterface resultadoDoClique =
+            BarraFerramentas::processarCliqueNaInterface(
                 mouseX_,
                 mouseY_,
                 botoes_,
                 ferramentaSelecionada,
                 estadoDaCena_
-            )) {
+            );
+        if (!resultadoDoClique.cliqueConsumido) {
             return false;
         }
 
-        jogo_.selecionarFerramenta(ferramentaSelecionada);
-        tocarSomDeCliqueDaInterface();
+        switch (resultadoDoClique.acao) {
+            case BarraFerramentas::AcaoDoCliqueNaInterface::SelecionarFerramenta:
+            case BarraFerramentas::AcaoDoCliqueNaInterface::AlternarPainelDaLoja:
+                jogo_.selecionarFerramenta(ferramentaSelecionada);
+                tocarSomDeCliqueDaInterface();
+                break;
+            case BarraFerramentas::AcaoDoCliqueNaInterface::AumentarZoom:
+                Camera::aplicarZoomNoPonto(
+                    camera_,
+                    configuracoes_,
+                    jogo_.tamanhoAtualDoGrid(),
+                    Constantes::LARGURA_DA_JANELA / 2,
+                    Constantes::ALTURA_DA_JANELA / 2,
+                    1
+                );
+                tocarSomDeCliqueDaInterface();
+                break;
+            case BarraFerramentas::AcaoDoCliqueNaInterface::DiminuirZoom:
+                Camera::aplicarZoomNoPonto(
+                    camera_,
+                    configuracoes_,
+                    jogo_.tamanhoAtualDoGrid(),
+                    Constantes::LARGURA_DA_JANELA / 2,
+                    Constantes::ALTURA_DA_JANELA / 2,
+                    -1
+                );
+                tocarSomDeCliqueDaInterface();
+                break;
+            case BarraFerramentas::AcaoDoCliqueNaInterface::ConsumirClique:
+            case BarraFerramentas::AcaoDoCliqueNaInterface::Nenhuma:
+                break;
+        }
+
         return true;
     }
 
