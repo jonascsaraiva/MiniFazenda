@@ -208,6 +208,40 @@ void validarCanteiroPodeNascerEmOrigemParEImparDeOcupacao() {
     ));
 }
 
+void validarConsultaDeEntidadePorCelulaDoCanteiro() {
+    Mapa::MapaDaFazenda mapa;
+    const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
+    const int colunaInicial = Mapa::MapaDaFazenda::calcularColunaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const int linhaInicial = Mapa::MapaDaFazenda::calcularLinhaInicialDaAreaJogavelEmOcupacao(tamanho);
+    const Geometria::PosicaoNaGradeDeOcupacao origemAlinhada{colunaInicial, linhaInicial};
+    const Geometria::PosicaoNaGradeDeOcupacao origemDesalinhada{colunaInicial + 3, linhaInicial + 1};
+
+    const auto idAlinhado = mapa.criarCanteiroEm(origemAlinhada, tamanho);
+    const auto idDesalinhado = mapa.criarCanteiroEm(origemDesalinhada, tamanho);
+
+    VERIFICAR(idAlinhado.has_value());
+    VERIFICAR(idDesalinhado.has_value());
+
+    const auto verificarFootprint = [&mapa](
+        Ocupacao::IdentificadorDeEntidadeDeMapa identificador,
+        Geometria::PosicaoNaGradeDeOcupacao origem
+    ) {
+        const Geometria::AreaNaGradeDeOcupacao area = Ocupacao::calcularAreaDeOcupacaoDoCanteiro(origem);
+        for (int linha = area.indiceLinha; linha < area.indiceLinha + area.altura; ++linha) {
+            for (int coluna = area.indiceColuna; coluna < area.indiceColuna + area.largura; ++coluna) {
+                const Mapa::EntidadeDoMapa* entidade =
+                    mapa.entidadeEm(Geometria::PosicaoNaGradeDeOcupacao{coluna, linha});
+                VERIFICAR(entidade != nullptr);
+                VERIFICAR(entidade->identificador() == identificador);
+                VERIFICAR(entidade->ehCanteiroAgricola());
+            }
+        }
+    };
+
+    verificarFootprint(*idAlinhado, origemAlinhada);
+    verificarFootprint(*idDesalinhado, origemDesalinhada);
+}
+
 void validarSobreposicaoEContatoDeCanteirosPorOcupacao() {
     Mapa::MapaDaFazenda mapa;
     const int tamanho = Constantes::TAMANHO_INICIAL_GRID;
@@ -488,6 +522,62 @@ void validarEstadosVisuaisDePlantaParaDesenho() {
     VERIFICAR(Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::PlantaMadura));
     VERIFICAR(Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::PlantaMorta));
     VERIFICAR(!Assets::estadoVisualTemPlantaParaDesenho(Canteiros::EstadoVisualDoCanteiro::Restos));
+}
+
+void validarConsultasPurasDoCanteiroComPlanta() {
+    const Especies::PlantaMirtilo mirtilo;
+    Canteiros::Canteiro canteiro;
+
+    VERIFICAR(!canteiro.possuiPlanta());
+    VERIFICAR(!canteiro.nomeDaPlantaAtual().has_value());
+    VERIFICAR(!canteiro.percentualDeCrescimentoAteColheita().has_value());
+    VERIFICAR(canteiro.estadoLogicoDaPlantaAtual() == Canteiros::EstadoLogicoDaPlantaNoCanteiro::Ausente);
+
+    VERIFICAR(canteiro.arar());
+    VERIFICAR(!canteiro.possuiPlanta());
+    VERIFICAR(canteiro.estadoLogicoDaPlantaAtual() == Canteiros::EstadoLogicoDaPlantaNoCanteiro::Ausente);
+
+    VERIFICAR(canteiro.plantar(mirtilo.clonar()));
+    VERIFICAR(canteiro.possuiPlanta());
+    VERIFICAR(canteiro.nomeDaPlantaAtual().has_value());
+    VERIFICAR(*canteiro.nomeDaPlantaAtual() == "Mirtilo");
+    VERIFICAR(canteiro.percentualDeCrescimentoAteColheita().has_value());
+    VERIFICAR(*canteiro.percentualDeCrescimentoAteColheita() == 0);
+    VERIFICAR(canteiro.estadoLogicoDaPlantaAtual() == Canteiros::EstadoLogicoDaPlantaNoCanteiro::Crescendo);
+
+    const int metadeDoTempoAteColheita = mirtilo.tempoParaMaturar() / 2;
+    for (int segundo = 0; segundo < metadeDoTempoAteColheita; ++segundo) {
+        VERIFICAR(canteiro.avancarUmSegundo());
+    }
+    VERIFICAR(*canteiro.percentualDeCrescimentoAteColheita() == 50);
+    VERIFICAR(canteiro.estadoLogicoDaPlantaAtual() == Canteiros::EstadoLogicoDaPlantaNoCanteiro::Crescendo);
+
+    for (int segundo = metadeDoTempoAteColheita; segundo < mirtilo.tempoParaMaturar(); ++segundo) {
+        VERIFICAR(canteiro.avancarUmSegundo());
+    }
+    VERIFICAR(*canteiro.percentualDeCrescimentoAteColheita() == 100);
+    VERIFICAR(canteiro.estadoLogicoDaPlantaAtual() ==
+              Canteiros::EstadoLogicoDaPlantaNoCanteiro::ProntaParaColheita);
+
+    Canteiros::Canteiro canteiroComPlantaMorta;
+    VERIFICAR(canteiroComPlantaMorta.arar());
+    VERIFICAR(canteiroComPlantaMorta.plantar(mirtilo.clonar()));
+    for (int segundo = 0; segundo < mirtilo.tempoParaMorrer(); ++segundo) {
+        VERIFICAR(canteiroComPlantaMorta.avancarUmSegundo());
+    }
+    VERIFICAR(canteiroComPlantaMorta.possuiPlanta());
+    VERIFICAR(*canteiroComPlantaMorta.nomeDaPlantaAtual() == "Mirtilo");
+    VERIFICAR(*canteiroComPlantaMorta.percentualDeCrescimentoAteColheita() == 100);
+    VERIFICAR(canteiroComPlantaMorta.estadoLogicoDaPlantaAtual() ==
+              Canteiros::EstadoLogicoDaPlantaNoCanteiro::Morta);
+
+    VERIFICAR(canteiroComPlantaMorta.limparPlantaMorta());
+    VERIFICAR(canteiroComPlantaMorta.estaComRestos());
+    VERIFICAR(!canteiroComPlantaMorta.possuiPlanta());
+    VERIFICAR(!canteiroComPlantaMorta.nomeDaPlantaAtual().has_value());
+    VERIFICAR(!canteiroComPlantaMorta.percentualDeCrescimentoAteColheita().has_value());
+    VERIFICAR(canteiroComPlantaMorta.estadoLogicoDaPlantaAtual() ==
+              Canteiros::EstadoLogicoDaPlantaNoCanteiro::Ausente);
 }
 
 void validarAnimacaoIdleDoPersonagem() {
@@ -1221,6 +1311,7 @@ int main() {
     validarGridDeOcupacaoBasico();
     validarConversaoDeCanteiroParaOcupacao();
     validarCanteiroPodeNascerEmOrigemParEImparDeOcupacao();
+    validarConsultaDeEntidadePorCelulaDoCanteiro();
     validarSobreposicaoEContatoDeCanteirosPorOcupacao();
     validarRemocaoDeCanteiroDesalinhadoLiberaAreaExata();
     validarProfundidadePorBaseDaAreaDeOcupacao();
@@ -1232,6 +1323,7 @@ int main() {
     validarCliqueEmInterfaceNaoMovePersonagemNoFluxo();
     validarEstadoDaCenaFazenda();
     validarEstadosVisuaisDePlantaParaDesenho();
+    validarConsultasPurasDoCanteiroComPlanta();
     validarContratoSemiabertoDasAreasDeInteracao();
     validarBotoesDaBarraRespondemAoCliqueCentral();
     validarFluxoDeCliqueDaLoja();

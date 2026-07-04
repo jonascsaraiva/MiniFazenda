@@ -15,10 +15,12 @@
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp"
 #include "Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp"
 #include "Apresentacao/Renderizacao/UI/HudRenderer.hpp"
+#include "Apresentacao/Renderizacao/UI/TooltipDoCanteiroRenderer.hpp"
 #include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
 #include "Dominio/Ferramentas/TipoDeFerramenta.hpp"
 #include "Dominio/Mapa/MapaDaFazenda.hpp"
+#include "Dominio/Ocupacao/GridDeOcupacao.hpp"
 #include "Dominio/Plantas/Planta.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/RecursosDaFazenda.hpp"
@@ -28,6 +30,8 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -38,6 +42,7 @@ namespace AppServicos = MiniFazenda::Aplicacao::Servicos;
 namespace Assets = MiniFazenda::Infraestrutura::Assets;
 namespace BarraFerramentas = MiniFazenda::Apresentacao::Interface::BarraDeFerramentas;
 namespace Camera = MiniFazenda::Apresentacao::Camera;
+namespace Canteiros = MiniFazenda::Dominio::Canteiros;
 namespace Configuracao = MiniFazenda::Infraestrutura::Configuracao;
 namespace Constantes = MiniFazenda::Compartilhado::Constantes;
 namespace Cursores = MiniFazenda::Apresentacao::Renderizacao::Cursores;
@@ -46,7 +51,34 @@ namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace HudRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::HudRenderer;
 namespace Interface = MiniFazenda::Apresentacao::Interface;
 namespace Mundo = MiniFazenda::Apresentacao::Renderizacao::Mundo;
+namespace Ocupacao = MiniFazenda::Dominio::Ocupacao;
+namespace TooltipRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::TooltipDoCanteiroRenderer;
 namespace UI = MiniFazenda::Apresentacao::Renderizacao::UI;
+
+struct EstadoDoTooltipDoCanteiro {
+    static constexpr float TEMPO_NECESSARIO_PARA_EXIBIR = 0.5f;
+
+    float tempoAcumuladoDeHover = 0.0f;
+    Geometria::PosicaoNaGradeDeOcupacao ultimaCelulaConsultada{-1, -1};
+    Ocupacao::IdentificadorDeEntidadeDeMapa ultimoIdentificadorObservado =
+        Ocupacao::IDENTIFICADOR_INVALIDO_DE_ENTIDADE_DE_MAPA;
+    int cursorX = Constantes::LARGURA_DA_JANELA / 2;
+    int cursorY = Constantes::ALTURA_DA_JANELA / 2;
+    bool temAlvoValido = false;
+    bool aptoParaExibicao = false;
+    std::string texto;
+
+    void reiniciar(Geometria::PosicaoNaGradeDeOcupacao celula, int novoCursorX, int novoCursorY) {
+        tempoAcumuladoDeHover = 0.0f;
+        ultimaCelulaConsultada = celula;
+        ultimoIdentificadorObservado = Ocupacao::IDENTIFICADOR_INVALIDO_DE_ENTIDADE_DE_MAPA;
+        cursorX = novoCursorX;
+        cursorY = novoCursorY;
+        temAlvoValido = false;
+        aptoParaExibicao = false;
+        texto.clear();
+    }
+};
 
 class CenaFazenda {
 public:
@@ -106,6 +138,7 @@ public:
         AppServicos::avancarTempoDoJogo(jogo_, deltaTime);
         AnimacaoPersonagem::avancarAnimacaoDoPersonagem(estadoVisualDoPersonagem_, jogo_.personagem(), deltaTime);
         Camera::atualizarInerciaDaCamera(camera_, configuracoes_, jogo_.tamanhoAtualDoGrid(), deltaTime);
+        atualizarTooltipDoCanteiro(deltaTime);
     }
 
     void renderizar() {
@@ -153,6 +186,16 @@ public:
                 HudRenderer::desenharPainelConfiguracoes(renderizador_, hud_.fonte, estadoDaCena_);
         }
 
+        if (estadoDoTooltipDoCanteiro_.aptoParaExibicao) {
+            TooltipRenderer::desenharTooltipDoCanteiro(
+                renderizador_,
+                hud_.fonte,
+                estadoDoTooltipDoCanteiro_.texto,
+                estadoDoTooltipDoCanteiro_.cursorX,
+                estadoDoTooltipDoCanteiro_.cursorY
+            );
+        }
+
         Cursores::desenharCursorCustomizado(renderizador_, mouseX_, mouseY_, jogo_.ferramentaSelecionada());
     }
 
@@ -176,6 +219,99 @@ private:
                );
     }
 
+    bool mouseEstaSobreInterface() const {
+        if (estadoDaCena_.painelConfiguracoesAberto()) {
+            return true;
+        }
+
+        if (pontoDentroDoRetangulo(mouseX_, mouseY_, HudRenderer::calcularAreaDoBotaoConfiguracoes())) {
+            return true;
+        }
+
+        if (estadoDaCena_.painelDaLojaAberto() &&
+            pontoDentroDaAreaDeInteracao(mouseX_, mouseY_, painelDaLoja_.fundo)) {
+            return true;
+        }
+
+        return BarraFerramentas::pontoEstaNaAreaDoHud(mouseX_, mouseY_, botoes_);
+    }
+
+    std::string construirTextoDoTooltipDoCanteiro(const Canteiros::Canteiro& canteiro) const {
+        const std::optional<std::string> nomeDaPlanta = canteiro.nomeDaPlantaAtual();
+        if (!nomeDaPlanta.has_value()) {
+            return {};
+        }
+
+        switch (canteiro.estadoLogicoDaPlantaAtual()) {
+            case Canteiros::EstadoLogicoDaPlantaNoCanteiro::Crescendo: {
+                const std::optional<int> percentual = canteiro.percentualDeCrescimentoAteColheita();
+                return *nomeDaPlanta + " - " + std::to_string(percentual.value_or(0)) + "%";
+            }
+            case Canteiros::EstadoLogicoDaPlantaNoCanteiro::ProntaParaColheita:
+                return *nomeDaPlanta + " - Pronto";
+            case Canteiros::EstadoLogicoDaPlantaNoCanteiro::Morta:
+                return *nomeDaPlanta + " - Morta";
+            case Canteiros::EstadoLogicoDaPlantaNoCanteiro::Ausente:
+            default:
+                return {};
+        }
+    }
+
+    void atualizarAlvoDoTooltipDoCanteiro() {
+        const Geometria::PosicaoNaGradeDeOcupacao posicaoDeOcupacao =
+            Mundo::converterMouseParaGradeDeOcupacaoGlobal(mouseX_, mouseY_, configuracoes_, camera_);
+
+        if (camera_.panAtivo || mouseEstaSobreInterface()) {
+            estadoDoTooltipDoCanteiro_.reiniciar(posicaoDeOcupacao, mouseX_, mouseY_);
+            return;
+        }
+
+        const Dominio::Mapa::EntidadeDoMapa* entidade = jogo_.mapa().entidadeEm(posicaoDeOcupacao);
+        if (entidade == nullptr || !entidade->ehCanteiroAgricola()) {
+            estadoDoTooltipDoCanteiro_.reiniciar(posicaoDeOcupacao, mouseX_, mouseY_);
+            return;
+        }
+
+        const Canteiros::Canteiro* canteiro = entidade->canteiroAgricola();
+        if (canteiro == nullptr || !canteiro->possuiPlanta()) {
+            estadoDoTooltipDoCanteiro_.reiniciar(posicaoDeOcupacao, mouseX_, mouseY_);
+            return;
+        }
+
+        std::string texto = construirTextoDoTooltipDoCanteiro(*canteiro);
+        if (texto.empty()) {
+            estadoDoTooltipDoCanteiro_.reiniciar(posicaoDeOcupacao, mouseX_, mouseY_);
+            return;
+        }
+
+        const Ocupacao::IdentificadorDeEntidadeDeMapa identificador = entidade->identificador();
+        if (!estadoDoTooltipDoCanteiro_.temAlvoValido ||
+            estadoDoTooltipDoCanteiro_.ultimoIdentificadorObservado != identificador) {
+            estadoDoTooltipDoCanteiro_.tempoAcumuladoDeHover = 0.0f;
+            estadoDoTooltipDoCanteiro_.aptoParaExibicao = false;
+        }
+
+        estadoDoTooltipDoCanteiro_.ultimaCelulaConsultada = posicaoDeOcupacao;
+        estadoDoTooltipDoCanteiro_.ultimoIdentificadorObservado = identificador;
+        estadoDoTooltipDoCanteiro_.cursorX = mouseX_;
+        estadoDoTooltipDoCanteiro_.cursorY = mouseY_;
+        estadoDoTooltipDoCanteiro_.temAlvoValido = true;
+        estadoDoTooltipDoCanteiro_.texto = std::move(texto);
+    }
+
+    void atualizarTooltipDoCanteiro(float deltaTime) {
+        atualizarAlvoDoTooltipDoCanteiro();
+
+        if (!estadoDoTooltipDoCanteiro_.temAlvoValido) {
+            return;
+        }
+
+        estadoDoTooltipDoCanteiro_.tempoAcumuladoDeHover += deltaTime;
+        estadoDoTooltipDoCanteiro_.aptoParaExibicao =
+            estadoDoTooltipDoCanteiro_.tempoAcumuladoDeHover >=
+            EstadoDoTooltipDoCanteiro::TEMPO_NECESSARIO_PARA_EXIBIR;
+    }
+
     void processarMovimentoDoMouse(const SDL_MouseMotionEvent& movimento) {
         mouseX_ = movimento.x;
         mouseY_ = movimento.y;
@@ -190,12 +326,16 @@ private:
                 movimento.timestamp
             );
         }
+
+        atualizarAlvoDoTooltipDoCanteiro();
     }
 
     void processarScrollDoMouse(const SDL_MouseWheelEvent& scroll) {
         int mouseXNoScroll = 0;
         int mouseYNoScroll = 0;
         SDL_GetMouseState(&mouseXNoScroll, &mouseYNoScroll);
+        mouseX_ = mouseXNoScroll;
+        mouseY_ = mouseYNoScroll;
         Camera::aplicarZoomNoPonto(
             camera_,
             configuracoes_,
@@ -204,6 +344,7 @@ private:
             mouseYNoScroll,
             scroll.y
         );
+        atualizarAlvoDoTooltipDoCanteiro();
     }
 
     void processarTeclaPressionada(const SDL_KeyboardEvent& tecla) {
@@ -392,6 +533,7 @@ private:
     ConfiguracoesDoLayout configuracoes_;
     Aplicacao::Estado::EstadoDoJogo jogo_;
     Interface::EstadoDaCenaFazenda estadoDaCena_;
+    EstadoDoTooltipDoCanteiro estadoDoTooltipDoCanteiro_;
     AnimacaoPersonagem::EstadoVisualDoPersonagem estadoVisualDoPersonagem_;
     Assets::RecursosDaFazenda recursos_;
     Assets::RecursosDeHud hud_;

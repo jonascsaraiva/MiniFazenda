@@ -3,10 +3,19 @@
 #include "Dominio/Canteiros/EstadoDoCanteiro.hpp"
 #include "Dominio/Plantas/Planta.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <optional>
+#include <string>
 
 namespace MiniFazenda::Dominio::Canteiros {
+
+enum class EstadoLogicoDaPlantaNoCanteiro {
+    Ausente,
+    Crescendo,
+    ProntaParaColheita,
+    Morta
+};
 
 class Canteiro {
 public:
@@ -42,6 +51,48 @@ public:
 
     int identificadorDaSemente() const {
         return planta_ != nullptr ? planta_->identificadorDaSemente() : -1;
+    }
+
+    bool possuiPlanta() const {
+        return planta_ != nullptr;
+    }
+
+    std::optional<std::string> nomeDaPlantaAtual() const {
+        if (planta_ == nullptr) {
+            return std::nullopt;
+        }
+
+        return planta_->nome();
+    }
+
+    std::optional<int> percentualDeCrescimentoAteColheita() const {
+        if (planta_ == nullptr) {
+            return std::nullopt;
+        }
+
+        const int tempoParaMaturar = planta_->tempoParaMaturar();
+        if (tempoParaMaturar <= 0) {
+            return 100;
+        }
+
+        const int tempoLimitado = std::clamp(tempoDePlantioEmSegundos_, 0, tempoParaMaturar);
+        return (tempoLimitado * 100) / tempoParaMaturar;
+    }
+
+    EstadoLogicoDaPlantaNoCanteiro estadoLogicoDaPlantaAtual() const {
+        if (planta_ == nullptr) {
+            return EstadoLogicoDaPlantaNoCanteiro::Ausente;
+        }
+
+        if (estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaMorta) {
+            return EstadoLogicoDaPlantaNoCanteiro::Morta;
+        }
+
+        if (estadoVisualAtual_ == EstadoVisualDoCanteiro::PlantaMadura) {
+            return EstadoLogicoDaPlantaNoCanteiro::ProntaParaColheita;
+        }
+
+        return EstadoLogicoDaPlantaNoCanteiro::Crescendo;
     }
 
     bool estaArado() const {
