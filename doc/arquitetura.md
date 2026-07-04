@@ -66,7 +66,9 @@ Esta camada lê o estado do jogo e transforma esse estado em saída visual. Ela 
 
 A animacao visual do personagem tambem fica nesta camada: ela le o estado logico exposto pelo dominio e mantem o estado visual necessario para desenhar frames, piscadas e loops de spritesheet.
 
-Estados temporarios da cena, como painel de configuracoes aberto, painel da loja aberto e audio mutado na cena, ficam em `Apresentacao/Interface/EstadoDaCenaFazenda.hpp`. A apresentacao consome esse estado para desenhar HUD, painel de configuracoes e demais elementos visuais sem contaminar o estado de gameplay.
+Estados temporarios gerais da cena, como painel de configuracoes aberto e audio mutado na cena, ficam em `Apresentacao/Interface/EstadoDaCenaFazenda.hpp`. A Loja tem estado proprio em `Apresentacao/Interface/Loja/EstadoDaLoja.hpp`, limitado a abertura, aba ativa, filtro ativo, hover e selecao visual temporaria.
+
+A Loja e um componente de apresentacao. Layout, hit-test, abas, filtros, cards e fechamento modal nao pertencem ao dominio nem a `EstadoDoJogo`.
 
 ### `Infraestrutura/`
 
@@ -293,7 +295,7 @@ Agrega:
 - tamanho atual do grid jogavel;
 - tempo acumulado.
 
-Nao agrega painel de configuracoes, audio mutado, painel da loja ou outros estados temporarios de interface.
+Nao agrega painel de configuracoes, audio mutado, estado da Loja ou outros estados temporarios de interface.
 
 #### `Servicos/InicializadorDaFazenda.hpp`
 
@@ -322,15 +324,22 @@ Arquivos e módulos principais:
 - `Interface/AreaDeInteracao.hpp`
 - `Interface/EstadoDaCenaFazenda.hpp`
 - `Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
+- `Interface/Loja/TiposDaLoja.hpp`
+- `Interface/Loja/EstadoDaLoja.hpp`
+- `Interface/Loja/LayoutDaLoja.hpp`
+- `Interface/Loja/ControladorDaLoja.hpp`
 - `Renderizacao/Primitivas/PrimitivasSDL.hpp`
 - `Renderizacao/Mundo/DesenhoDoMundo.hpp`
 - `Renderizacao/Mundo/RenderizadorDaFazenda.hpp`
 - `Renderizacao/UI/IconesDasFerramentas.hpp`
 - `Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
 - `Renderizacao/UI/HudRenderer.hpp`
+- `Renderizacao/UI/LojaRenderer.hpp`
 - `Renderizacao/Cursores/CursorCustomizado.hpp`
 
-`Cenas/CenaFazenda.hpp` concentra o ciclo da cena principal da fazenda: processa eventos SDL relevantes, atualiza serviços de aplicação, coordena câmera, loja, painel de configurações, estado visual do personagem e chama os renderizadores existentes.
+`Cenas/CenaFazenda.hpp` concentra o ciclo da cena principal da fazenda: processa eventos SDL relevantes, atualiza serviços de aplicação, coordena câmera, painel de configurações, estado visual do personagem, orquestra a Loja componentizada e chama os renderizadores existentes.
+
+A Loja aberta funciona como modal: enquanto `EstadoDaLoja::aberta()` for verdadeiro, o mundo nao recebe clique, pan ou zoom. Clique fora do painel fecha a Loja e consome o evento. Clique em card/botao de semente seleciona a semente para plantio, seleciona a ferramenta `Semente`, fecha a Loja e consome o clique sem plantar no mesmo instante.
 
 Essa camada concentra câmera, isometria, interface, estado temporario da cena e desenho visual do jogo.
 
@@ -351,6 +360,10 @@ Localiza arquivos de assets usados pelo jogo.
 #### `Assets/RecursosDaFazenda.hpp`
 
 Agrupa recursos visuais da fazenda.
+
+#### `Assets/RecursosDaLoja.hpp`
+
+Agrupa recursos visuais especificos da Loja. Nesta etapa, carrega o fundo claro de madeira em `assets/sprites/loja/loja_fundo.png`.
 
 #### `Configuracao/LeitorDeConfiguracao.hpp`
 
@@ -382,7 +395,7 @@ Pode depender de `Aplicacao` para ler `EstadoDoJogo`.
 
 Tambem pode depender de `Dominio` para ler estados, mapa e ferramenta selecionada.
 
-Tambem e dona de estados temporarios da cena/interface, como `EstadoDaCenaFazenda`, consumidos por HUD e renderizadores.
+Tambem e dona de estados temporarios da cena/interface, como `EstadoDaCenaFazenda` e `Interface/Loja/EstadoDaLoja`, consumidos por HUD, Loja e renderizadores.
 
 Cenas de borda SDL podem receber recursos e gerenciadores de infraestrutura compostos pelo `Principal.cpp`, sem mover SDL, assets ou audio para o dominio ou para a aplicacao.
 
@@ -418,7 +431,7 @@ Infraestrutura
 Apresentacao
   -> Aplicacao para ler EstadoDoJogo
   -> Dominio para ler estados, mapa e ferramenta selecionada
-  -> EstadoDaCenaFazenda para estado temporario de interface da cena
+  -> EstadoDaCenaFazenda e EstadoDaLoja para estados temporarios de interface
 
 Aplicacao
   -> Dominio
@@ -628,9 +641,9 @@ Alguns pontos ainda são aceitos temporariamente porque não quebram o contrato 
 
 ### `CenaFazenda` ainda concentra a cena principal inteira
 
-`Principal.cpp` foi reduzido ao bootstrap e ao loop de alto nivel, mas `CenaFazenda` ainda concentra input, loja, painel de configuracoes, camera, estado visual do personagem e chamadas de renderizacao da cena principal.
+`Principal.cpp` foi reduzido ao bootstrap e ao loop de alto nivel, mas `CenaFazenda` ainda concentra input SDL, painel de configuracoes, camera, estado visual do personagem, orquestracao da Loja componentizada e chamadas de renderizacao da cena principal.
 
-Isso e aceito por enquanto como uma cena de borda. Se esse arquivo crescer, uma proxima etapa pode extrair controladores menores para input de UI, painel de configuracoes ou fluxo da loja.
+Isso e aceito por enquanto como uma cena de borda. Se esse arquivo crescer, uma proxima etapa pode extrair controladores menores para input geral da cena ou painel de configuracoes.
 
 ### A apresentação ainda usa `switch` para ícones e cores
 

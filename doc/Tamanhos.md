@@ -342,18 +342,32 @@ O hit-test da interface usa retangulos semiabertos como padrao: `x <= pontoX < x
 - **Área final do ícone com textura** — `40 x 40 px`
   - Origem: `52 - 6 * 2`, derivado de `desenharBotaoFerramenta`
 
-### Painel da loja
+### Loja modal
 
-- **Tamanho de cada opcao de semente** — `48 x 48 px`
-  - Origem: `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp::criarPainelDaLoja`
-- **Preenchimento interno do painel** — `8 px`
-  - Origem: `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp::criarPainelDaLoja`
-- **Espacamento entre opções** — `8 px`
-  - Origem: `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp::criarPainelDaLoja`
-- **Margem de ícone da opcao de semente** — `5 px`
-  - Origem: `src/Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp::desenharPainelDaLoja`
-- **Área final do ícone de semente** — `38 x 38 px`
-  - Origem: `48 - 5 * 2`, derivado de `desenharPainelDaLoja`
+A Loja deixou de ser um painel pequeno da barra e passou a ser um modal proprio de apresentacao. O calculo fica centralizado em `src/Apresentacao/Interface/Loja/LayoutDaLoja.hpp`.
+
+- **Painel principal na janela atual** — `x=200, y=80, w=880, h=560`
+  - Origem: `LayoutDaLoja.hpp::calcularLayoutDaLoja`, com janela `1280 x 720`, largura preferida `880 px`, altura preferida `560 px` e centralizacao.
+- **Asset de fundo do painel** — `assets/sprites/loja/loja_fundo.png`
+  - Origem: `src/Infraestrutura/Assets/RecursosDaLoja.hpp::caminhoDoFundoDaLoja`
+- **Area do titulo `Loja`** — `x=200, y=98, w=880, h=42`
+  - Origem: `LayoutDaLoja.hpp::areaDoTitulo`
+- **Area de dinheiro do jogador** — `x=232, y=108, w=220, h=28`
+  - Origem: `LayoutDaLoja.hpp::areaDoDinheiro`
+- **Botao fechar** — `x=1026, y=98, w=36, h=36`
+  - Origem: `LayoutDaLoja.hpp::botaoFechar`
+- **Abas principais** — `w=142, h=42`, `y=168`, `x=341, 493, 645, 797`
+  - Origem: `LayoutDaLoja.hpp::abasPrincipais`; abas: `Sementes`, `Animais`, `Construcoes`, `Decoracoes`.
+- **Filtros de sementes** — `w=116, h=34`, `y=226`, `x=396, 520, 644, 768`
+  - Origem: `LayoutDaLoja.hpp::filtrosDeSementes`; filtros: `Todos`, `Frutas`, `Vegetais`, `Graos`.
+- **Area de conteudo em `Sementes`** — `x=232, y=284, w=816, h=324`
+  - Origem: `LayoutDaLoja.hpp::areaDeConteudo`
+- **Card de semente** — `w=156, h=198`, primeiro card em `x=232, y=284`
+  - Origem: `LayoutDaLoja.hpp::cartoesDeSementes`
+- **Botao `Comprar` do primeiro card** — `x=250, y=430, w=120, h=34`
+  - Origem: `LayoutDaLoja.hpp::botaoComprar`
+- **Contrato de clique da Loja** — clicar fora do painel fecha e consome; clicar em semente fecha, seleciona a semente e consome; enquanto aberta, a Loja bloqueia mundo, pan e zoom.
+  - Origem: `src/Apresentacao/Interface/Loja/ControladorDaLoja.hpp` e `src/Apresentacao/Cenas/CenaFazenda.hpp`
 
 ### HUD, configurações e cursor
 

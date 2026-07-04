@@ -6,6 +6,7 @@
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
 #include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
+#include "Apresentacao/Interface/Loja/ControladorDaLoja.hpp"
 #include "Apresentacao/Isometria/Isometrico.hpp"
 #include "Compartilhado/ConstantesDaCamera.hpp"
 #include "Compartilhado/ConstantesDaJanela.hpp"
@@ -42,6 +43,7 @@ namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace Interface = MiniFazenda::Apresentacao::Interface;
 namespace Isometria = MiniFazenda::Apresentacao::Isometria;
+namespace Loja = MiniFazenda::Apresentacao::Interface::Loja;
 namespace Mapa = MiniFazenda::Dominio::Mapa;
 namespace Ocupacao = MiniFazenda::Dominio::Ocupacao;
 namespace Personagem = MiniFazenda::Dominio::Personagem;
@@ -365,18 +367,16 @@ void validarBotoesDaBarraRespondemAoCliqueCentral() {
         Ferramentas::TipoDeFerramenta ferramentaEsperada
     ) {
         Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Cursor;
-        Interface::EstadoDaCenaFazenda estadoDaCena;
         const int centroX = centroHorizontalDaArea(botao);
         const int centroY = centroVerticalDaArea(botao);
 
         const BarraFerramentas::ResultadoDoCliqueNaInterface resultado =
             BarraFerramentas::processarCliqueNaInterface(
-            centroX,
-            centroY,
-            botoes,
-            ferramentaSelecionada,
-            estadoDaCena
-        );
+                centroX,
+                centroY,
+                botoes,
+                ferramentaSelecionada
+            );
         VERIFICAR(resultado.cliqueConsumido);
         VERIFICAR(resultado.acao == AcaoDaInterface::SelecionarFerramenta);
         VERIFICAR(ferramentaSelecionada == ferramentaEsperada);
@@ -387,10 +387,8 @@ void validarBotoesDaBarraRespondemAoCliqueCentral() {
     verificarBotao(botoes.removerTerra, Ferramentas::TipoDeFerramenta::RemoverTerra);
 
     Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Enxada;
-    Interface::EstadoDaCenaFazenda estadoDaCena;
-    estadoDaCena.alternarPainelDaLoja();
 
-    const auto verificarPlaceholder = [&botoes, &ferramentaSelecionada, &estadoDaCena](
+    const auto verificarPlaceholder = [&botoes, &ferramentaSelecionada](
         const Interface::AreaDeInteracao& botao
     ) {
         const BarraFerramentas::ResultadoDoCliqueNaInterface resultado =
@@ -398,14 +396,12 @@ void validarBotoesDaBarraRespondemAoCliqueCentral() {
                 centroHorizontalDaArea(botao),
                 centroVerticalDaArea(botao),
                 botoes,
-                ferramentaSelecionada,
-                estadoDaCena
+                ferramentaSelecionada
             );
 
         VERIFICAR(resultado.cliqueConsumido);
         VERIFICAR(resultado.acao == AcaoDaInterface::ConsumirClique);
         VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Enxada);
-        VERIFICAR(estadoDaCena.painelDaLojaAberto());
     };
 
     verificarPlaceholder(botoes.ajuda);
@@ -418,33 +414,28 @@ void validarBotoesDaBarraRespondemAoCliqueCentral() {
             centroHorizontalDaArea(botoes.zoomMais),
             centroVerticalDaArea(botoes.zoomMais),
             botoes,
-            ferramentaSelecionada,
-            estadoDaCena
+            ferramentaSelecionada
         );
     VERIFICAR(resultado.cliqueConsumido);
     VERIFICAR(resultado.acao == AcaoDaInterface::AumentarZoom);
     VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Enxada);
-    VERIFICAR(estadoDaCena.painelDaLojaAberto());
 
     resultado = BarraFerramentas::processarCliqueNaInterface(
         centroHorizontalDaArea(botoes.zoomMenos),
         centroVerticalDaArea(botoes.zoomMenos),
         botoes,
-        ferramentaSelecionada,
-        estadoDaCena
+        ferramentaSelecionada
     );
     VERIFICAR(resultado.cliqueConsumido);
     VERIFICAR(resultado.acao == AcaoDaInterface::DiminuirZoom);
     VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Enxada);
-    VERIFICAR(estadoDaCena.painelDaLojaAberto());
 
     resultado = BarraFerramentas::processarCliqueNaInterface(
         botoes.loja.posicaoBotaoHorizontal + botoes.loja.tamanhoBotaoLargura +
             Constantes::ESPACAMENTO_DOS_BOTOES / 2,
         botoes.loja.posicaoBotaoVertical + 8,
         botoes,
-        ferramentaSelecionada,
-        estadoDaCena
+        ferramentaSelecionada
     );
     VERIFICAR(resultado.cliqueConsumido);
     VERIFICAR(resultado.acao == AcaoDaInterface::ConsumirClique);
@@ -453,42 +444,150 @@ void validarBotoesDaBarraRespondemAoCliqueCentral() {
         botoes.areaTotalDoHud.posicaoBotaoHorizontal - 1,
         botoes.areaTotalDoHud.posicaoBotaoVertical,
         botoes,
-        ferramentaSelecionada,
-        estadoDaCena
+        ferramentaSelecionada
     );
     VERIFICAR(!resultado.cliqueConsumido);
+
+    resultado = BarraFerramentas::processarCliqueNaInterface(
+        centroHorizontalDaArea(botoes.loja),
+        centroVerticalDaArea(botoes.loja),
+        botoes,
+        ferramentaSelecionada
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == AcaoDaInterface::AbrirLoja);
+    VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Loja);
 }
 
 void validarFluxoDeCliqueDaLoja() {
     const Plantas::FabricaDePlantas fabrica;
     const auto especiesDaLoja = fabrica.todasAsEspecies();
-    const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
-    const BarraFerramentas::PainelDaLoja painel = BarraFerramentas::criarPainelDaLoja(botoes, especiesDaLoja);
+    const std::vector<Loja::ItemDeSementeDaLoja> itens = Loja::criarItensDeSementesDaLoja(especiesDaLoja);
+    Loja::EstadoDaLoja estadoDaLoja;
+    estadoDaLoja.abrir();
 
-    Ferramentas::TipoDeFerramenta ferramentaSelecionada = Ferramentas::TipoDeFerramenta::Cursor;
-    Interface::EstadoDaCenaFazenda estadoDaCena;
-    const int xDaLoja = centroHorizontalDaArea(botoes.loja);
-    const int yDaLoja = centroVerticalDaArea(botoes.loja);
-    const BarraFerramentas::ResultadoDoCliqueNaInterface resultadoLoja =
-        BarraFerramentas::processarCliqueNaInterface(xDaLoja, yDaLoja, botoes, ferramentaSelecionada, estadoDaCena);
-
-    VERIFICAR(resultadoLoja.cliqueConsumido);
-    VERIFICAR(resultadoLoja.acao == BarraFerramentas::AcaoDoCliqueNaInterface::AlternarPainelDaLoja);
-    VERIFICAR(estadoDaCena.painelDaLojaAberto());
-    VERIFICAR(ferramentaSelecionada == Ferramentas::TipoDeFerramenta::Loja);
-    VERIFICAR(!painel.opcoes.empty());
+    Loja::LayoutCalculadoDaLoja layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+    VERIFICAR(estadoDaLoja.aberta());
+    VERIFICAR(!itens.empty());
+    VERIFICAR(!layout.cartoesDeSementes.empty());
     VERIFICAR(
-        painel.fundo.posicaoBotaoVertical + painel.fundo.tamanhoBotaoAltura <=
-        botoes.areaTotalDoHud.posicaoBotaoVertical - Constantes::ESPACAMENTO_DOS_BOTOES
+        layout.painelPrincipal.posicaoBotaoHorizontal ==
+        (Constantes::LARGURA_DA_JANELA - layout.painelPrincipal.tamanhoBotaoLargura) / 2
     );
 
-    const BarraFerramentas::OpcaoDeSementeDaLoja& opcaoMirtilo = painel.opcoes.front();
-    const int xDaSemente = centroHorizontalDaArea(opcaoMirtilo.area);
-    const int yDaSemente = centroVerticalDaArea(opcaoMirtilo.area);
-    const auto sementeClicada = BarraFerramentas::sementeClicadaNoPainelDaLoja(xDaSemente, yDaSemente, painel);
+    Loja::ResultadoDoCliqueDaLoja resultado = Loja::processarCliqueDaLoja(
+        centroHorizontalDaArea(layout.abasPrincipais[1].area),
+        centroVerticalDaArea(layout.abasPrincipais[1].area),
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == Loja::AcaoDoCliqueDaLoja::TrocarAba);
+    VERIFICAR(estadoDaLoja.abaPrincipalSelecionada() == Loja::AbaPrincipalDaLoja::Animais);
+    VERIFICAR(estadoDaLoja.aberta());
 
-    VERIFICAR(sementeClicada.has_value());
-    VERIFICAR(*sementeClicada == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+    layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+    resultado = Loja::processarCliqueDaLoja(
+        centroHorizontalDaArea(layout.abasPrincipais[2].area),
+        centroVerticalDaArea(layout.abasPrincipais[2].area),
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(estadoDaLoja.abaPrincipalSelecionada() == Loja::AbaPrincipalDaLoja::Construcoes);
+
+    layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+    resultado = Loja::processarCliqueDaLoja(
+        centroHorizontalDaArea(layout.abasPrincipais[3].area),
+        centroVerticalDaArea(layout.abasPrincipais[3].area),
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(estadoDaLoja.abaPrincipalSelecionada() == Loja::AbaPrincipalDaLoja::Decoracoes);
+
+    layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+    resultado = Loja::processarCliqueDaLoja(
+        centroHorizontalDaArea(layout.abasPrincipais[0].area),
+        centroVerticalDaArea(layout.abasPrincipais[0].area),
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(estadoDaLoja.abaPrincipalSelecionada() == Loja::AbaPrincipalDaLoja::Sementes);
+
+    for (std::size_t indice = 0; indice < layout.filtrosDeSementes.size(); ++indice) {
+        layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+        resultado = Loja::processarCliqueDaLoja(
+            centroHorizontalDaArea(layout.filtrosDeSementes[indice].area),
+            centroVerticalDaArea(layout.filtrosDeSementes[indice].area),
+            estadoDaLoja,
+            layout
+        );
+        VERIFICAR(resultado.cliqueConsumido);
+        VERIFICAR(resultado.acao == Loja::AcaoDoCliqueDaLoja::TrocarFiltro);
+        VERIFICAR(estadoDaLoja.filtroDeSementesSelecionado() == layout.filtrosDeSementes[indice].filtro);
+        VERIFICAR(estadoDaLoja.aberta());
+    }
+
+    estadoDaLoja.selecionarFiltroDeSementes(Loja::FiltroDeSementesDaLoja::Todos);
+    layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+    const Loja::CartaoDeSementeDaLoja& cartaoMirtilo = layout.cartoesDeSementes.front();
+    Loja::atualizarHoverDaLoja(
+        centroHorizontalDaArea(cartaoMirtilo.area),
+        centroVerticalDaArea(cartaoMirtilo.area),
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(estadoDaLoja.identificadorDaSementeSobHover().has_value());
+    VERIFICAR(*estadoDaLoja.identificadorDaSementeSobHover() == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+
+    resultado = Loja::processarCliqueDaLoja(
+        centroHorizontalDaArea(cartaoMirtilo.botaoComprar),
+        centroVerticalDaArea(cartaoMirtilo.botaoComprar),
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == Loja::AcaoDoCliqueDaLoja::SelecionarSemente);
+    VERIFICAR(resultado.identificadorDaSementeSelecionada.has_value());
+    VERIFICAR(*resultado.identificadorDaSementeSelecionada == Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+    VERIFICAR(!estadoDaLoja.aberta());
+
+    auto jogo = AppServicos::criarEstadoInicialDoJogo();
+    const Geometria::PosicaoNaGradeDeOcupacao posicaoInicialDoPersonagem =
+        jogo.personagem().posicaoNaGradeDeOcupacao();
+    jogo.selecionarSemente(*resultado.identificadorDaSementeSelecionada);
+    jogo.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+    VERIFICAR(jogo.identificadorDaSementeSelecionada().has_value());
+    VERIFICAR(Geometria::posicoesDaGradeDeOcupacaoSaoIguais(
+        posicaoInicialDoPersonagem,
+        jogo.personagem().posicaoNaGradeDeOcupacao()
+    ));
+
+    estadoDaLoja.abrir();
+    layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+    resultado = Loja::processarCliqueDaLoja(
+        layout.botaoFechar.posicaoBotaoHorizontal,
+        layout.botaoFechar.posicaoBotaoVertical,
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == Loja::AcaoDoCliqueDaLoja::Fechar);
+    VERIFICAR(!estadoDaLoja.aberta());
+
+    estadoDaLoja.abrir();
+    layout = Loja::calcularLayoutDaLoja(estadoDaLoja, itens);
+    resultado = Loja::processarCliqueDaLoja(
+        layout.painelPrincipal.posicaoBotaoHorizontal - 1,
+        layout.painelPrincipal.posicaoBotaoVertical,
+        estadoDaLoja,
+        layout
+    );
+    VERIFICAR(resultado.cliqueConsumido);
+    VERIFICAR(resultado.acao == Loja::AcaoDoCliqueDaLoja::Fechar);
+    VERIFICAR(!estadoDaLoja.aberta());
 }
 
 void validarEstadoDaCenaFazenda() {
@@ -506,11 +605,31 @@ void validarEstadoDaCenaFazenda() {
     estadoDaCena.definirAudioMutado(false);
     VERIFICAR(!estadoDaCena.audioMutado());
 
-    VERIFICAR(!estadoDaCena.painelDaLojaAberto());
-    estadoDaCena.alternarPainelDaLoja();
-    VERIFICAR(estadoDaCena.painelDaLojaAberto());
-    estadoDaCena.fecharPainelDaLoja();
-    VERIFICAR(!estadoDaCena.painelDaLojaAberto());
+}
+
+void validarEstadoDaLoja() {
+    Loja::EstadoDaLoja estadoDaLoja;
+
+    VERIFICAR(!estadoDaLoja.aberta());
+    estadoDaLoja.abrir();
+    VERIFICAR(estadoDaLoja.aberta());
+    VERIFICAR(estadoDaLoja.abaPrincipalSelecionada() == Loja::AbaPrincipalDaLoja::Sementes);
+    VERIFICAR(estadoDaLoja.filtroDeSementesSelecionado() == Loja::FiltroDeSementesDaLoja::Todos);
+
+    estadoDaLoja.selecionarAbaPrincipal(Loja::AbaPrincipalDaLoja::Animais);
+    VERIFICAR(estadoDaLoja.abaPrincipalSelecionada() == Loja::AbaPrincipalDaLoja::Animais);
+
+    estadoDaLoja.selecionarFiltroDeSementes(Loja::FiltroDeSementesDaLoja::Frutas);
+    VERIFICAR(estadoDaLoja.filtroDeSementesSelecionado() == Loja::FiltroDeSementesDaLoja::Frutas);
+
+    estadoDaLoja.definirSementeSobHover(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+    VERIFICAR(estadoDaLoja.identificadorDaSementeSobHover().has_value());
+    estadoDaLoja.definirSementeSelecionadaVisualmente(Especies::PlantaMirtilo::IDENTIFICADOR_DA_SEMENTE);
+    VERIFICAR(estadoDaLoja.identificadorDaSementeSelecionadaVisualmente().has_value());
+
+    estadoDaLoja.fechar();
+    VERIFICAR(!estadoDaLoja.aberta());
+    VERIFICAR(!estadoDaLoja.identificadorDaSementeSobHover().has_value());
 }
 
 void validarEstadosVisuaisDePlantaParaDesenho() {
@@ -864,7 +983,6 @@ void validarCliqueEmInterfaceNaoMovePersonagemNoFluxo() {
         jogo.personagem().posicaoNaGradeDeOcupacao();
     const BarraFerramentas::BotoesDaInterface botoes = BarraFerramentas::criarBotoesDaInterface();
     Ferramentas::TipoDeFerramenta ferramentaSelecionada = jogo.ferramentaSelecionada();
-    Interface::EstadoDaCenaFazenda estadoDaCena;
     const int centroX = centroHorizontalDaArea(botoes.enxada);
     const int centroY = centroVerticalDaArea(botoes.enxada);
 
@@ -872,8 +990,7 @@ void validarCliqueEmInterfaceNaoMovePersonagemNoFluxo() {
         centroX,
         centroY,
         botoes,
-        ferramentaSelecionada,
-        estadoDaCena
+        ferramentaSelecionada
     );
 
     VERIFICAR(resultado.cliqueConsumido);
@@ -1322,6 +1439,7 @@ int main() {
     validarCliqueNoMundoMovePersonagemParaOcupacao();
     validarCliqueEmInterfaceNaoMovePersonagemNoFluxo();
     validarEstadoDaCenaFazenda();
+    validarEstadoDaLoja();
     validarEstadosVisuaisDePlantaParaDesenho();
     validarConsultasPurasDoCanteiroComPlanta();
     validarContratoSemiabertoDasAreasDeInteracao();

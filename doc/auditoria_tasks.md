@@ -57,9 +57,9 @@ Resultados:
 Dimensoes conferidas em PNGs principais:
 
 - `assets/sprites/personagem/Boneco_piscando_olhos.png`: `1250 x 250`, coerente com 5 frames de `250 x 250`.
-- `assets/sprites/tiles/tile_terra_seca.png`: `1774 x 887`.
-- `assets/sprites/tiles/tile_terra_arada.png`: `1774 x 887`.
-- `assets/sprites/tiles/tile_terra_restos.png`: `1774 x 887`.
+- `assets/sprites/tiles/tile_terra_seca.png`: `1254 x 1254`.
+- `assets/sprites/tiles/tile_terra_arada.png`: `1254 x 1254`.
+- `assets/sprites/tiles/tile_terra_restos.png`: `1254 x 1254`.
 - `assets/background/fundo_gramado.png`: `3344 x 1882`.
 - sprites de mirtilo auditados: `1774 x 887`.
 
@@ -76,7 +76,7 @@ O projeto atual esta funcionalmente centrado em:
 - criacao de novos canteiros pela enxada;
 - arar, plantar, crescer, colher, morrer, limpar restos e remover terra;
 - personagem com posicao logica pelos pes e movimento em segmentos;
-- UI com toolbar, loja simples de sementes, HUD e painel de configuracoes;
+- UI com toolbar, Loja modal componentizada, HUD e painel de configuracoes;
 - camera com zoom, pan e inercia;
 - assets SDL com fallback parcial;
 - testes de logica e apresentacao pura.
@@ -108,7 +108,7 @@ Fluxo confirmado:
 5. `assets/config.ini` e carregado em `ConfiguracoesDoLayout`.
 6. O gerenciador de ativos SDL e criado.
 7. A fabrica de plantas fornece especies para loja e catalogo visual.
-8. Recursos da fazenda e HUD sao carregados.
+8. Recursos da fazenda, HUD e Loja sao carregados.
 9. A musica ambiente toca se audio inicializou.
 10. `CenaFazenda` e criada e passa a receber eventos, atualizacao e renderizacao.
 
@@ -192,10 +192,11 @@ Fluxo confirmado:
 5. Desenha limite da grade jogavel.
 6. Desenha preview de criacao de terra.
 7. Desenha toolbar.
-8. Desenha painel da loja se aberto.
-9. Desenha HUD e botao de configuracoes.
-10. Desenha painel de configuracoes se aberto.
-11. Desenha cursor customizado.
+8. Desenha HUD e botao de configuracoes.
+9. Desenha painel de configuracoes se aberto.
+10. Desenha a Loja modal se aberta.
+11. Desenha tooltip se nenhuma UI modal bloquear o mundo.
+12. Desenha cursor customizado.
 
 Observacao importante:
 
@@ -232,8 +233,14 @@ Arquivos envolvidos:
 - `src/Apresentacao/Interface/AreaDeInteracao.hpp`
 - `src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp`
 - `src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp`
+- `src/Apresentacao/Interface/Loja/TiposDaLoja.hpp`
+- `src/Apresentacao/Interface/Loja/EstadoDaLoja.hpp`
+- `src/Apresentacao/Interface/Loja/LayoutDaLoja.hpp`
+- `src/Apresentacao/Interface/Loja/ControladorDaLoja.hpp`
 - `src/Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp`
+- `src/Apresentacao/Renderizacao/UI/LojaRenderer.hpp`
 - `src/Apresentacao/Renderizacao/UI/HudRenderer.hpp`
+- `src/Infraestrutura/Assets/RecursosDaLoja.hpp`
 - `src/Apresentacao/Cenas/CenaFazenda.hpp`
 
 Fluxo confirmado:
@@ -241,17 +248,19 @@ Fluxo confirmado:
 - Toolbar tem cursor, enxada, remover terra, semente e loja.
 - Clique em botao da UI retorna antes de processar mundo.
 - Clique em painel de configuracoes retorna antes de processar mundo.
-- Clique em semente dentro da loja seleciona a semente, troca ferramenta para `Semente` e fecha a loja.
-- Clique dentro do fundo da loja consome o clique.
-- Clique fora do painel da loja, com a loja aberta, cai no fluxo normal de toolbar/mundo.
+- Clique no botao da loja abre a Loja modal.
+- `EstadoDaLoja` guarda abertura, aba ativa, filtro ativo, hover e selecao visual temporaria.
+- `LayoutDaLoja` calcula painel, botao fechar, abas, filtros e cards.
+- `ControladorDaLoja` consome input da Loja sem desenhar nem aplicar compra real.
+- Clique em semente dentro da Loja seleciona a semente, troca ferramenta para `Semente` e fecha a Loja.
+- Clique dentro do painel da Loja consome o clique.
+- Clique fora do painel da Loja fecha a Loja e consome o clique.
+- Enquanto a Loja esta aberta, mundo, pan e zoom ficam bloqueados.
 
 Contrato confirmado:
 
 - Clique em UI nao move personagem.
-
-Contrato implicito:
-
-- Com a loja aberta, clique fora do painel pode mover o personagem e manter a loja aberta, dependendo da posicao.
+- Clique fora da Loja aberta nao move personagem e nao aplica ferramenta.
 
 ### 3.7. Ferramentas
 
@@ -399,7 +408,7 @@ Estado:
 
 - Nao depende de SDL, apresentacao ou infraestrutura.
 - Orquestra estado, ferramentas e tempo.
-- `EstadoDoJogo` separa gameplay de estado de cena; loja, painel e audio mutado ficam em `EstadoDaCenaFazenda`.
+- `EstadoDoJogo` separa gameplay de estado de cena; painel e audio mutado ficam em `EstadoDaCenaFazenda`, enquanto a Loja visual usa `EstadoDaLoja`.
 
 Ponto fragil:
 
@@ -493,7 +502,7 @@ Recomendacao:
 
 - Decidir o contrato: remover tudo intencionalmente, remover apenas terra vazia/arada, ou exigir estado seguro/confirmacao. Depois documentar e testar.
 
-#### M3. Loja aberta permite clique fora cair no mundo
+#### M3. Resolvido: Loja aberta bloqueia clique fora do painel
 
 Arquivo/fluxo:
 
@@ -501,21 +510,12 @@ Arquivo/fluxo:
 - `src/Apresentacao/Cenas/CenaFazenda.hpp:278`
 - `src/Apresentacao/Cenas/CenaFazenda.hpp:309`
 
-Problema:
+Estado atual:
 
-- Se a loja esta aberta e o clique nao acerta uma semente nem o fundo do painel, o fluxo continua para toolbar/mundo.
-
-Por que importa:
-
-- Hoje isso pode mover o personagem enquanto a ferramenta selecionada e `Loja`, que nao aplica acao. Pode ser aceitavel, mas e um contrato implicito e sem teste especifico.
-
-Impacto provavel:
-
-- UX inconsistente quando a loja tiver mais opcoes, precos, detalhes ou bloqueio de mundo.
-
-Recomendacao:
-
-- Definir se clique fora fecha a loja, bloqueia o mundo ou permite interagir com o mundo. Registrar e cobrir com teste de fluxo de input.
+- A Loja e modal. Clique fora do painel fecha e consome.
+- O clique fora nao passa para toolbar ou mundo.
+- Clique em card/botao de semente seleciona a semente, seleciona a ferramenta `Semente`, fecha e consome.
+- Testes puros em `tests/TestesLogica.cpp` cobrem abas, filtros, fechar, clique fora e selecao de semente.
 
 #### M4. Apresentacao conhece estruturas concretas da infraestrutura de assets
 
@@ -844,7 +844,7 @@ As tasks chamam `ninja.exe` diretamente e uma task limpa `build` via `cmd.exe`. 
 
 - `CenaFazenda` tende a acumular muitas responsabilidades de cena.
 - Contrato de `RemovedorDeTerra` e destrutivo e ainda pouco explicito.
-- Contrato da loja aberta ao clicar fora do painel nao esta documentado/testado.
+- Compra real, economia da Loja e catalogo completo ainda nao foram implementados.
 - Renderizacao ainda nao ordena tudo por profundidade.
 - Apresentacao depende de tipos concretos de infraestrutura de assets.
 - Infraestrutura aplica centralizacao de camera durante leitura de configuracao.
@@ -857,7 +857,7 @@ As tasks chamam `ninja.exe` diretamente e uma task limpa `build` via `cmd.exe`. 
 
 1. Novas entidades altas podem quebrar sobreposicao visual sem fila de profundidade.
 2. Novas ferramentas podem aumentar ambiguidade de clique se o roteamento de input continuar concentrado.
-3. Loja mais complexa pode ter comportamento confuso se clique fora continuar caindo no mundo.
+3. Loja mais complexa vai exigir catalogo real, compra, paginacao e separacao maior de recursos visuais.
 4. Salvamento ou replay pode sofrer com mutacoes diretas demais em `EstadoDoJogo`.
 5. Skins, pacotes de asset ou mocks visuais serao mais dificeis com apresentacao acoplada a `Infraestrutura::Assets`.
 6. Hot reload de asset pode exigir reinicio se uma falha ja foi cacheada.
@@ -954,21 +954,22 @@ Alta
 
 3. Definir comportamento da loja aberta ao clicar fora do painel
 
-corrigir:
-Hoje, com a loja aberta, um clique fora do painel pode cair no mundo. Definir o contrato oficial.
+status:
+Concluida. A Loja agora e modal e o contrato oficial foi implementado.
 
-Regra recomendada:
+Regra aplicada:
 - Clique fora da loja fecha a loja.
 - Esse mesmo clique não deve mover o personagem.
 - Esse mesmo clique não deve aplicar ferramenta no mundo.
 
 onde:
 src/Apresentacao/Cenas/CenaFazenda.hpp
-src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp
-src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp
+src/Apresentacao/Interface/Loja/EstadoDaLoja.hpp
+src/Apresentacao/Interface/Loja/ControladorDaLoja.hpp
+tests/TestesLogica.cpp
 
 prioridade:
-Alta
+Concluida
 
 
 4. Testar fluxo de clique da loja, UI e mundo
@@ -1014,22 +1015,18 @@ Média
 
 6. Extrair controlador da loja
 
-corrigir:
-Separar regra de abrir loja, fechar loja, selecionar semente, consumir clique no painel e tratar clique fora.
+status:
+Concluida para a primeira versao componentizada.
 
-Objetivo:
-CenaFazenda não deve conter detalhes internos do fluxo da loja.
+Resultado:
+`ControladorDaLoja.hpp` trata fechar, selecionar aba, selecionar filtro, selecionar semente, consumir clique no painel e fechar ao clicar fora. `CenaFazenda` orquestra o resultado e aplica apenas a selecao da semente/ferramenta.
 
 onde:
 src/Apresentacao/Cenas/CenaFazenda.hpp
-src/Apresentacao/Interface/EstadoDaCenaFazenda.hpp
-src/Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp
-
-novo possível:
 src/Apresentacao/Interface/Loja/ControladorDaLoja.hpp
 
 prioridade:
-Média
+Concluida
 
 
 7. Extrair controlador do painel de configurações

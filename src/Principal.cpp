@@ -5,6 +5,7 @@
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/LocalizadorDeAssets.hpp"
 #include "Infraestrutura/Assets/RecursosDaFazenda.hpp"
+#include "Infraestrutura/Assets/RecursosDaLoja.hpp"
 #include "Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp"
 #include "Infraestrutura/SDL/ContextoSDL.hpp"
 
@@ -66,6 +67,7 @@ int main(int, char**) {
         fabricaDePlantas
     );
     Assets::RecursosDeHud hud = Assets::carregarRecursosDeHud(ativos, diretorioAssets);
+    Assets::RecursosDaLoja recursosDaLoja = Assets::carregarRecursosDaLoja(ativos, diretorioAssets);
     if (sdl.audioInicializado) {
         ativos.tocarMusica(Assets::caminhoDaMusicaAmbiente(diretorioAssets));
     }
@@ -76,6 +78,7 @@ int main(int, char**) {
         diretorioAssets,
         std::move(configuracoes),
         std::move(recursos),
+        std::move(recursosDaLoja),
         std::move(hud),
         especiesDaLoja,
         sdl.audioInicializado

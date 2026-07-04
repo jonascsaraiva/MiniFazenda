@@ -9,12 +9,14 @@
 #include "Apresentacao/ConfiguracoesDoLayout.hpp"
 #include "Apresentacao/Interface/BarraDeFerramentas/BarraDeFerramentas.hpp"
 #include "Apresentacao/Interface/EstadoDaCenaFazenda.hpp"
+#include "Apresentacao/Interface/Loja/ControladorDaLoja.hpp"
 #include "Apresentacao/Renderizacao/Cursores/CursorCustomizado.hpp"
 #include "Apresentacao/Renderizacao/Mundo/DesenhoDoMundo.hpp"
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDaFazenda.hpp"
 #include "Apresentacao/Renderizacao/Mundo/RenderizadorDoPersonagem.hpp"
 #include "Apresentacao/Renderizacao/UI/BarraDeFerramentasRenderer.hpp"
 #include "Apresentacao/Renderizacao/UI/HudRenderer.hpp"
+#include "Apresentacao/Renderizacao/UI/LojaRenderer.hpp"
 #include "Apresentacao/Renderizacao/UI/TooltipDoCanteiroRenderer.hpp"
 #include "Compartilhado/ConstantesDaJanela.hpp"
 #include "Compartilhado/Geometria/Posicoes.hpp"
@@ -24,6 +26,7 @@
 #include "Dominio/Plantas/Planta.hpp"
 #include "Infraestrutura/Assets/GerenciadorDeAtivosSDL.hpp"
 #include "Infraestrutura/Assets/RecursosDaFazenda.hpp"
+#include "Infraestrutura/Assets/RecursosDaLoja.hpp"
 #include "Infraestrutura/Configuracao/LeitorDeConfiguracao.hpp"
 
 #include <SDL.h>
@@ -50,6 +53,8 @@ namespace Ferramentas = MiniFazenda::Dominio::Ferramentas;
 namespace Geometria = MiniFazenda::Compartilhado::Geometria;
 namespace HudRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::HudRenderer;
 namespace Interface = MiniFazenda::Apresentacao::Interface;
+namespace LojaInterface = MiniFazenda::Apresentacao::Interface::Loja;
+namespace LojaRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::LojaRenderer;
 namespace Mundo = MiniFazenda::Apresentacao::Renderizacao::Mundo;
 namespace Ocupacao = MiniFazenda::Dominio::Ocupacao;
 namespace TooltipRenderer = MiniFazenda::Apresentacao::Renderizacao::UI::TooltipDoCanteiroRenderer;
@@ -88,6 +93,7 @@ public:
         std::filesystem::path diretorioAssets,
         ConfiguracoesDoLayout configuracoes,
         Assets::RecursosDaFazenda recursos,
+        Assets::RecursosDaLoja recursosDaLoja,
         Assets::RecursosDeHud hud,
         const std::vector<std::unique_ptr<Dominio::Plantas::Planta>>& especiesDaLoja,
         bool audioInicializado
@@ -98,9 +104,10 @@ public:
           configuracoes_(configuracoes),
           jogo_(AppServicos::criarEstadoInicialDoJogo()),
           recursos_(std::move(recursos)),
+          recursosDaLoja_(std::move(recursosDaLoja)),
           hud_(hud),
           botoes_(BarraFerramentas::criarBotoesDaInterface()),
-          painelDaLoja_(BarraFerramentas::criarPainelDaLoja(botoes_, especiesDaLoja)),
+          itensDeSementesDaLoja_(LojaInterface::criarItensDeSementesDaLoja(especiesDaLoja)),
           audioInicializado_(audioInicializado) {
         Camera::aplicarOrigemCentradaDaGrade(configuracoes_, jogo_.tamanhoAtualDoGrid());
     }
@@ -170,15 +177,6 @@ public:
             recursos_.texturasDosBotoes
         );
 
-        if (estadoDaCena_.painelDaLojaAberto()) {
-            UI::desenharPainelDaLoja(
-                renderizador_,
-                painelDaLoja_,
-                recursos_.texturasDasSementes,
-                jogo_.identificadorDaSementeSelecionada()
-            );
-        }
-
         HudRenderer::desenharStatusDoJogador(renderizador_, hud_.fonte, jogo_.jogador());
         HudRenderer::desenharBotaoConfiguracoes(renderizador_, hud_.iconeConfiguracoes, false);
         if (estadoDaCena_.painelConfiguracoesAberto()) {
@@ -186,7 +184,22 @@ public:
                 HudRenderer::desenharPainelConfiguracoes(renderizador_, hud_.fonte, estadoDaCena_);
         }
 
-        if (estadoDoTooltipDoCanteiro_.aptoParaExibicao) {
+        if (estadoDaLoja_.aberta()) {
+            const LojaInterface::LayoutCalculadoDaLoja layoutDaLoja = calcularLayoutAtualDaLoja();
+            LojaRenderer::desenharLoja(
+                renderizador_,
+                hud_.fonte,
+                estadoDaLoja_,
+                layoutDaLoja,
+                recursosDaLoja_.texturaFundo,
+                itensDeSementesDaLoja_,
+                recursos_.texturasDasSementes,
+                jogo_.jogador().moedas(),
+                jogo_.identificadorDaSementeSelecionada()
+            );
+        }
+
+        if (!estadoDaLoja_.aberta() && estadoDoTooltipDoCanteiro_.aptoParaExibicao) {
             TooltipRenderer::desenharTooltipDoCanteiro(
                 renderizador_,
                 hud_.fonte,
@@ -220,16 +233,15 @@ private:
     }
 
     bool mouseEstaSobreInterface() const {
+        if (estadoDaLoja_.aberta()) {
+            return true;
+        }
+
         if (estadoDaCena_.painelConfiguracoesAberto()) {
             return true;
         }
 
         if (pontoDentroDoRetangulo(mouseX_, mouseY_, HudRenderer::calcularAreaDoBotaoConfiguracoes())) {
-            return true;
-        }
-
-        if (estadoDaCena_.painelDaLojaAberto() &&
-            pontoDentroDaAreaDeInteracao(mouseX_, mouseY_, painelDaLoja_.fundo)) {
             return true;
         }
 
@@ -316,6 +328,11 @@ private:
         mouseX_ = movimento.x;
         mouseY_ = movimento.y;
 
+        if (estadoDaLoja_.aberta()) {
+            atualizarHoverDaLoja();
+            return;
+        }
+
         if (camera_.panAtivo) {
             Camera::moverPanDaCamera(
                 camera_,
@@ -336,6 +353,12 @@ private:
         SDL_GetMouseState(&mouseXNoScroll, &mouseYNoScroll);
         mouseX_ = mouseXNoScroll;
         mouseY_ = mouseYNoScroll;
+
+        if (estadoDaLoja_.aberta()) {
+            atualizarHoverDaLoja();
+            return;
+        }
+
         Camera::aplicarZoomNoPonto(
             camera_,
             configuracoes_,
@@ -365,6 +388,13 @@ private:
         mouseX_ = clique.x;
         mouseY_ = clique.y;
 
+        if (estadoDaLoja_.aberta()) {
+            if (clique.button == SDL_BUTTON_LEFT) {
+                processarCliqueEsquerdo(clique.x, clique.y);
+            }
+            return;
+        }
+
         if ((clique.button == SDL_BUTTON_MIDDLE || clique.button == SDL_BUTTON_RIGHT) &&
             BarraFerramentas::pontoEstaNaAreaDoHud(clique.x, clique.y, botoes_)) {
             return;
@@ -388,6 +418,11 @@ private:
         mouseX_ = x;
         mouseY_ = y;
 
+        if (estadoDaLoja_.aberta()) {
+            processarCliqueNaLoja();
+            return;
+        }
+
         if (pontoDentroDoRetangulo(mouseX_, mouseY_, HudRenderer::calcularAreaDoBotaoConfiguracoes())) {
             estadoDaCena_.alternarPainelConfiguracoes();
             return;
@@ -395,10 +430,6 @@ private:
 
         if (estadoDaCena_.painelConfiguracoesAberto()) {
             processarCliqueNoPainelConfiguracoes();
-            return;
-        }
-
-        if (estadoDaCena_.painelDaLojaAberto() && processarCliqueNaLoja()) {
             return;
         }
 
@@ -424,17 +455,25 @@ private:
     }
 
     bool processarCliqueNaLoja() {
-        const auto sementeClicada =
-            BarraFerramentas::sementeClicadaNoPainelDaLoja(mouseX_, mouseY_, painelDaLoja_);
-        if (sementeClicada.has_value()) {
-            jogo_.selecionarSemente(*sementeClicada);
-            jogo_.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
-            estadoDaCena_.fecharPainelDaLoja();
-            tocarSomDeCliqueDaInterface();
-            return true;
+        const LojaInterface::LayoutCalculadoDaLoja layoutDaLoja = calcularLayoutAtualDaLoja();
+        const LojaInterface::ResultadoDoCliqueDaLoja resultado =
+            LojaInterface::processarCliqueDaLoja(mouseX_, mouseY_, estadoDaLoja_, layoutDaLoja);
+
+        if (!resultado.cliqueConsumido) {
+            return false;
         }
 
-        return pontoDentroDaAreaDeInteracao(mouseX_, mouseY_, painelDaLoja_.fundo);
+        if (resultado.identificadorDaSementeSelecionada.has_value()) {
+            jogo_.selecionarSemente(*resultado.identificadorDaSementeSelecionada);
+            jogo_.selecionarFerramenta(Ferramentas::TipoDeFerramenta::Semente);
+        }
+
+        if (resultado.acao != LojaInterface::AcaoDoCliqueDaLoja::ConsumirClique &&
+            resultado.acao != LojaInterface::AcaoDoCliqueDaLoja::Nenhuma) {
+            tocarSomDeCliqueDaInterface();
+        }
+
+        return true;
     }
 
     bool processarCliqueNaBarraDeFerramentas() {
@@ -444,8 +483,7 @@ private:
                 mouseX_,
                 mouseY_,
                 botoes_,
-                ferramentaSelecionada,
-                estadoDaCena_
+                ferramentaSelecionada
             );
         if (!resultadoDoClique.cliqueConsumido) {
             return false;
@@ -453,8 +491,14 @@ private:
 
         switch (resultadoDoClique.acao) {
             case BarraFerramentas::AcaoDoCliqueNaInterface::SelecionarFerramenta:
-            case BarraFerramentas::AcaoDoCliqueNaInterface::AlternarPainelDaLoja:
                 jogo_.selecionarFerramenta(ferramentaSelecionada);
+                tocarSomDeCliqueDaInterface();
+                break;
+            case BarraFerramentas::AcaoDoCliqueNaInterface::AbrirLoja:
+                jogo_.selecionarFerramenta(ferramentaSelecionada);
+                estadoDaCena_.fecharPainelConfiguracoes();
+                estadoDaLoja_.abrir();
+                atualizarHoverDaLoja();
                 tocarSomDeCliqueDaInterface();
                 break;
             case BarraFerramentas::AcaoDoCliqueNaInterface::AumentarZoom:
@@ -502,7 +546,7 @@ private:
     }
 
     Geometria::PosicaoNaGradeDeOcupacao calcularPosicaoRealcada() const {
-        if (camera_.panAtivo) {
+        if (camera_.panAtivo || mouseEstaSobreInterface()) {
             return Geometria::PosicaoNaGradeDeOcupacao{-1, -1};
         }
 
@@ -514,6 +558,7 @@ private:
         Camera::aplicarOrigemCentradaDaGrade(configuracoes_, jogo_.tamanhoAtualDoGrid());
         Camera::limitarPanAosLimitesDoGrid(camera_, configuracoes_, jogo_.tamanhoAtualDoGrid());
         recursos_.texturaFundo = Assets::carregarTexturaDeFundoPrincipal(ativos_, diretorioAssets_, configuracoes_);
+        recursosDaLoja_ = Assets::carregarRecursosDaLoja(ativos_, diretorioAssets_);
     }
 
     void centralizarCamera() {
@@ -527,6 +572,15 @@ private:
         }
     }
 
+    LojaInterface::LayoutCalculadoDaLoja calcularLayoutAtualDaLoja() const {
+        return LojaInterface::calcularLayoutDaLoja(estadoDaLoja_, itensDeSementesDaLoja_);
+    }
+
+    void atualizarHoverDaLoja() {
+        const LojaInterface::LayoutCalculadoDaLoja layoutDaLoja = calcularLayoutAtualDaLoja();
+        LojaInterface::atualizarHoverDaLoja(mouseX_, mouseY_, estadoDaLoja_, layoutDaLoja);
+    }
+
     SDL_Renderer* renderizador_ = nullptr;
     Assets::GerenciadorDeAtivosSDL& ativos_;
     std::filesystem::path diretorioAssets_;
@@ -536,10 +590,12 @@ private:
     EstadoDoTooltipDoCanteiro estadoDoTooltipDoCanteiro_;
     AnimacaoPersonagem::EstadoVisualDoPersonagem estadoVisualDoPersonagem_;
     Assets::RecursosDaFazenda recursos_;
+    Assets::RecursosDaLoja recursosDaLoja_;
     Assets::RecursosDeHud hud_;
     Camera::EstadoDaCamera camera_;
     BarraFerramentas::BotoesDaInterface botoes_;
-    BarraFerramentas::PainelDaLoja painelDaLoja_;
+    LojaInterface::EstadoDaLoja estadoDaLoja_;
+    std::vector<LojaInterface::ItemDeSementeDaLoja> itensDeSementesDaLoja_;
     bool audioInicializado_ = false;
     bool executando_ = true;
     int mouseX_ = Constantes::LARGURA_DA_JANELA / 2;

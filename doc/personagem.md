@@ -133,12 +133,12 @@ O clique só deve iniciar movimento quando todas as condições abaixo forem ate
 
 - O clique não aconteceu sobre a interface.
 - O clique não aconteceu sobre botões.
-- O clique não aconteceu sobre a loja.
+- A Loja modal não está aberta.
 - O clique não aconteceu sobre o painel de configurações.
 - O clique sobrou para a área jogável.
 - A posição convertida está dentro da área jogável de ocupação.
 
-Cliques em UI, botões, loja ou painel de configurações não devem mover o personagem.
+Cliques em UI, botões, Loja aberta ou painel de configurações não devem mover o personagem. Com a Loja aberta, clicar fora do painel fecha a Loja e consome o clique.
 
 ### 3.3. Caminho em “L” isométrico
 

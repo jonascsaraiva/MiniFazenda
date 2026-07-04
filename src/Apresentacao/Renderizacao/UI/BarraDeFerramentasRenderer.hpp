@@ -10,7 +10,6 @@
 #include <SDL.h>
 
 #include <algorithm>
-#include <optional>
 
 namespace MiniFazenda::Apresentacao::Renderizacao::UI {
 
@@ -197,67 +196,6 @@ inline void desenharInterface(
     desenharBotaoDoHud(renderizador, botoes.ajuda, IconeDoHud::Ajuda, false);
     desenharBotaoDoHud(renderizador, botoes.zoomMais, IconeDoHud::ZoomMais, true);
     desenharBotaoDoHud(renderizador, botoes.zoomMenos, IconeDoHud::ZoomMenos, true);
-}
-
-inline void desenharPainelDaLoja(
-    SDL_Renderer* renderizador,
-    const Interface::BarraDeFerramentas::PainelDaLoja& painel,
-    const MiniFazenda::Infraestrutura::Assets::TexturasDasSementesPorSemente& texturasDasSementes,
-    std::optional<int> identificadorDaSementeSelecionada
-) {
-    if (painel.opcoes.empty()) {
-        return;
-    }
-
-    SDL_Rect areaDoFundo{
-        painel.fundo.posicaoBotaoHorizontal,
-        painel.fundo.posicaoBotaoVertical,
-        painel.fundo.tamanhoBotaoLargura,
-        painel.fundo.tamanhoBotaoAltura
-    };
-    Primitivas::preencherRetangulo(renderizador, areaDoFundo, SDL_Color{61, 65, 57, 235});
-    Primitivas::definirCor(renderizador, SDL_Color{238, 226, 203, 255});
-    SDL_RenderDrawRect(renderizador, &areaDoFundo);
-
-    for (const Interface::BarraDeFerramentas::OpcaoDeSementeDaLoja& opcao : painel.opcoes) {
-        SDL_Rect areaDaOpcao{
-            opcao.area.posicaoBotaoHorizontal,
-            opcao.area.posicaoBotaoVertical,
-            opcao.area.tamanhoBotaoLargura,
-            opcao.area.tamanhoBotaoAltura
-        };
-        const bool selecionada =
-            identificadorDaSementeSelecionada.has_value() &&
-            *identificadorDaSementeSelecionada == opcao.identificadorDaSemente;
-
-        Primitivas::preencherRetangulo(
-            renderizador,
-            areaDaOpcao,
-            selecionada ? SDL_Color{248, 226, 148, 255} : SDL_Color{238, 226, 203, 255}
-        );
-        Primitivas::definirCor(renderizador, selecionada ? SDL_Color{94, 75, 45, 255} : SDL_Color{117, 104, 87, 255});
-        SDL_RenderDrawRect(renderizador, &areaDaOpcao);
-
-        constexpr int margemDoIcone = 5;
-        SDL_Rect areaDoIcone{
-            areaDaOpcao.x + margemDoIcone,
-            areaDaOpcao.y + margemDoIcone,
-            areaDaOpcao.w - margemDoIcone * 2,
-            areaDaOpcao.h - margemDoIcone * 2
-        };
-
-        const auto encontrada = texturasDasSementes.find(opcao.identificadorDaSemente);
-        if (encontrada != texturasDasSementes.end() && encontrada->second != nullptr) {
-            SDL_RenderCopy(renderizador, encontrada->second, nullptr, &areaDoIcone);
-            continue;
-        }
-
-        desenharIconeSemente(
-            renderizador,
-            areaDoIcone,
-            selecionada ? SDL_Color{65, 49, 31, 255} : SDL_Color{81, 76, 67, 255}
-        );
-    }
 }
 
 } // namespace MiniFazenda::Apresentacao::Renderizacao::UI
